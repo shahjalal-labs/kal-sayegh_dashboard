@@ -1,0 +1,96 @@
+{
+  "dashboardOverview": {
+    "result": {
+      "summary": {
+        "newQuotes": 24,
+        "totalEmploys": 120,
+        "pendingPayments": 8,
+        "referralDiscounts": 15
+      },
+      "revenueChart": {
+        "chartData": [
+          {
+            "label": "Jan",
+            "totalRevenue": 12000,
+            "delivered": 10000,
+            "cancelled": 2000
+          },
+          {
+            "label": "Feb",
+            "totalRevenue": 15000,
+            "delivered": 13000,
+            "cancelled": 2000
+          },
+          {
+            "label": "Mar",
+            "totalRevenue": 18000,
+            "delivered": 16000,
+            "cancelled": 2000
+          },
+          {
+            "label": "Apr",
+            "totalRevenue": 22000,
+            "delivered": 20000,
+            "cancelled": 2000
+          },
+          {
+            "label": "May",
+            "totalRevenue": 25000,
+            "delivered": 22000,
+            "cancelled": 3000
+          },
+          {
+            "label": "Jun",
+            "totalRevenue": 30000,
+            "delivered": 27000,
+            "cancelled": 3000
+          }
+        ]
+      },
+      "ringChartData": {
+        "pending": 12,
+        "inRoute": 18,
+        "delivered": 45,
+        "cancelled": 6
+      }
+    }
+  },
+  "dashboardUsers": {
+    "result": {
+      "lastTenUsers": [
+        {
+          "id": "1",
+          "firstName": "Rahim",
+          "lastName": "Ahmed",
+          "profileImage": "/placeholder.svg",
+          "phone": "01700000001",
+          "email": "rahim@gmail.com"
+        },
+        {
+          "id": "2",
+          "firstName": "Karim",
+          "lastName": "Hasan",
+          "profileImage": "/placeholder.svg",
+          "phone": "01700000002",
+          "email": "karim@gmail.com"
+        },
+        {
+          "id": "3",
+          "firstName": "Nusrat",
+          "lastName": "Jahan",
+          "profileImage": "/placeholder.svg",
+          "phone": "01700000003",
+          "email": "nusrat@gmail.com"
+        }
+      ],
+      "chartData": [
+        { "label": "Jan", "value": 2000000 },
+        { "label": "Feb", "value": 2500000 },
+        { "label": "Mar", "value": 3000000 },
+        { "label": "Apr", "value": 2800000 },
+        { "label": "May", "value": 3500000 },
+        { "label": "Jun", "value": 4000000 }
+      ]
+    }
+  }
+}

@@ -1,0 +1,215 @@
+"use client";
+
+import {
+  useMyProfileQuery,
+  useUpdateProfileMutation,
+} from "@/redux/api/authApi";
+import { ChevronRightIcon, Pencil } from "lucide-react";
+import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import Account from "./Account";
+import GardeningTips from "./GardeningTips";
+import TrustedLocalTrades from "./TrustedLocalTrades";
+
+import { useRouter, useSearchParams } from "next/navigation";
+
+// Profile Info Component
+function ProfileInfo() {
+  const { data } = useMyProfileQuery(undefined);
+  const [updateProfile, { isLoading }] = useUpdateProfileMutation();
+
+  const [form, setForm] = useState({ fullname: "", email: "", phone: "" });
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (data?.result) {
+      setForm({
+        fullname: data?.result?.fullname || "",
+        email: data?.result?.email || "",
+        phone: data?.result?.phone || "",
+      });
+      setPreview(data?.result?.profileimage || null);
+    }
+  }, [data]);
+
+  const handleChange = (field: string, value: string) => {
+    setForm({ ...form, [field]: value });
+  };
+
+  const handleFileClick = () => fileInputRef.current?.click();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
+      setPreview(URL.createObjectURL(selectedFile));
+    }
+  };
+
+  const handleSubmit = async () => {
+    try {
+      const body = new FormData();
+      body.append("fullname", form.fullname);
+      body.append("phone", form.phone);
+
+      if (file) body.append("profileImage", file);
+
+      await updateProfile(body).unwrap();
+      toast.success("Profile updated successfully!");
+    } catch (err: any) {
+      toast.error(err?.data?.message || "Failed to update profile");
+    }
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-lg shadow-sm">
+      <h2 className="text-lg md:text-xl font-semibold pb-6 border-b">
+        Profile Information
+      </h2>
+
+      <div className="mt-4">
+        <h3 className="font-medium text-lg mb-2">Profile Photo</h3>
+
+        <div className="relative w-24 h-24">
+          {(preview || data?.result?.profileimage) && (
+            <Image
+              src={preview || data?.result?.profileimage}
+              alt="Profile"
+              width={96}
+              height={96}
+              className="w-24 h-24 rounded-full object-cover border"
+            />
+          )}
+
+          <button
+            onClick={handleFileClick}
+            className="absolute bottom-0 right-0 bg-white p-2 rounded-lg shadow-md"
+          >
+            <Pencil size={16} />
+          </button>
+
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            className="hidden"
+          />
+        </div>
+      </div>
+
+      <div className="mt-6 space-y-4">
+        <input
+          type="text"
+          placeholder="Full Name"
+          className="w-full border px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+          value={form.fullname}
+          onChange={(e) => handleChange("fullname", e.target.value)}
+        />
+
+        <input
+          type="email"
+          placeholder="Email"
+          className="w-full border px-4 py-2 rounded-lg bg-gray-100"
+          value={form.email}
+          readOnly
+        />
+
+        <input
+          type="tel"
+          placeholder="Phone"
+          className="w-full border px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+          value={form.phone}
+          onChange={(e) => handleChange("phone", e.target.value)}
+        />
+      </div>
+
+      <button
+        onClick={handleSubmit}
+        disabled={isLoading}
+        className={`mt-6 text-white px-6 py-2 rounded-md ${
+          isLoading ? "bg-gray-400 cursor-not-allowed" : "bg-primary"
+        }`}
+      >
+        {isLoading ? "Saving..." : "Save"}
+      </button>
+    </div>
+  );
+}
+
+// Settings Page
+export default function Settings() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const userPlan = "advance";
+
+  const tabs = [
+    ...(userPlan === "advance"
+      ? [
+          {
+            key: "basic",
+            label: "Basic",
+            component: <ProfileInfo />,
+          },
+        ]
+      : []),
+    {
+      key: "account",
+      label: "Account",
+      component: <Account />,
+    },
+    {
+      key: "gardening",
+      label: "Gardening Tips",
+      component: <GardeningTips />,
+    },
+    {
+      key: "trusted",
+      label: "Trusted Local Trades",
+      component: <TrustedLocalTrades />,
+    },
+  ];
+
+  const tabFromUrl = searchParams.get("tab");
+
+  const [activeTab, setActiveTab] = useState(tabFromUrl || tabs[0]?.key);
+
+  const handleTabChange = (tabKey: string) => {
+    setActiveTab(tabKey);
+    router.push(`?tab=${tabKey}`);
+  };
+
+  useEffect(() => {
+    if (tabFromUrl) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [tabFromUrl]);
+
+  return (
+    <div className="flex flex-col md:flex-row gap-8 p-8">
+      {/* Sidebar */}
+      <div className="w-[348px] bg-white flex flex-col gap-4 p-6 rounded-lg shadow-sm">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            className={`w-full px-4 py-2 rounded-lg flex justify-between items-center
+            ${activeTab === tab.key ? "bg-primary text-white" : "text-gray-700"}`}
+            onClick={() => handleTabChange(tab.key)}
+          >
+            {tab.label}
+            <ChevronRightIcon size={20} />
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1">
+        {tabs.find((tab) => tab.key === activeTab)?.component}
+      </div>
+    </div>
+  );
+}
