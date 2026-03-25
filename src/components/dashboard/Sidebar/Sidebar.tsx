@@ -3,6 +3,7 @@
 import settingIcon from "@/assets/dashboard/account-setting-01.png";
 import chat from "@/assets/dashboard/bubble-chat.png";
 import estimate from "@/assets/dashboard/estimate.png";
+import estimator from "@/assets/dashboard/estimator.png";
 import filemanagement from "@/assets/dashboard/file-management.png";
 import invoiceIcon from "@/assets/dashboard/invoice.png";
 import newOffice from "@/assets/dashboard/new-office.png";
@@ -40,6 +41,12 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
         href: "/admin/employee-management",
         icon: filemanagement,
         label: "Employee Management",
+        isImage: true,
+      },
+      {
+        href: "/admin/estimator-management",
+        icon: estimator,
+        label: "Estimator Management",
         isImage: true,
       },
       {

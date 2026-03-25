@@ -153,9 +153,9 @@ export default function Account() {
           <div className="mt-8">
             <button
               type="submit"
-              className="bg-primary text-white px-6 py-2 rounded-md"
+              className="bg-primary text-white px-16 py-3 rounded-xl"
             >
-              {isLoading ? "Changing..." : "Save Changes"}
+              {isLoading ? "Changing..." : "Save "}
             </button>
           </div>
         </form>

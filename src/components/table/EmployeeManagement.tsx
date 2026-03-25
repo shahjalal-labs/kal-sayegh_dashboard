@@ -77,7 +77,7 @@ export default function EmployeeManagement() {
   }, []);
 
   return (
-    <div className="">
+    <div className="border-t">
       <ReusableTable columns={columns} data={employees} isLoading={loading} />
     </div>
   );

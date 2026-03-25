@@ -9,17 +9,21 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import Account from "./Account";
-import GardeningTips from "./GardeningTips";
-import TrustedLocalTrades from "./TrustedLocalTrades";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import Notes from "./Notes";
 
 // Profile Info Component
 function ProfileInfo() {
   const { data } = useMyProfileQuery(undefined);
   const [updateProfile, { isLoading }] = useUpdateProfileMutation();
 
-  const [form, setForm] = useState({ fullname: "", email: "", phone: "" });
+  const [form, setForm] = useState({
+    fullname: "",
+    email: "",
+    country: "",
+    city: "",
+  });
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -29,7 +33,8 @@ function ProfileInfo() {
       setForm({
         fullname: data?.result?.fullname || "",
         email: data?.result?.email || "",
-        phone: data?.result?.phone || "",
+        country: data?.result?.country || "",
+        city: data?.result?.city || "",
       });
       setPreview(data?.result?.profileimage || null);
     }
@@ -53,7 +58,8 @@ function ProfileInfo() {
     try {
       const body = new FormData();
       body.append("fullname", form.fullname);
-      body.append("phone", form.phone);
+      body.append("country", form.country);
+      body.append("city", form.city);
 
       if (file) body.append("profileImage", file);
 
@@ -73,7 +79,7 @@ function ProfileInfo() {
       <div className="mt-4">
         <h3 className="font-medium text-lg mb-2">Profile Photo</h3>
 
-        <div className="relative w-24 h-24">
+        <div className="relative w-24 h-24 bg-gray-100 rounded-lg">
           {(preview || data?.result?.profileimage) && (
             <Image
               src={preview || data?.result?.profileimage}
@@ -102,37 +108,65 @@ function ProfileInfo() {
       </div>
 
       <div className="mt-6 space-y-4">
-        <input
-          type="text"
-          placeholder="Full Name"
-          className="w-full border px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-          value={form.fullname}
-          onChange={(e) => handleChange("fullname", e.target.value)}
-        />
+        <div>
+          <label htmlFor="" className="font-normal text-base">
+            Display Name
+          </label>
+          <input
+            type="text"
+            placeholder="Full Name"
+            className="w-full border px-4 py-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+            value={form.fullname}
+            onChange={(e) => handleChange("fullname", e.target.value)}
+          />
+        </div>
+        <div>
+          <label htmlFor="" className="font-normal text-base">
+            Email
+          </label>
+          <input
+            type="email"
+            placeholder="Email"
+            className="w-full border px-4 py-2 rounded-lg bg-primary placeholder:text-white focus:outline-none "
+            value={form.email}
+            readOnly
+          />
+        </div>
 
-        <input
-          type="email"
-          placeholder="Email"
-          className="w-full border px-4 py-2 rounded-lg bg-gray-100"
-          value={form.email}
-          readOnly
-        />
+        <div>
+          <label htmlFor="" className="font-normal text-base">
+            Country
+          </label>
+          <div className="flex gap-4">
+            <select
+              className="flex-1 border px-4 py-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+              value={form.country}
+              onChange={(e) => handleChange("country", e.target.value)}
+            >
+              <option value="">Select Country</option>
+              <option value="Bangladesh">Bangladesh</option>
+              <option value="USA">USA</option>
+              <option value="UK">UK</option>
+            </select>
 
-        <input
-          type="tel"
-          placeholder="Phone"
-          className="w-full border px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-          value={form.phone}
-          onChange={(e) => handleChange("phone", e.target.value)}
-        />
+            <select
+              className="flex-1 border px-4 py-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+              value={form.city}
+              onChange={(e) => handleChange("city", e.target.value)}
+            >
+              <option value="">Select City</option>
+              <option value="Dhaka">Dhaka</option>
+              <option value="Chittagong">Chittagong</option>
+              <option value="Khulna">Khulna</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       <button
         onClick={handleSubmit}
         disabled={isLoading}
-        className={`mt-6 text-white px-6 py-2 rounded-md ${
-          isLoading ? "bg-gray-400 cursor-not-allowed" : "bg-primary"
-        }`}
+        className={`mt-6 text-white px-16 py-3 rounded-xl bg-primary hover:bg-primary/90 transition-all`}
       >
         {isLoading ? "Saving..." : "Save"}
       </button>
@@ -157,20 +191,16 @@ export default function Settings() {
           },
         ]
       : []),
+
+    {
+      key: "Notes",
+      label: "Notes",
+      component: <Notes />,
+    },
     {
       key: "account",
       label: "Account",
       component: <Account />,
-    },
-    {
-      key: "gardening",
-      label: "Gardening Tips",
-      component: <GardeningTips />,
-    },
-    {
-      key: "trusted",
-      label: "Trusted Local Trades",
-      component: <TrustedLocalTrades />,
     },
   ];
 
@@ -192,11 +222,11 @@ export default function Settings() {
   return (
     <div className="flex flex-col md:flex-row gap-8 p-8">
       {/* Sidebar */}
-      <div className="w-[348px] bg-white flex flex-col gap-4 p-6 rounded-lg shadow-sm">
+      <div className="w-[348px] h-80 bg-white flex flex-col gap-4 p-6 rounded-lg shadow-sm">
         {tabs.map((tab) => (
           <button
             key={tab.key}
-            className={`w-full px-4 py-2 rounded-lg flex justify-between items-center
+            className={`w-full px-4 py-3 rounded-lg flex justify-between items-center
             ${activeTab === tab.key ? "bg-primary text-white" : "text-gray-700"}`}
             onClick={() => handleTabChange(tab.key)}
           >
