@@ -1,8 +1,9 @@
 "use client";
 
-import { Eye } from "lucide-react";
+import { Edit, Eye } from "lucide-react";
 import React from "react";
 import { FaSpinner } from "react-icons/fa";
+import { RiDeleteBin6Line } from "react-icons/ri";
 
 interface Column {
   key: string;
@@ -45,6 +46,12 @@ const ReusableTable: React.FC<ReusableTableProps> = ({
       return (
         <span className={`${base} bg-red-200 text-red-800`}>{status}</span>
       );
+    if (status === "Pending")
+      return (
+        <span className={`${base}  bg-[#FAAD141A] text-[#FAAD14]`}>
+          {status}
+        </span>
+      );
     return <span className={`${base} bg-gray-500`}>{status}</span>;
   };
 
@@ -69,6 +76,12 @@ const ReusableTable: React.FC<ReusableTableProps> = ({
                     <div className="flex gap-2">
                       <button className="text-primary">
                         <Eye size={20} />
+                      </button>
+                      <button className="text-[#11AD32]">
+                        <Edit size={20} />
+                      </button>
+                      <button className="text-red-500">
+                        <RiDeleteBin6Line size={20} />
                       </button>
                     </div>
                   ) : col.key === "status" ? (

@@ -13,7 +13,7 @@ interface Employee {
   travelHours: number;
   clockIn: string;
   overtime: number;
-  status: "Active" | "Inactive";
+  status: "Active" | "Inactive" | "Pending";
 }
 
 const employeesData: Employee[] = [
@@ -26,7 +26,7 @@ const employeesData: Employee[] = [
     travelHours: 3,
     clockIn: "09:00 AM",
     overtime: 2,
-    status: "Active",
+    status: "Pending",
   },
   {
     id: 2,
@@ -77,8 +77,7 @@ export default function EmployeeManagement() {
   }, []);
 
   return (
-    <div className="p-6 bg-secondary rounded-2xl">
-      <h1 className="text-2xl font-semibold mb-4">Employee List</h1>
+    <div className="">
       <ReusableTable columns={columns} data={employees} isLoading={loading} />
     </div>
   );
