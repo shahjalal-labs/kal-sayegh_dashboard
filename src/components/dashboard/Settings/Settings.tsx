@@ -137,7 +137,7 @@ function ProfileInfo() {
           <label htmlFor="" className="font-normal text-base">
             Country
           </label>
-          <div className="flex gap-4">
+          <div className="flex flex-col md:flex-row gap-4">
             <select
               className="flex-1 border px-4 py-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
               value={form.country}
@@ -222,7 +222,7 @@ export default function Settings() {
   return (
     <div className="flex flex-col md:flex-row gap-8 p-8">
       {/* Sidebar */}
-      <div className="w-[348px] h-80 bg-white flex flex-col gap-4 p-6 rounded-lg shadow-sm">
+      <div className="md:w-[348px] h-80 bg-white flex flex-col gap-4 p-6 rounded-lg shadow-sm">
         {tabs.map((tab) => (
           <button
             key={tab.key}
