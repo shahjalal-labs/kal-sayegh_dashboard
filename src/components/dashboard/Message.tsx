@@ -1,5 +1,6 @@
 "use client";
 
+import profile from "@/assets/navbar/profile.png";
 import { Plus, Search, Send, X } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
@@ -52,6 +53,7 @@ const messages = [
 export default function Message() {
   const [open, setOpen] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  const [activeChat, setActiveChat] = useState<number | null>(null);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -62,8 +64,15 @@ export default function Message() {
   };
 
   return (
-    <div className="flex h-screen b p-4 gap-6 rounded-2xl">
-      <div className="w-full md:w-1/3 lg:w-1/4 bg-white rounded-2xl p-4 shadow-sm">
+    <div className="flex h-screen p-2 md:p-4 gap-4">
+      <div
+        className={`
+        ${activeChat !== null ? "hidden" : "flex"}
+        md:flex flex-col
+        w-full md:w-1/3 lg:w-1/4 
+        bg-secondary rounded-2xl p-4 shadow-sm
+      `}
+      >
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">Chats</h2>
           <Plus
@@ -72,7 +81,7 @@ export default function Message() {
           />
         </div>
 
-        <p className="text-sm text-gray-400 mb-4">26 Message, 3 Unread</p>
+        <p className="text-sm text-gray-400 mb-4">{chats.length} Messages</p>
 
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -83,37 +92,61 @@ export default function Message() {
           />
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-3 overflow-y-auto">
           {chats.map((chat, i) => (
             <div
               key={i}
+              onClick={() => setActiveChat(i)}
               className={`p-3 rounded-lg cursor-pointer transition ${
-                chat.active ? "bg-[#E279321A]" : "hover:bg-gray-100"
+                activeChat === i ? "bg-[#E279321A]" : "hover:bg-gray-100"
               }`}
             >
-              <div className="flex justify-between">
-                <h4 className="font-medium">{chat.name}</h4>
-                <span className="text-xs text-gray-400">{chat.time}</span>
+              <div className="flex items-start gap-3">
+                <Image src={profile} alt="profile" width={40} height={40} />
+
+                <div className="flex-1">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-medium">{chat.name}</h4>
+                    <span className="text-xs text-gray-400">{chat.time}</span>
+                  </div>
+
+                  <p className="text-sm text-gray-500 truncate">
+                    {chat.message}
+                  </p>
+                </div>
               </div>
-              <p className="text-sm text-gray-500 truncate">{chat.message}</p>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Chat Area */}
-      <div className="hidden md:flex flex-col flex-1 bg-white rounded-2xl shadow-sm">
-        {/* Chat Header */}
-        <div className="flex items-center gap-3 p-4 border-b mb-2">
+      <div
+        className={`
+        ${activeChat === null ? "hidden" : "flex"}
+        md:flex flex-col flex-1 
+        bg-secondary rounded-2xl shadow-sm
+      `}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-3 p-4 border-b">
+          <button
+            onClick={() => setActiveChat(null)}
+            className="md:hidden text-gray-500 text-lg"
+          >
+            ←
+          </button>
+
           <div className="w-10 h-10 rounded-full bg-gray-300" />
           <div>
-            <h3 className="font-semibold">Field Team Hub</h3>
-            <p className="text-xs text-gray-400">45 members, 24 online</p>
+            <h3 className="font-semibold">
+              {activeChat !== null && chats[activeChat].name}
+            </h3>
+            <p className="text-xs text-gray-400">Active now</p>
           </div>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 p-6 space-y-6 overflow-y-auto bg-secondary">
+        <div className="flex-1 p-3 md:p-6 space-y-4 overflow-y-auto bg-secondary">
           {messages.map((msg, i) => (
             <div
               key={i}
@@ -122,10 +155,10 @@ export default function Message() {
               }`}
             >
               <div
-                className={`max-w-xs md:max-w-md px-4 py-3 rounded-xl text-sm ${
+                className={`max-w-[75%] md:max-w-md px-4 py-2 rounded-xl text-sm ${
                   msg.sender === "me"
-                    ? "bg-[#E279321A] text-gray-800 ml-10"
-                    : "bg-gray-200 text-gray-800 mr-10"
+                    ? "bg-[#E279321A] text-gray-800"
+                    : "bg-gray-200 text-gray-800"
                 }`}
               >
                 {msg.text}
@@ -134,21 +167,20 @@ export default function Message() {
           ))}
         </div>
 
-        {/* Input */}
-        <div className="p-4 bg-white border-t flex items-center gap-3">
+        <div className="p-3 md:p-4 bg-white border-t flex items-center gap-2">
           <input
             type="text"
             placeholder="Type Messages"
-            className="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-1 focus:ring-orange-400"
+            className="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-orange-400"
           />
-          <button className="bg-primary p-3 rounded-lg text-white">
+          <button className="bg-primary p-2 md:p-3 rounded-full text-white">
             <Send className="w-4 h-4" />
           </button>
         </div>
       </div>
 
       {open && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-6">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white w-full max-w-xl rounded-2xl p-6 relative">
             <button
               onClick={() => setOpen(false)}
@@ -157,22 +189,18 @@ export default function Message() {
               <X />
             </button>
 
-            <h2 className="text-xl font-normal mb-4">Create New Group</h2>
+            <h2 className="text-xl mb-4">Create New Group</h2>
 
             <div className="space-y-4">
               <div>
-                <label className="text-base font-normal">Group Name</label>
-                <select className="w-full mt-1 border rounded-lg px-3 py-2">
-                  <option>Select group</option>
-                  <option>Team A</option>
-                  <option>Team B</option>
-                </select>
+                <label>Group Name</label>
+                <input className="w-full mt-1 border rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary" />
               </div>
-              <div>
-                <label className="text-base font-normal">Group Image</label>
 
-                <div className="mt-2 ">
-                  <label className="w-full h-32 flex flex-col items-center justify-center border-2 border-dashed border-primary rounded-xl cursor-pointer  transition">
+              <div>
+                <label>Group Image</label>
+                <div className="mt-2">
+                  <label className="w-full h-32 flex flex-col items-center justify-center border-2 border-dashed border-primary rounded-xl cursor-pointer">
                     {preview ? (
                       <Image
                         src={preview}
@@ -182,9 +210,8 @@ export default function Message() {
                         className="h-full w-full object-contain rounded-xl"
                       />
                     ) : (
-                      <div className="text-center text-gray-400 text-sm">
-                        <p>Click to upload</p>
-                        <p className="text-xs">PNG, JPG</p>
+                      <div className="text-gray-400 text-sm text-center">
+                        Click to upload
                       </div>
                     )}
 
@@ -205,7 +232,7 @@ export default function Message() {
                 >
                   Close
                 </button>
-                <button className="px-6 py-2 bg-primary hover:bg-primary/90 transition-all text-white rounded-xl">
+                <button className="px-6 py-2 bg-primary text-white rounded-xl">
                   Submit
                 </button>
               </div>

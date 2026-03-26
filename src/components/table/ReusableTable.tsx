@@ -38,17 +38,17 @@ const ReusableTable: React.FC<ReusableTableProps> = ({
     const base = "px-4 py-2 rounded-lg text-white text-sm font-normal";
     if (status === "Active")
       return (
-        <span className={`${base} bg-[#52C41A1A] text-[#329800]`}>
+        <span className={`${base} bg-[#52C41A1A] text-[#41c002]`}>
           {status}
         </span>
       );
     if (status === "Inactive")
       return (
-        <span className={`${base} bg-red-200 text-red-800`}>{status}</span>
+        <span className={`${base} bg-red-200 text-red-900`}>{status}</span>
       );
     if (status === "Pending")
       return (
-        <span className={`${base}  bg-[#FAAD141A] text-[#FAAD14]`}>
+        <span className={`${base}  bg-[#FAAD141A] text-[#e79d09]`}>
           {status}
         </span>
       );
