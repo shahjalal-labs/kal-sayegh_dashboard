@@ -2,15 +2,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import notification from "@/assets/navbar/notification.png";
 import profileAvatar from "@/assets/navbar/profile.png";
 import { useMyProfileQuery } from "@/redux/api/authApi";
 import Cookies from "js-cookie";
 import { jwtDecode } from "jwt-decode";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation"; // <-- import usePathname
+import { usePathname } from "next/navigation";
 import { AiOutlineMenu } from "react-icons/ai";
+import { MdOutlineNotifications } from "react-icons/md";
 
 const Topbar: React.FC<{ onHamburgerClick: () => void }> = ({
   onHamburgerClick,
@@ -30,6 +30,8 @@ const Topbar: React.FC<{ onHamburgerClick: () => void }> = ({
   }
 
   const pathname = usePathname();
+
+  const isNotificationActive = pathname === "/admin/notification";
 
   // Map current route to a page title
   const getPageTitle = () => {
@@ -81,12 +83,15 @@ const Topbar: React.FC<{ onHamburgerClick: () => void }> = ({
 
         {/* Notification & Profile */}
         <div className="flex items-center gap-5">
-          <Image
-            src={notification}
-            alt="notification icon"
-            width={60}
-            height={60}
-          />
+          <Link href="/admin/notification" className="relative">
+            <div
+              className={`relative p-1 rounded-full ${
+                isNotificationActive ? "bg-primary text-white" : "text-gray-700"
+              }`}
+            >
+              <MdOutlineNotifications size={25} />
+            </div>
+          </Link>
           <Link href={`/admin/settings`}>
             <Image
               src={profile || profileAvatar}

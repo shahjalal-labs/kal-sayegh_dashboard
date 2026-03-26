@@ -15,6 +15,8 @@ interface ReusableTableProps {
   data?: any[];
   isLoading?: boolean;
   error?: string | null;
+  onView?: (row: any) => void;
+  onEdit?: (row: any) => void;
 }
 
 const ReusableTable: React.FC<ReusableTableProps> = ({
@@ -22,6 +24,8 @@ const ReusableTable: React.FC<ReusableTableProps> = ({
   data = [],
   isLoading = false,
   error,
+  onView,
+  onEdit,
 }) => {
   if (isLoading)
     return (
@@ -74,10 +78,16 @@ const ReusableTable: React.FC<ReusableTableProps> = ({
                 <td key={col.key} className="p-2 ">
                   {col.key === "action" ? (
                     <div className="flex gap-2">
-                      <button className="text-primary">
+                      <button
+                        onClick={() => onView?.(row)}
+                        className="text-primary"
+                      >
                         <Eye size={20} />
                       </button>
-                      <button className="text-[#11AD32]">
+                      <button
+                        onClick={() => onEdit?.(row)}
+                        className="text-[#11AD32]"
+                      >
                         <Edit size={20} />
                       </button>
                       <button className="text-red-500">
