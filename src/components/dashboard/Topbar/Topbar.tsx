@@ -33,7 +33,6 @@ const Topbar: React.FC<{ onHamburgerClick: () => void }> = ({
 
   const isNotificationActive = pathname === "/admin/notification";
 
-  // Map current route to a page title
   const getPageTitle = () => {
     switch (pathname) {
       case "/admin/dashboard":
@@ -66,7 +65,6 @@ const Topbar: React.FC<{ onHamburgerClick: () => void }> = ({
   return (
     <header className="bg-white shadow-sm py-6 px-6 lg:px-16 w-full">
       <div className="flex justify-between items-center flex-wrap">
-        {/* Hamburger Icon for Mobile */}
         <button
           className="lg:hidden text-2xl text-gray-700"
           onClick={onHamburgerClick}
@@ -74,14 +72,12 @@ const Topbar: React.FC<{ onHamburgerClick: () => void }> = ({
           <AiOutlineMenu />
         </button>
 
-        {/* Dynamic Page Title */}
         <div className="flex items-center gap-6">
           <h1 className="text-[#161616] text-[16px] md:text-[24px] font-bold">
             {getPageTitle()}
           </h1>
         </div>
 
-        {/* Notification & Profile */}
         <div className="flex items-center gap-5">
           <Link href="/admin/notification" className="relative">
             <div

@@ -1,7 +1,7 @@
 "use client";
 
 import profile from "@/assets/navbar/profile.png";
-import { Plus, Search, Send, X } from "lucide-react";
+import { Plus, Search, Send } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 
@@ -182,13 +182,6 @@ export default function Message() {
       {open && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white w-full max-w-xl rounded-2xl p-6 relative">
-            <button
-              onClick={() => setOpen(false)}
-              className="absolute right-4 top-4 text-gray-500"
-            >
-              <X />
-            </button>
-
             <h2 className="text-xl mb-4">Create New Group</h2>
 
             <div className="space-y-4">
