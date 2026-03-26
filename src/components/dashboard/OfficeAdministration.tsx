@@ -1,7 +1,18 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { LiaEditSolid } from "react-icons/lia";
 import { RiFolderDownloadLine } from "react-icons/ri";
+import { CustomModal } from "../modal/CustomModal";
+
+interface FormData {
+  office: string;
+  date: string;
+  location: string;
+  phone: string;
+  email: string;
+  address: string;
+}
 
 interface JobItem {
   id: number;
@@ -14,6 +25,85 @@ interface Office {
   id: string;
   label: string;
   jobs: JobItem[];
+}
+
+function CreateJobForm({
+  form,
+  setForm,
+}: {
+  form: FormData;
+  setForm: React.Dispatch<React.SetStateAction<FormData>>;
+}) {
+  const handleChange = (field: keyof FormData, value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <label className="text-sm text-gray-600">Office Name</label>
+        <select
+          value={form.office}
+          onChange={(e) => handleChange("office", e.target.value)}
+          className="w-full mt-1 border px-4 py-3 rounded-xl"
+        >
+          <option value="">Select Office</option>
+          <option>Office 01</option>
+          <option>Office 02</option>
+        </select>
+      </div>
+
+      <div>
+        <label className="text-sm text-gray-600">Date</label>
+        <input
+          type="date"
+          value={form.date}
+          onChange={(e) => handleChange("date", e.target.value)}
+          className="w-full mt-1 border px-4 py-3 rounded-xl"
+        />
+      </div>
+
+      <div>
+        <label className="text-sm text-gray-600">Office Location</label>
+        <input
+          type="text"
+          value={form.location}
+          onChange={(e) => handleChange("location", e.target.value)}
+          className="w-full mt-1 border px-4 py-3 rounded-xl"
+        />
+      </div>
+
+      <div>
+        <label className="text-sm text-gray-600">Contact Number</label>
+        <input
+          type="tel"
+          value={form.phone}
+          onChange={(e) => handleChange("phone", e.target.value)}
+          className="w-full mt-1 border px-4 py-3 rounded-xl"
+        />
+      </div>
+
+      <div>
+        <label className="text-sm text-gray-600">Email</label>
+        <input
+          type="email"
+          value={form.email}
+          onChange={(e) => handleChange("email", e.target.value)}
+          className="w-full mt-1 border px-4 py-3 rounded-xl"
+        />
+      </div>
+
+      <div>
+        <label className="text-sm text-gray-600">Address</label>
+        <input
+          type="text"
+          value={form.address}
+          onChange={(e) => handleChange("address", e.target.value)}
+          className="w-full mt-1 border px-4 py-3 rounded-xl"
+        />
+      </div>
+    </div>
+  );
 }
 
 const offices: Office[] = [
@@ -140,68 +230,148 @@ const offices: Office[] = [
 ];
 
 export default function OfficeAdministration() {
+  const [openModal, setOpenModal] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<JobItem | null>(null);
+
+  const [form, setForm] = useState<FormData>({
+    office: "",
+    date: "",
+    location: "",
+    phone: "",
+    email: "",
+    address: "",
+  });
+
+  const initialForm: FormData = {
+    office: "",
+    date: "",
+    location: "",
+    phone: "",
+    email: "",
+    address: "",
+  };
+
+  useEffect(() => {
+    if (selectedJob) {
+      setForm({
+        office: "Office 01",
+        date: selectedJob.date,
+        location: "Sample Location",
+        phone: "123456789",
+        email: "test@gmail.com",
+        address: "Sample Address",
+      });
+    } else {
+      setForm(initialForm);
+    }
+  }, [selectedJob]);
+
+  const handleSubmit = () => {
+    if (selectedJob) {
+      console.log("UPDATED:", form);
+    } else {
+      console.log("CREATED:", form);
+    }
+
+    setOpenModal(false);
+    setSelectedJob(null);
+  };
+
   return (
     <div className="min-h-screen bg-secondary p-6 rounded-2xl">
-      <div className="">
-        <div className=" rounded-lg p-6">
-          <div className="grid grid-cols-2 gap-8">
-            {offices.map((office) => (
-              <div key={office.id} className="space-y-4">
-                <div className="flex items-center justify-between pb-4 ">
-                  <h2 className="text-lg font-normal text-gray-800 bg-[#FFFFFF] shadow-md border-[1px] pr-14 pl-3 py-3 rounded-xl">
-                    {office.label}
-                  </h2>
-                  <div className="flex items-center gap-3">
-                    <button className="px-4 py-3 bg-primary text-secondary text-base font-medium rounded-xl hover:bg-primary/90  transition-colors flex items-center gap-2">
-                      <span>+ New Job Request</span>
+      <CustomModal
+        open={openModal}
+        onClose={() => {
+          setOpenModal(false);
+          setSelectedJob(null);
+        }}
+        title={selectedJob ? "Edit Job Request" : "Create New Job Request"}
+        actions={[
+          {
+            label: "Close",
+            variant: "secondary",
+            onClick: () => {
+              setOpenModal(false);
+              setSelectedJob(null);
+            },
+          },
+          {
+            label: selectedJob ? "Save Changes" : "Submit",
+            variant: "primary",
+            onClick: handleSubmit,
+          },
+        ]}
+      >
+        <CreateJobForm form={form} setForm={setForm} />
+      </CustomModal>
+
+      <div className="grid md:grid-cols-2 gap-8">
+        {offices.map((office) => (
+          <div key={office.id} className="space-y-4">
+            <div className="flex items-center justify-between pb-4 gap-4">
+              <h2 className="font-normal text-gray-800 bg-white shadow-md border md:pr-14 pl-3 px-2 py-1 md:py-3 text-base rounded-md md:rounded-xl ">
+                {office.label}
+              </h2>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setOpenModal(true)}
+                  className="px-3 py-2 md:px-4 md:py-3 bg-primary text-secondary text-xs md:text-base font-medium rounded-md md:rounded-xl hover:bg-primary/90 transition-colors flex items-center gap-2"
+                >
+                  <span>+ New Job Request</span>
+                </button>
+
+                <button className="p-1 md:p-3 rounded-lg shadow-lg bg-white text-gray-500 border">
+                  <RiFolderDownloadLine size={25} />
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-7">
+              {office.jobs.map((job) => (
+                <div
+                  key={job.id}
+                  className="flex items-center justify-between py-6 px-4 bg-[#F7F8F8] border border-orange-100 rounded-2xl hover:bg-gray-50 transition"
+                >
+                  <div className="flex items-center gap-3 flex-1">
+                    <div
+                      className={`w-3 h-3 rounded-full ${
+                        job.status === "NEW" ? "bg-red-500" : "bg-green-500"
+                      }`}
+                    />
+
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {job.title}
+                      </p>
+                      <p className="text-xs text-gray-500">{job.date}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-end">
+                    <button
+                      onClick={() => {
+                        setSelectedJob(job);
+                        setOpenModal(true);
+                      }}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <LiaEditSolid size={22} />
                     </button>
-                    <button className="p-3 rounded-lg  transition-colors shadow-lg bg-[#FFFFFF] text-gray-500 border-[1px] ">
-                      <RiFolderDownloadLine size={25} />
-                    </button>
+
+                    <div
+                      className={`px-4 py-1 mt-1 rounded-lg text-white text-xs ${
+                        job.status === "NEW" ? "bg-red-500" : "bg-green-500"
+                      }`}
+                    >
+                      {job.status}
+                    </div>
                   </div>
                 </div>
-
-                <div className="space-y-7 ">
-                  {office.jobs.map((job) => (
-                    <div
-                      key={job.id}
-                      className="flex items-center justify-between py-6
-                       px-4 hover:bg-gray-50 rounded-2xl transition-colors bg-[#F7F8F8] border-orange-100 border"
-                    >
-                      <div className="flex items-center gap-3 flex-1">
-                        <div
-                          className={`w-3 h-3 rounded-full flex-shrink-0 ${
-                            job.status === "NEW" ? "bg-red-500" : "bg-green-500"
-                          }`}
-                        />
-
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 text-pretty">
-                            {job.title}
-                          </p>
-                          <p className="text-xs text-gray-500">{job.date}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col items-end justify-end">
-                        <button className="p-1 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0">
-                          <LiaEditSolid size={25} />
-                        </button>
-                        <div
-                          className={`px-4 py-2 rounded-lg text-white text-xs font-normal flex-shrink-0 mt-1 ${
-                            job.status === "NEW" ? "bg-red-500" : "bg-green-500"
-                          }`}
-                        >
-                          {job.status}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        ))}
       </div>
     </div>
   );
