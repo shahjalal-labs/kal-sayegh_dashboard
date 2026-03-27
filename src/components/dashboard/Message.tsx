@@ -127,7 +127,6 @@ export default function Message() {
         bg-secondary rounded-2xl shadow-sm
       `}
       >
-        {/* Header */}
         <div className="flex items-center gap-3 p-4 border-b">
           <button
             onClick={() => setActiveChat(null)}
@@ -145,7 +144,6 @@ export default function Message() {
           </div>
         </div>
 
-        {/* Messages */}
         <div className="flex-1 p-3 md:p-6 space-y-4 overflow-y-auto bg-secondary">
           {messages.map((msg, i) => (
             <div
@@ -221,11 +219,11 @@ export default function Message() {
               <div className="flex justify-end gap-3 pt-4">
                 <button
                   onClick={() => setOpen(false)}
-                  className="px-6 py-2 border rounded-xl border-primary text-primary"
+                  className="px-6 py-2 border rounded-xl border-primary hover:bg-primary transition-colors duration-300 ease-in hover:text-secondary text-primary"
                 >
                   Close
                 </button>
-                <button className="px-6 py-2 bg-primary text-white rounded-xl">
+                <button className="px-6 py-2 bg-primary hover:bg-primary/90 transition text-white rounded-xl">
                   Submit
                 </button>
               </div>

@@ -70,7 +70,7 @@ export const CustomModal: React.FC<CustomModalProps> = ({
                 className={`px-8 py-3 font-medium transition-colors rounded-2xl ${
                   btn.variant === "primary"
                     ? "bg-primary text-white hover:bg-primary/90 transition-all"
-                    : "border border-primary text-primary"
+                    : "border border-primary text-primary hover:bg-primary transition-colors duration-300 ease-in hover:text-secondary"
                 }`}
               >
                 {btn.label}

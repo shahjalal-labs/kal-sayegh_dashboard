@@ -1,5 +1,7 @@
 "use client";
 
+import { Calendar, Mail, MapPin, Phone, Upload } from "lucide-react";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { LiaEditSolid } from "react-icons/lia";
 import { RiFolderDownloadLine } from "react-icons/ri";
@@ -101,6 +103,122 @@ function CreateJobForm({
           onChange={(e) => handleChange("address", e.target.value)}
           className="w-full mt-1 border px-4 py-3 rounded-xl"
         />
+      </div>
+    </div>
+  );
+}
+
+function CreateNewJobForm({ form, setForm }: any) {
+  const [images, setImages] = useState<string[]>([]);
+
+  const handleFiles = (files: FileList | null) => {
+    if (!files) return;
+
+    const newImages = Array.from(files).map((file) =>
+      URL.createObjectURL(file),
+    );
+
+    setImages((prev) => [...prev, ...newImages]);
+  };
+  return (
+    <div className="space-y-5 text-base">
+      {[
+        { icon: Calendar, label: "Date :", value: "Monday, March 2, 2026" },
+        { icon: Phone, label: "Contact :", value: "(555) 234-5678" },
+        { icon: Mail, label: "Email", value: "im@email.com" },
+        {
+          icon: MapPin,
+          label: "Job Address",
+          value: "4517 Washington Ave. Manchester, Kentucky 39495",
+          long: true,
+        },
+      ].map((item, i) => (
+        <div
+          key={i}
+          className="flex justify-between items-start border-b border-dashed border-gray-300 pb-3"
+        >
+          <div className="flex items-center gap-2 text-gray-500">
+            <item.icon size={16} />
+            {item.label}
+          </div>
+
+          <span
+            className={`${
+              item.long ? "text-right max-w-[60%]  text-base" : ""
+            } font-medium`}
+          >
+            {item.value}
+          </span>
+        </div>
+      ))}
+
+      <div>
+        <label className="block mb-2 font-semibold text-lg">
+          Internal Notes
+        </label>
+
+        <textarea
+          placeholder="e.g. Spoke to client, sending estimate tomorrow"
+          className="w-full border border-gray-200 rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-orange-400"
+          rows={3}
+        />
+      </div>
+
+      <div>
+        <label className="block mb-2 font-semibold text-lg">
+          Upload Picture
+        </label>
+
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          id="upload"
+          className="hidden"
+          onChange={(e) => handleFiles(e.target.files)}
+        />
+
+        <label
+          htmlFor="upload"
+          onDrop={(e) => {
+            e.preventDefault();
+            handleFiles(e.dataTransfer.files);
+          }}
+          onDragOver={(e) => e.preventDefault()}
+          className="border border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 transition"
+        >
+          <Upload className="text-gray-400 mb-2" size={22} />
+
+          <div className="flex items-center gap-1">
+            <span className="text-primary font-medium">Upload</span>
+            <span>Picture</span>
+          </div>
+
+          <p className="text-xs text-gray-400 mt-1">Supports: JPG, PNG</p>
+        </label>
+
+        <div className="flex gap-3 mt-3 flex-wrap">
+          {images.map((img, i) => (
+            <div key={i} className="relative">
+              <Image
+                src={img}
+                alt="preview"
+                width={200}
+                height={200}
+                className="rounded-md object-cover"
+              />
+
+              <button
+                onClick={() =>
+                  setImages((prev) => prev.filter((_, index) => index !== i))
+                }
+                className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-1"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -232,6 +350,7 @@ const offices: Office[] = [
 export default function OfficeAdministration() {
   const [openModal, setOpenModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobItem | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
 
   const [form, setForm] = useState<FormData>({
     office: "",
@@ -277,6 +396,10 @@ export default function OfficeAdministration() {
     setSelectedJob(null);
   };
 
+  const handleNewJob = () => {
+    console.log("new");
+  };
+
   return (
     <div className="min-h-screen bg-secondary p-6 rounded-2xl">
       <CustomModal
@@ -303,6 +426,33 @@ export default function OfficeAdministration() {
         ]}
       >
         <CreateJobForm form={form} setForm={setForm} />
+      </CustomModal>
+
+      <CustomModal
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
+        title="Roof Repair – Elm St Office"
+        actions={[
+          {
+            label: "Close",
+            variant: "secondary",
+            onClick: () => setIsOpen(false),
+          },
+          {
+            label: "Create New Estimate",
+            variant: "secondary",
+            onClick: handleNewJob,
+          },
+          {
+            label: "Mark as Reviewed",
+            variant: "primary",
+            onClick: () => {
+              console.log("Marked as reviewed:", form);
+            },
+          },
+        ]}
+      >
+        <CreateNewJobForm form={form} setForm={setForm} />
       </CustomModal>
 
       <div className="grid md:grid-cols-2 gap-8">
@@ -348,7 +498,7 @@ export default function OfficeAdministration() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-end">
+                  <div className="flex flex-col items-end gap-3">
                     <button
                       onClick={() => {
                         setSelectedJob(job);
@@ -356,12 +506,20 @@ export default function OfficeAdministration() {
                       }}
                       className="text-gray-400 hover:text-gray-600"
                     >
-                      <LiaEditSolid size={22} />
+                      <LiaEditSolid size={25} />
                     </button>
 
                     <div
-                      className={`px-4 py-1 mt-1 rounded-lg text-white text-xs ${
-                        job.status === "NEW" ? "bg-red-500" : "bg-green-500"
+                      onClick={() => {
+                        if (job.status === "NEW") {
+                          setSelectedJob(job);
+                          setIsOpen(true);
+                        }
+                      }}
+                      className={`px-4 py-2 mt-1 rounded-lg text-white text-xs cursor-pointer ${
+                        job.status === "NEW"
+                          ? "bg-[#D40C1A] hover:bg-red-600"
+                          : "bg-green-500 cursor-not-allowed"
                       }`}
                     >
                       {job.status}

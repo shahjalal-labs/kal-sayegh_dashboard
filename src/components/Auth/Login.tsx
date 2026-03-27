@@ -68,7 +68,7 @@ export default function Login() {
             placeholder="example@gmail.com"
             className="w-full h-12 px-5 rounded-full border border-gray-300 bg-secondary
     text-gray-700 placeholder-gray-400 
-    focus:outline-none focus:ring-1 focus:ring-orange-400 focus:bg-body transition"
+    focus:outline-none focus:ring-1 focus:ring-orange-400  transition"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -88,7 +88,7 @@ export default function Login() {
             required
             className="w-full h-12 px-5 pr-12 rounded-full bg-secondary border border-gray-300 
     text-gray-700 placeholder-gray-400 
-    focus:outline-none focus:ring-1 focus:ring-orange-400 focus:bg-body transition"
+    focus:outline-none focus:ring-1 focus:ring-orange-400  transition"
           />
 
           <button
