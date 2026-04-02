@@ -10,6 +10,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AiOutlineMenu } from "react-icons/ai";
+import { LuCalendarRange } from "react-icons/lu";
 import { MdOutlineNotifications } from "react-icons/md";
 
 const Topbar: React.FC<{ onHamburgerClick: () => void }> = ({
@@ -30,8 +31,7 @@ const Topbar: React.FC<{ onHamburgerClick: () => void }> = ({
   }
 
   const pathname = usePathname();
-
-  const isNotificationActive = pathname === "/admin/notification";
+  const isCalendarActive = pathname === "/calendar";
 
   const getPageTitle = () => {
     switch (pathname) {
@@ -79,15 +79,18 @@ const Topbar: React.FC<{ onHamburgerClick: () => void }> = ({
         </div>
 
         <div className="flex items-center gap-5">
-          <Link href="/admin/notification" className="relative">
-            <div
-              className={`relative p-1 rounded-full ${
-                isNotificationActive ? "bg-primary text-white" : "text-gray-700"
-              }`}
-            >
-              <MdOutlineNotifications size={25} />
-            </div>
-          </Link>
+          <div
+            className={`relative p-1 rounded-full cursor-pointer ${
+              isCalendarActive ? "bg-primary text-white" : "text-gray-700"
+            }`}
+          >
+            <LuCalendarRange size={25} />
+          </div>
+
+          <div className={`relative p-1 rounded-full `}>
+            <MdOutlineNotifications size={25} />
+          </div>
+
           <Link href={`/admin/settings`}>
             <Image
               src={profile || profileAvatar}

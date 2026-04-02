@@ -1,5 +1,6 @@
 "use client";
 
+import calender from "@/assets/dashboard//calendar.png";
 import settingIcon from "@/assets/dashboard/account-setting-01.png";
 import chat from "@/assets/dashboard/bubble-chat.png";
 import estimate from "@/assets/dashboard/estimate.png";
@@ -34,6 +35,13 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
   const role = "Admin";
   let allMenuItems: MenuItem[] = [];
 
+  const isActive = (href: string) => {
+    if (href === "/admin/estimate") {
+      return pathname.startsWith("/admin/estimate");
+    }
+    return pathname === href;
+  };
+
   if (role === "Admin") {
     allMenuItems = [
       { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -65,6 +73,12 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
         href: "/admin/office-administration",
         icon: newOffice,
         label: "Office Administration",
+        isImage: true,
+      },
+      {
+        href: "/admin/calendar",
+        icon: calender,
+        label: "Calendar",
         isImage: true,
       },
       {
@@ -108,14 +122,14 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
         <nav className="flex-1 p-4">
           <ul className="space-y-2">
             {allMenuItems.map((item) => {
-              const isActive = pathname === item.href;
+              const active = isActive(item.href);
 
               return (
                 <li key={item.href}>
                   <Link
                     href={item.href}
                     className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base transition-colors ${
-                      isActive
+                      active
                         ? "bg-primary text-white font-medium"
                         : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                     }`}
@@ -127,11 +141,11 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
                         alt={item.label}
                         width={20}
                         height={20}
-                        className={isActive ? "filter brightness-0 invert" : ""}
+                        className={active ? "filter brightness-0 invert" : ""}
                       />
                     ) : (
                       <item.icon
-                        className={`w-5 h-5 ${isActive ? "text-white" : "text-gray-600"}`}
+                        className={`w-5 h-5 ${active ? "text-white" : "text-gray-600"}`}
                       />
                     )}
                     <span>{item.label}</span>
