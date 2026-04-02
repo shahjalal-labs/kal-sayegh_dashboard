@@ -190,12 +190,12 @@ export default function EstimateTable() {
         </div>
 
         <div className="p-6">
-          {/* Line Items Table */}
-          <div className="overflow-x-auto rounded-lg shadow-sm ">
-            <table className="w-full min-w-max">
+          {/* Table */}
+          <div className="overflow-x-auto rounded-lg shadow-sm">
+            <table className="w-full min-w-max border-collapse">
               <thead>
-                <tr className="">
-                  <th className="text-left  py-4 font-semibold text-gray-800 border-b border-gray-300">
+                <tr>
+                  <th className="text-left py-4 font-semibold text-gray-800 border-b border-gray-300">
                     SCOPE OF WORK
                   </th>
                   <th className="text-center px-4 py-4 font-semibold text-gray-800 border-b border-gray-300 w-32">
@@ -219,7 +219,7 @@ export default function EstimateTable() {
                     key={item.id}
                     className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
                   >
-                    <td className=" py-4">
+                    <td className="py-4">
                       <input
                         type="text"
                         value={item.description}
@@ -283,7 +283,7 @@ export default function EstimateTable() {
 
             <button
               onClick={handleAddLineItem}
-              className="mt-6 w-full p-4 border-[1px] border-primary text-primary font-semibold rounded-lg hover:bg-orange-50 transition-colors flex items-center justify-start  gap-2"
+              className="mt-4 w-full p-3 border-[1px] border-primary text-primary font-semibold rounded-lg hover:bg-orange-50 transition-colors flex items-center justify-start gap-2"
             >
               <Plus size={20} />
               Add Line Item
@@ -291,93 +291,97 @@ export default function EstimateTable() {
           </div>
 
           {/* Summary Section */}
-          <div className="space-y-3 pt-6 w-[556px] ">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700 font-medium">Subtotal</span>
-              <span className="font-semibold text-gray-900">
-                ${subtotal.toFixed(2)}
-              </span>
-            </div>
+          <div className="mt-6 flex justify-end">
+            <div className="w-[356px] flex flex-col space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700 font-medium">Subtotal</span>
+                <span className="font-semibold text-gray-900">
+                  ${subtotal.toFixed(2)}
+                </span>
+              </div>
 
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700 font-medium">Markup</span>
-              {markup !== null ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    value={markup}
-                    onChange={(e) => setMarkup(parseFloat(e.target.value) || 0)}
-                    className="w-20 px-2 py-1 border border-gray-300 rounded text-right focus:outline-none focus:ring-2 focus:ring-orange-400"
-                  />
-                  <span className="text-gray-600">%</span>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setMarkup(0)}
-                  className="text-orange-500 hover:text-orange-600 font-semibold transition-colors"
-                >
-                  Add
-                </button>
-              )}
-            </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700 font-medium">Markup</span>
+                {markup !== null ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={markup}
+                      onChange={(e) =>
+                        setMarkup(parseFloat(e.target.value) || 0)
+                      }
+                      className="w-20 px-2 py-1 border border-gray-300 rounded text-right focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    />
+                    <span className="text-gray-600">%</span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setMarkup(0)}
+                    className="text-orange-500 hover:text-orange-600 font-semibold transition-colors"
+                  >
+                    Add
+                  </button>
+                )}
+              </div>
 
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700 font-medium">Discount</span>
-              {discount !== null ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    value={discount}
-                    onChange={(e) =>
-                      setDiscount(parseFloat(e.target.value) || 0)
-                    }
-                    className="w-20 px-2 py-1 border border-gray-300 rounded text-right focus:outline-none focus:ring-2 focus:ring-orange-400"
-                  />
-                  <span className="text-gray-600">%</span>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setDiscount(0)}
-                  className="text-orange-500 hover:text-orange-600 font-semibold transition-colors"
-                >
-                  Add
-                </button>
-              )}
-            </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700 font-medium">Discount</span>
+                {discount !== null ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={discount}
+                      onChange={(e) =>
+                        setDiscount(parseFloat(e.target.value) || 0)
+                      }
+                      className="w-20 px-2 py-1 border border-gray-300 rounded text-right focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    />
+                    <span className="text-gray-600">%</span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setDiscount(0)}
+                    className="text-orange-500 hover:text-orange-600 font-semibold transition-colors"
+                  >
+                    Add
+                  </button>
+                )}
+              </div>
 
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700 font-medium">
-                Request a deposit
-              </span>
-              {deposit !== null ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    value={deposit}
-                    onChange={(e) =>
-                      setDeposit(parseFloat(e.target.value) || 0)
-                    }
-                    className="w-20 px-2 py-1 border border-gray-300 rounded text-right focus:outline-none focus:ring-2 focus:ring-orange-400"
-                  />
-                  <span className="text-gray-600">%</span>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setDeposit(0)}
-                  className="text-orange-500 hover:text-orange-600 font-semibold transition-colors"
-                >
-                  Add
-                </button>
-              )}
-            </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700 font-medium">
+                  Request a deposit
+                </span>
+                {deposit !== null ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={deposit}
+                      onChange={(e) =>
+                        setDeposit(parseFloat(e.target.value) || 0)
+                      }
+                      className="w-20 px-2 py-1 border border-gray-300 rounded text-right focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    />
+                    <span className="text-gray-600">%</span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setDeposit(0)}
+                    className="text-orange-500 hover:text-orange-600 font-semibold transition-colors"
+                  >
+                    Add
+                  </button>
+                )}
+              </div>
 
-            <div className="flex justify-between items-center border-t border-gray-300 pt-3">
-              <span className="text-gray-900 font-bold text-lg">
-                Total(USD)
-              </span>
-              <span className="text-orange-500 font-bold text-lg">
-                ${total.toFixed(2)}
-              </span>
+              <div className="flex justify-between items-center border-t border-gray-300 pt-3">
+                <span className="text-gray-900 font-bold text-lg">
+                  Total(USD)
+                </span>
+                <span className="text-orange-500 font-bold text-lg">
+                  ${total.toFixed(2)}
+                </span>
+              </div>
             </div>
           </div>
         </div>

@@ -31,7 +31,8 @@ const Topbar: React.FC<{ onHamburgerClick: () => void }> = ({
   }
 
   const pathname = usePathname();
-  const isCalendarActive = pathname === "/calendar";
+  const isCalendarActive = pathname === "/admin/calendar";
+  const isNotificationActive = pathname === "/admin/notification";
 
   const getPageTitle = () => {
     switch (pathname) {
@@ -79,17 +80,25 @@ const Topbar: React.FC<{ onHamburgerClick: () => void }> = ({
         </div>
 
         <div className="flex items-center gap-5">
-          <div
-            className={`relative p-1 rounded-full cursor-pointer ${
-              isCalendarActive ? "bg-primary text-white" : "text-gray-700"
-            }`}
-          >
-            <LuCalendarRange size={25} />
-          </div>
+          <Link href={"/admin/calendar"}>
+            <div
+              className={`relative p-2 rounded-full cursor-pointer ${
+                isCalendarActive ? "bg-primary text-white" : "text-gray-700"
+              }`}
+            >
+              <LuCalendarRange size={20} />
+            </div>
+          </Link>
 
-          <div className={`relative p-1 rounded-full `}>
-            <MdOutlineNotifications size={25} />
-          </div>
+          <Link href={"/admin/notification"}>
+            <div
+              className={`relative p-1 rounded-full  ${
+                isNotificationActive ? "bg-primary text-white" : "text-gray-700"
+              }`}
+            >
+              <MdOutlineNotifications size={25} />
+            </div>
+          </Link>
 
           <Link href={`/admin/settings`}>
             <Image
