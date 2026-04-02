@@ -248,23 +248,8 @@ export default function Calendar() {
     setSelectedDate({ ...day, appointments });
   };
 
-  //   const getTypeColor = (type: string) => {
-  //     switch (type) {
-  //       case "appointment":
-  //         return "border-blue-500 bg-blue-500 text-white";
-  //       case "meeting":
-  //         return "border-purple-500 bg-purple-500 text-white";
-  //       case "visit":
-  //         return "border-red-500 bg-red-500 text-white";
-  //       case "internal":
-  //         return "border-pink-500 bg-pink-500 text-white";
-  //       default:
-  //         return "border-gray-200 bg-gray-500 text-white";
-  //     }
-  //   };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 p-6 font-sans">
+    <div className="min-h-screen bg-white rounded-2xl p-6 font-sans">
       <div className="flex items-center justify-between mb-8">
         <div className="flex gap-2">
           <select
