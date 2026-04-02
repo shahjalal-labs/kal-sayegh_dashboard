@@ -2,6 +2,11 @@
 
 import { Clock, Search } from "lucide-react";
 import { useState } from "react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { CiEdit } from "react-icons/ci";
+import { FaRegCalendarAlt } from "react-icons/fa";
+import { CustomModal } from "../modal/CustomModal";
 
 type Appointment = {
   id: string;
@@ -196,23 +201,23 @@ function getDayBackgroundColor(appointments: Appointment[]): string {
 
   // If multiple types, use a gradient or mixed color
   if (types.includes("appointment") && types.includes("meeting")) {
-    return "bg-gradient-to-br from-blue-100 to-purple-100";
+    return "bg-[#EEBA00]";
   }
   if (types.includes("appointment") && types.includes("visit")) {
-    return "bg-gradient-to-br from-blue-100 to-red-100";
+    return "bg-[#7D34D8]";
   }
   if (types.includes("meeting") && types.includes("visit")) {
-    return "bg-gradient-to-br from-purple-100 to-red-100";
+    return "bg-[#A8DEFA]";
   }
   if (types.includes("internal") && types.includes("appointment")) {
-    return "bg-gradient-to-br from-pink-100 to-blue-100";
+    return "bg-[#F9B6B0]";
   }
 
   // Single type colors
-  if (types.includes("appointment")) return "bg-blue-400";
-  if (types.includes("meeting")) return "bg-purple-400";
-  if (types.includes("visit")) return "bg-red-400";
-  if (types.includes("internal")) return "bg-pink-400";
+  if (types.includes("appointment")) return "bg-[#EEBA00]";
+  if (types.includes("meeting")) return "bg-[#A8DEFA]";
+  if (types.includes("visit")) return "bg-[#7D34D8]";
+  if (types.includes("internal")) return "bg-[#F9B6B0]";
 
   return "bg-white";
 }
@@ -240,6 +245,13 @@ export default function Calendar() {
   const [currentDate, setCurrentDate] = useState<Date | null>(
     new Date(2026, 0, 1),
   );
+  const [isOpen, setIsOpen] = useState(false);
+
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [endTime, setEndTime] = useState<Date | null>(null);
+
+  const [openStartPicker, setOpenStartPicker] = useState(false);
+  const [openEndPicker, setOpenEndPicker] = useState(false);
 
   const monthData = generateMonthData(currentYear, currentMonth);
 
@@ -249,8 +261,8 @@ export default function Calendar() {
   };
 
   return (
-    <div className="min-h-screen bg-white rounded-2xl p-6 font-sans">
-      <div className="flex items-center justify-between mb-8">
+    <div className="min-h-screen bg-white rounded-2xl md:p-6 font-sans">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div className="flex gap-2">
           <select
             value={currentMonth}
@@ -302,20 +314,19 @@ export default function Calendar() {
           </button>
         </div>
       </div>
-
       {/* Calendar */}
-      <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
-        <div className="grid grid-cols-7 gap-px bg-gray-200">
+      <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 ">
+        <div className="grid grid-cols-7 gap-px bg-gray-200 ">
           {weekDays.map((day) => (
-            <div key={day} className="bg-gray-50 py-3 text-center">
-              <span className="text-xs font-semibold text-gray-500 tracking-wide">
+            <div key={day} className="bg-gray-50 p-2">
+              <span className=" font-semibold text-base tracking-wide">
                 {day}
               </span>
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-px bg-gray-200">
+        <div className="grid grid-cols-7 gap-px bg-gray-200 ">
           {monthData.map((day, idx) => {
             const isCurrentMonth = day.month === currentMonth;
             const appointments = getAppointmentsForDay(
@@ -335,14 +346,17 @@ export default function Calendar() {
                 onClick={() => handleDateClick(day)}
                 className={`min-h-[120px] p-2 transition-all cursor-pointer rounded-md ${bgColorClass} ${!isCurrentMonth ? "" : ""} ${isToday ? "ring-1 ring-primary ring-inset" : ""}`}
               >
-                <div
-                  className={`text-right mb-1 ${!isCurrentMonth ? "text-gray-400" : "text-gray-700"}`}
-                >
+                <div className={` mb-1 flex justify-between `}>
                   <span
-                    className={`text-sm inline-flex items-center justify-center w-6 h-6 rounded-full ${isToday ? " text-white" : ""}`}
+                    className={`text-lg inline-flex items-center justify-center w-6 h-6 rounded-full ${isToday ? " " : ""}`}
                   >
                     {day.date}
                   </span>
+                  <CiEdit
+                    onClick={() => setIsOpen(true)}
+                    size={25}
+                    className="font-bold"
+                  />
                 </div>
 
                 <div className="space-y-1">
@@ -360,11 +374,6 @@ export default function Calendar() {
                         : apt.title}
                     </div>
                   ))}
-                  {appointments.length > 2 && (
-                    <div className="text-xs text-gray-500 pl-1">
-                      +{appointments.length - 2} more
-                    </div>
-                  )}
                 </div>
               </div>
             );
@@ -372,37 +381,110 @@ export default function Calendar() {
         </div>
       </div>
 
-      {selectedDate && selectedDate.appointments.length > 0 && (
-        <div className="mt-6 bg-white rounded-2xl shadow-xl p-4 border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-800 mb-3">
-            {monthNames[selectedDate.month]} {selectedDate.date},{" "}
-            {selectedDate.year}
-          </h3>
-          <div className="space-y-2">
-            {selectedDate.appointments.map((apt) => (
-              <div
-                key={apt.id}
-                className={`p-3 rounded-lg border-l-4  bg-gray-50`}
-              >
-                <div className="font-medium text-gray-800">{apt.title}</div>
-                {apt.startTime && (
-                  <div className="text-sm text-gray-600">
-                    {apt.startTime} - {apt.endTime}
-                  </div>
-                )}
-                {apt.location && (
-                  <div className="text-sm text-gray-600">📍 {apt.location}</div>
-                )}
-                {apt.scopeOfWork && (
-                  <div className="text-sm text-gray-600">
-                    📋 Scope: {apt.scopeOfWork}
-                  </div>
-                )}
+      <CustomModal
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
+        title="Edit January 03, 2026"
+        maxWidth="2xl"
+        actions={[
+          {
+            label: "Close",
+            variant: "secondary",
+            onClick: () => setIsOpen(false),
+          },
+          {
+            label: "Save Changes",
+            variant: "primary",
+            onClick: () => {
+              console.log("Saved");
+            },
+          },
+        ]}
+      >
+        <div className="space-y-5">
+          <div>
+            <label className="text-sm font-medium text-gray-700">
+              Location Name <span className="text-gray-400">(Optional)</span>
+            </label>
+            <input
+              type="text"
+              placeholder="Location Name"
+              className="mt-2 w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+
+          {/* Scope */}
+          <div>
+            <label className="text-sm font-medium text-gray-700">
+              Scope Of Work
+            </label>
+            <input
+              type="text"
+              placeholder="Scope Of Work"
+              className="mt-2 w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+
+          {/* Time Row */}
+
+          <div className="flex justify-between ">
+            <div>
+              <label className="text-sm font-medium text-gray-700">
+                Time (From) <span className="text-gray-400">Optional</span>
+              </label>
+
+              <div className="relative mt-2">
+                <DatePicker
+                  selected={startTime}
+                  onChange={(date: any) => setStartTime(date)}
+                  showTimeSelect
+                  showTimeSelectOnly
+                  timeIntervals={15}
+                  timeCaption="Time"
+                  dateFormat="hh:mm aa"
+                  open={openStartPicker}
+                  onClickOutside={() => setOpenStartPicker(false)}
+                  className="w-full px-4 pr-10 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary"
+                  placeholderText="08:00 AM"
+                />
+
+                <Clock
+                  onClick={() => setOpenStartPicker(true)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 cursor-pointer"
+                />
               </div>
-            ))}
+            </div>
+
+            {/* Time To */}
+            <div>
+              <label className="text-sm font-medium text-gray-700">
+                Time (To) <span className="text-gray-400">Optional</span>
+              </label>
+
+              <div className="relative mt-2">
+                <DatePicker
+                  selected={endTime}
+                  onChange={(date: any) => setEndTime(date)}
+                  showTimeSelect
+                  showTimeSelectOnly
+                  timeIntervals={15}
+                  timeCaption="Time"
+                  dateFormat="hh:mm aa"
+                  open={openEndPicker}
+                  onClickOutside={() => setOpenEndPicker(false)}
+                  className="w-full px-4 pr-10 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary"
+                  placeholderText="09:00 AM"
+                />
+
+                <FaRegCalendarAlt
+                  onClick={() => setOpenEndPicker(true)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg cursor-pointer"
+                />
+              </div>
+            </div>
           </div>
         </div>
-      )}
+      </CustomModal>
     </div>
   );
 }

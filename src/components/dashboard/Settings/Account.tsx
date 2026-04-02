@@ -75,7 +75,7 @@ export default function Account() {
                 value={formData.oldPassword}
                 onChange={handleChange}
                 placeholder="Input your old password"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"
               />
               <button
                 type="button"
@@ -103,7 +103,7 @@ export default function Account() {
                 value={formData.newPassword}
                 onChange={handleChange}
                 placeholder="Input your new password"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"
               />
               <button
                 type="button"
@@ -134,7 +134,7 @@ export default function Account() {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 placeholder="Confirmation your new password"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"
               />
               <button
                 type="button"
