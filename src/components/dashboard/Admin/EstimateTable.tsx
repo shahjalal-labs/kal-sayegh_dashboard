@@ -91,9 +91,11 @@ export default function EstimateTable() {
           <h2 className="text-lg font-normal">Back to Estimate</h2>
         </Link>
         <div className="space-x-4">
-          <button className="px-6 py-2 border-[1px] border-primary text-primary hover:bg-primary transition-colors duration-300 hover:text-white rounded-xl ">
-            Cancel
-          </button>
+          <Link href={"/admin/estimate"}>
+            <button className="px-6 py-2 border-[1px] border-primary text-primary hover:bg-primary transition-colors duration-300 hover:text-white rounded-xl ">
+              Cancel
+            </button>
+          </Link>
           <button className="px-6 py-2 bg-primary hover:bg-primary/90  text-white font-normal rounded-xl transition-colors">
             Submit Estimate
           </button>

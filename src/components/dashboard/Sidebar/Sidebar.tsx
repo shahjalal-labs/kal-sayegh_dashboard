@@ -3,6 +3,7 @@
 import calender from "@/assets/dashboard//calendar.png";
 import settingIcon from "@/assets/dashboard/account-setting-01.png";
 import chat from "@/assets/dashboard/bubble-chat.png";
+import checklist from "@/assets/dashboard/check-list.png";
 import estimate from "@/assets/dashboard/estimate.png";
 import estimator from "@/assets/dashboard/estimator.png";
 import filemanagement from "@/assets/dashboard/file-management.png";
@@ -41,8 +42,7 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
   const [userRole, setUserRole] = useState<string>("");
 
   useEffect(() => {
-    const role =
-      Cookies.get("role") || localStorage.getItem("role") || "Administration";
+    const role = Cookies.get("role") || "Administration";
     setUserRole(role);
   }, []);
 
@@ -145,6 +145,12 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
         href: getHref("/office-administration"),
         icon: newOffice,
         label: "Office Administration",
+        isImage: true,
+      },
+      {
+        href: getHref("/to-do"),
+        icon: checklist,
+        label: "Office To Do List",
         isImage: true,
       },
       {

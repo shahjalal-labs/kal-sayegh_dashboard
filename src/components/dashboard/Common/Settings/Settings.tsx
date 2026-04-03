@@ -4,6 +4,7 @@ import {
   useMyProfileQuery,
   useUpdateProfileMutation,
 } from "@/redux/api/authApi";
+import Cookies from "js-cookie";
 import { ChevronRightIcon, Pencil } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
@@ -178,11 +179,21 @@ function ProfileInfo() {
 export default function Settings() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [role, setRole] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(true);
 
-  const userPlan = "advance";
+  const userPlan = "basic";
+
+  useEffect(() => {
+    // Get role from cookies or localStorage
+    const userRole =
+      Cookies.get("role") || localStorage.getItem("role") || "Admin";
+    setRole(userRole);
+    setIsLoading(false);
+  }, []);
 
   const tabs = [
-    ...(userPlan === "advance"
+    ...(userPlan === "basic"
       ? [
           {
             key: "basic",
@@ -192,11 +203,16 @@ export default function Settings() {
         ]
       : []),
 
-    {
-      key: "Notes",
-      label: "Notes",
-      component: <Notes />,
-    },
+    ...(role === "Admin"
+      ? [
+          {
+            key: "notes",
+            label: "Notes",
+            component: <Notes />,
+          },
+        ]
+      : []),
+
     {
       key: "account",
       label: "Account",
