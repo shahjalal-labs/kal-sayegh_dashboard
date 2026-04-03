@@ -4,6 +4,8 @@ import profile from "@/assets/navbar/profile.png";
 import { Plus, Search, Send } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
+import { CiCirclePlus } from "react-icons/ci";
+import { TbUserPlus } from "react-icons/tb";
 
 const chats = [
   {
@@ -88,7 +90,7 @@ export default function Message() {
           <input
             type="text"
             placeholder="Search message"
-            className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-orange-400"
+            className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
 
@@ -124,27 +126,38 @@ export default function Message() {
         className={`
         ${activeChat === null ? "hidden" : "flex"}
         md:flex flex-col flex-1 
-        bg-secondary rounded-2xl shadow-sm
+        bg-secondary rounded-2xl shadow-sm 
       `}
       >
-        <div className="flex items-center gap-3 p-4 border-b">
-          <button
-            onClick={() => setActiveChat(null)}
-            className="md:hidden text-gray-500 text-lg"
-          >
-            ←
-          </button>
+        <div className="flex justify-between  gap-3 p-4 border-b rounded-t-2xl">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setActiveChat(null)}
+              className="md:hidden text-gray-500 text-lg"
+            >
+              ←
+            </button>
 
-          <div className="w-10 h-10 rounded-full bg-gray-300" />
-          <div>
-            <h3 className="font-semibold">
-              {activeChat !== null && chats[activeChat].name}
-            </h3>
-            <p className="text-xs text-gray-400">Active now</p>
+            <Image
+              src={""}
+              height={40}
+              width={40}
+              alt="profile"
+              className=" rounded-full bg-gray-300"
+            />
+
+            <div>
+              <h3 className="font-semibold">
+                {activeChat !== null && chats[activeChat].name}
+              </h3>
+              <p className="text-xs text-gray-400">Active now</p>
+            </div>
           </div>
+
+          <TbUserPlus size={20} className="cursor-pointer text-primary" />
         </div>
 
-        <div className="flex-1 p-3 md:p-6 space-y-4 overflow-y-auto bg-secondary">
+        <div className="flex-1 p-3 md:p-6 space-y-4 overflow-y-auto bg-secondary ">
           {messages.map((msg, i) => (
             <div
               key={i}
@@ -165,15 +178,23 @@ export default function Message() {
           ))}
         </div>
 
-        <div className="p-3 md:p-4 bg-white border-t flex items-center gap-2">
-          <input
-            type="text"
-            placeholder="Type Messages"
-            className="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-orange-400"
-          />
-          <button className="bg-primary p-2 md:p-3 rounded-full text-white">
-            <Send className="w-4 h-4" />
-          </button>
+        <div className="p-3 md:p-4 bg-white rounded-2xl">
+          <div className="relative w-full ">
+            <CiCirclePlus
+              size={25}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xl"
+            />
+
+            <input
+              type="text"
+              placeholder="Type Messages"
+              className="w-full border rounded-xl pl-10 pr-12 py-6 text-sm focus:outline-none focus:ring-1 focus:ring-orange-400"
+            />
+
+            <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary p-2 mr-2 rounded-lg text-white">
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 

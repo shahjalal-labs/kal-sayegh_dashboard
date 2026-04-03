@@ -110,7 +110,7 @@ export default function Account() {
               <button
                 type="button"
                 onClick={() => setShowNewPassword(!showNewPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2  transition"
+                className="absolute right-3 top-1/2 -translate-y-1/2  transition text-gray-400"
               >
                 {showNewPassword ? (
                   <EyeOff className="w-5 h-5" />
@@ -141,7 +141,7 @@ export default function Account() {
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2   transition"
+                className="absolute right-3 top-1/2 -translate-y-1/2   transition text-gray-400"
               >
                 {showConfirmPassword ? (
                   <EyeOff className="w-5 h-5" />

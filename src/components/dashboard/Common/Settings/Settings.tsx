@@ -87,7 +87,7 @@ function ProfileInfo() {
               alt="Profile"
               width={96}
               height={96}
-              className="w-24 h-24 rounded-full object-cover border"
+              className="w-24 h-24 rounded-lg object-cover border"
             />
           )}
 
