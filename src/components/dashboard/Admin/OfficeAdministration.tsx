@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { LiaEditSolid } from "react-icons/lia";
 import { RiFolderDownloadLine } from "react-icons/ri";
-import { CustomModal } from "../modal/CustomModal";
+import { CustomModal } from "../../modal/CustomModal";
 
 interface FormData {
   office: string;

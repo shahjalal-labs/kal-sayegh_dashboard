@@ -4,7 +4,7 @@ import { Check, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { CustomModal } from "../modal/CustomModal";
+import { CustomModal } from "../../modal/CustomModal";
 
 const estimates = [
   {
@@ -146,7 +146,7 @@ export default function Estimate() {
                 } else if (selected === "table") {
                   router.push("/admin/estimate/estimate-table");
                 } else if (selected === "upload") {
-                  router.push("/admin/estimate/estimate-upload");
+                  router.push("/admin/estimate/upload");
                 } else {
                   toast.error("Please select an option first!");
                 }

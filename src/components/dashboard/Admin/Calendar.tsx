@@ -6,7 +6,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { CiEdit } from "react-icons/ci";
 import { FaRegCalendarAlt } from "react-icons/fa";
-import { CustomModal } from "../modal/CustomModal";
+import { CustomModal } from "../../modal/CustomModal";
 
 type Appointment = {
   id: string;

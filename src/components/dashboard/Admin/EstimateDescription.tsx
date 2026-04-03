@@ -6,20 +6,22 @@ import Link from "next/link";
 export default function EstimateDescription() {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      <Link
-        href={"/admin/estimate"}
-        className="flex items-center gap-2 cursor-pointer text-gray-700 hover:text-orange-500 transition"
-      >
-        <ArrowLeft size={18} />
-        <h2 className="text-lg font-normal">Back to Estimate</h2>
-      </Link>
-      <div className="flex justify-end gap-3 mb-4">
-        <button className="px-5 py-2 rounded-lg border text-orange-500 border-orange-400 hover:bg-orange-50">
-          Cancel
-        </button>
-        <button className="px-5 py-2 rounded-lg bg-orange-500 text-white hover:bg-orange-600">
-          Submit Estimate
-        </button>
+      <div className="flex justify-between gap-3 mb-4">
+        <Link
+          href={"/admin/estimate"}
+          className="flex items-center gap-2 cursor-pointer text-gray-700 hover:text-orange-500 transition"
+        >
+          <ArrowLeft size={18} />
+          <h2 className="text-lg font-normal">Back to Estimate</h2>
+        </Link>
+        <div className="space-x-4">
+          <button className="px-5 py-2 rounded-lg border text-primary border-primary hover:bg-primary hover:text-white duration-300 ease-in">
+            Cancel
+          </button>
+          <button className="px-5 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors">
+            Submit Estimate
+          </button>
+        </div>
       </div>
 
       <div className="bg-white border rounded-xl p-6 space-y-6">

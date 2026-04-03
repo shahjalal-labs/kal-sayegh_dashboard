@@ -1,4 +1,4 @@
-import Message from "@/components/dashboard/Message";
+import Message from "@/components/dashboard/Admin/Message";
 
 export default function MessagePage() {
   return (

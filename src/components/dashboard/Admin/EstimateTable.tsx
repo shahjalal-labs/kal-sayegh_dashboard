@@ -1,7 +1,8 @@
 "use client";
 
-import { Calendar, Plus, User } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft, Calendar, Plus, User } from "lucide-react";
+import Link from "next/link";
+import React, { useState } from "react";
 
 interface LineItem {
   id: string;
@@ -81,15 +82,24 @@ export default function EstimateTable() {
   const total = subtotal + markupAmount - discountAmount - depositAmount;
   return (
     <div>
-      <div className="flex gap-3 justify-end">
-        <button className="px-6 py-2 border-[1px] border-primary text-primary hover:bg-primary transition-colors duration-300 hover:text-white rounded-xl ">
-          Cancel
-        </button>
-        <button className="px-6 py-2 bg-primary hover:bg-primary/90  text-white font-normal rounded-xl transition-colors">
-          Submit Estimate
-        </button>
+      <div className="flex gap-3 justify-between">
+        <Link
+          href={"/admin/estimate"}
+          className="flex items-center gap-2 cursor-pointer text-gray-700 hover:text-orange-500 transition"
+        >
+          <ArrowLeft size={18} />
+          <h2 className="text-lg font-normal">Back to Estimate</h2>
+        </Link>
+        <div className="space-x-4">
+          <button className="px-6 py-2 border-[1px] border-primary text-primary hover:bg-primary transition-colors duration-300 hover:text-white rounded-xl ">
+            Cancel
+          </button>
+          <button className="px-6 py-2 bg-primary hover:bg-primary/90  text-white font-normal rounded-xl transition-colors">
+            Submit Estimate
+          </button>
+        </div>
       </div>
-      <div className="bg-secondary rounded-lg overflow-hidden shadow-lg mt-10">
+      <div className="bg-secondary rounded-lg overflow-hidden shadow-md mt-10">
         <div className=" px-8 py-6 flex justify-between ">
           <div>
             <p className="text-gray-600 font-normal">United States</p>
@@ -191,106 +201,113 @@ export default function EstimateTable() {
 
         <div className="p-6">
           {/* Table */}
-          <div className="overflow-x-auto rounded-lg shadow-sm">
-            <table className="w-full min-w-max border-collapse">
+          <div className="overflow-x-auto  rounded-sm">
+            <table className="w-full text-sm ">
               <thead>
-                <tr>
-                  <th className="text-left py-4 font-semibold text-gray-800 border-b border-gray-300">
+                <tr className="text-gray-700">
+                  <th className="text-left px-3 py-2 border-b border-gray-300">
                     SCOPE OF WORK
                   </th>
-                  <th className="text-center px-4 py-4 font-semibold text-gray-800 border-b border-gray-300 w-32">
+                  <th className="text-center px-3 py-2 border-b border-l border-gray-300 w-24">
                     QTY
                   </th>
-                  <th className="text-center px-4 py-4 font-semibold text-gray-800 border-b border-gray-300 w-32">
+                  <th className="text-center px-3 py-2 border-b border-l border-gray-300 w-24">
                     UNIT
                   </th>
-                  <th className="text-center px-4 py-4 font-semibold text-gray-800 border-b border-gray-300 w-32">
+                  <th className="text-center px-3 py-2 border-b border-l border-gray-300 w-28">
                     UNIT COST
                   </th>
-                  <th className="text-center px-4 py-4 font-semibold text-gray-800 border-b border-gray-300 w-32">
+                  <th className="text-center px-3 py-2 border-b border-l border-gray-300 w-28">
                     PRICE
                   </th>
-                  <th className="w-12 px-2 py-4 border-b border-gray-300"></th>
                 </tr>
               </thead>
-              <tbody>
+
+              <tbody className="border-collapse border">
                 {lineItems.map((item) => (
-                  <tr
-                    key={item.id}
-                    className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="py-4">
-                      <input
-                        type="text"
-                        value={item.description}
-                        onChange={(e) =>
-                          handleLineItemChange(
-                            item.id,
-                            "description",
-                            e.target.value,
-                          )
-                        }
-                        placeholder="Description"
-                        className="w-full px-3 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 transition"
-                      />
-                    </td>
-                    <td className="px-4 py-4">
-                      <input
-                        type="number"
-                        value={item.qty}
-                        onChange={(e) =>
-                          handleLineItemChange(
-                            item.id,
-                            "qty",
-                            parseFloat(e.target.value) || 0,
-                          )
-                        }
-                        className="w-full text-center px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 transition"
-                      />
-                    </td>
-                    <td className="px-4 py-4">
-                      <input
-                        type="text"
-                        value={item.unit}
-                        onChange={(e) =>
-                          handleLineItemChange(item.id, "unit", e.target.value)
-                        }
-                        placeholder="Unit"
-                        className="w-full text-center px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 transition"
-                      />
-                    </td>
-                    <td className="px-4 py-4">
-                      <input
-                        type="number"
-                        value={item.unitCost}
-                        onChange={(e) =>
-                          handleLineItemChange(
-                            item.id,
-                            "unitCost",
-                            parseFloat(e.target.value) || 0,
-                          )
-                        }
-                        className="w-full text-center px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 transition"
-                      />
-                    </td>
-                    <td className="px-4 py-4 text-center font-semibold text-gray-700">
-                      ${(item.qty * item.unitCost).toFixed(2)}
-                    </td>
-                  </tr>
+                  <React.Fragment key={item.id}>
+                    <tr>
+                      <td className="border-b border-gray-300">
+                        <input
+                          type="text"
+                          value={item.description}
+                          onChange={(e) =>
+                            handleLineItemChange(
+                              item.id,
+                              "description",
+                              e.target.value,
+                            )
+                          }
+                          placeholder="Description"
+                          className="w-full px-2 py-1.5 outline-none bg-transparent text-sm"
+                        />
+                      </td>
+
+                      <td className="border-b border-l border-gray-300 text-center">
+                        <input
+                          type="number"
+                          value={item.qty}
+                          onChange={(e) =>
+                            handleLineItemChange(
+                              item.id,
+                              "qty",
+                              parseFloat(e.target.value) || 0,
+                            )
+                          }
+                          className="w-full px-1 py-1.5 text-center outline-none bg-transparent"
+                        />
+                      </td>
+
+                      <td className="border-b border-l border-gray-300 text-center">
+                        <input
+                          type="text"
+                          value={item.unit}
+                          onChange={(e) =>
+                            handleLineItemChange(
+                              item.id,
+                              "unit",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full px-1 py-1.5 text-center outline-none bg-transparent"
+                        />
+                      </td>
+
+                      <td className="text-center border-t border-l border-gray-300">
+                        <input
+                          type="number"
+                          value={item.unitCost}
+                          onChange={(e) =>
+                            handleLineItemChange(
+                              item.id,
+                              "unitCost",
+                              parseFloat(e.target.value) || 0,
+                            )
+                          }
+                          className="w-full px-1 py-1.5 text-center outline-none bg-transparent"
+                        />
+                      </td>
+
+                      <td className="border-t border-l border-gray-300 text-center text-gray-800">
+                        ${(item.qty * item.unitCost).toFixed(2)}
+                      </td>
+                    </tr>
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
+          </div>
 
+          <div className="border border-primary mt-3">
             <button
               onClick={handleAddLineItem}
-              className="mt-4 w-full p-3 border-[1px] border-primary text-primary font-semibold rounded-lg hover:bg-orange-50 transition-colors flex items-center justify-start gap-2"
+              className="w-full py-3 text-left px-4 text-primary border-t border-gray-300 hover:bg-orange-50 flex items-center gap-2"
             >
-              <Plus size={20} />
+              <Plus size={18} />
               Add Line Item
             </button>
           </div>
 
-          {/* Summary Section */}
           <div className="mt-6 flex justify-end">
             <div className="w-[356px] flex flex-col space-y-3">
               <div className="flex justify-between items-center">

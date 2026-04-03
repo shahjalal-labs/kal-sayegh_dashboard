@@ -1,4 +1,4 @@
-import Notification from "@/components/dashboard/Notification";
+import Notification from "@/components/dashboard/Admin/Notification";
 
 export default function NotificationPage() {
   return (
