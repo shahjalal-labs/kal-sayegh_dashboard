@@ -35,32 +35,35 @@ const Topbar: React.FC<{ onHamburgerClick: () => void }> = ({
   const isNotificationActive = pathname === "/admin/notification";
 
   const getPageTitle = () => {
-    switch (pathname) {
-      case "/admin/dashboard":
-        return "Overview";
-      case "/admin/users-management":
-        return "User Management";
-      case "/admin/employee-management":
-        return "Employee Management";
-      case "/admin/service-management":
-        return "Service Management";
-      case "/admin/quote-management":
-        return "Quotes Management";
-      case "/admin/invoice":
-        return "Invoices Management";
-      case "/admin/subscription":
-        return "Subscription Plan";
-      case "/admin/referral":
-        return "Referral and Discount";
-      case "/admin/gallery":
-        return "Gallery Management";
-      case "/admin/users":
-        return "User Management";
-      case "/admin/settings":
-        return "Settings";
-      default:
-        return "Admin Panel";
+    if (pathname.includes("/estimate")) {
+      return "Estimate";
     }
+    if (pathname.includes("/dashboard")) {
+      return "Overview";
+    }
+    if (pathname.includes("/employee-management")) {
+      return "Employee Management";
+    }
+    if (pathname.includes("/estimator-management")) {
+      return "Estimator Management";
+    }
+    if (pathname.includes("/invoice")) {
+      return "Invoices Management";
+    }
+    if (pathname.includes("/office-administration")) {
+      return "Office Administration";
+    }
+    if (pathname.includes("/calendar")) {
+      return "Calendar";
+    }
+    if (pathname.includes("/message")) {
+      return "Messages";
+    }
+    if (pathname.includes("/settings")) {
+      return "Settings";
+    }
+
+    return "";
   };
 
   return (

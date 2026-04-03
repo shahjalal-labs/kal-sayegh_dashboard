@@ -29,7 +29,7 @@ const invoices = [
 
 export default function Invoice() {
   return (
-    <div>
+    <div className="bg-white rounded-2xl p-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <h2 className="text-lg md:text-2xl font-normal">Invoice List</h2>
 
@@ -51,8 +51,8 @@ export default function Invoice() {
         </div>
       </div>
 
-      <div className="mt-10 space-y-6 border-t px-4 p-4">
-        <div className="flex justify-between text-base border-b pb-2">
+      <div className="mt-10 space-y-6 border-t ">
+        <div className="flex justify-between text-base border-b py-3">
           <span>February 2026</span>
           <span>Total: $14.11</span>
         </div>

@@ -152,7 +152,7 @@ export default function EmployeeManagement() {
   };
 
   return (
-    <div className="border-t">
+    <div className="border-t ">
       <ReusableTable
         columns={columns}
         data={employees}

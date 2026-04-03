@@ -35,14 +35,14 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
   const pathname = usePathname();
   const router = useRouter();
   const params = useParams();
-  const role = "Administration";
-  // const role = "Admin";
+  // const role = "Administration";
+  const role = "Admin";
   const currentRole = role.toLowerCase();
   // const role = params.role as string;
   const [userRole, setUserRole] = useState<string>("");
 
   useEffect(() => {
-    const role = Cookies.get("role") || "Administration";
+    const role = Cookies.get("role") || "Admin";
     setUserRole(role);
   }, []);
 
