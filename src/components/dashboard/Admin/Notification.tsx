@@ -114,7 +114,6 @@ export default function Notification() {
           </div>
         )}
 
-        {/* Yesterday Section */}
         {notifications.yesterday.length > 0 && (
           <div>
             <h2 className="text-sm font-semibold uppercase tracking-wide px-4 mb-3">
@@ -163,7 +162,6 @@ export default function Notification() {
           </div>
         )}
 
-        {/* Empty State */}
         {notifications.today.length === 0 &&
           notifications.yesterday.length === 0 && (
             <div className="text-center py-16">

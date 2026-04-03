@@ -187,9 +187,9 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="p-4 md:p-6 lg:p-8  min-h-screen">
+    <div className=" min-h-screen">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-6  bg-secondary p-5 rounded-lg">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-6  bg-secondary p-5 rounded-2xl">
         {stats.map((stat, index) => (
           <Card
             key={index}

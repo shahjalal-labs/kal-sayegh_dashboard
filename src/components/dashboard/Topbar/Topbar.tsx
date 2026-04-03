@@ -67,7 +67,7 @@ const Topbar: React.FC<{ onHamburgerClick: () => void }> = ({
   };
 
   return (
-    <header className="bg-white shadow-sm py-6 px-6 lg:px-16 w-full">
+    <header className="bg-white shadow-sm  p-6 w-full">
       <div className="flex justify-between items-center flex-wrap">
         <button
           className="lg:hidden text-2xl text-gray-700"

@@ -27,12 +27,10 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <div className="flex-1 flex flex-col overflow-scroll">
           <Topbar onHamburgerClick={toggleSidebar} />
 
-          {/* Content */}
-          <main className="flex-1 p-4  sm:p-6  ">{children}</main>
+          <main className="flex-1 p-7 ">{children}</main>
         </div>
       </div>
 
-      {/* Overlay for Mobile Sidebar */}
       {isSidebarOpen && (
         <div
           className="fixed inset-0 bg-black opacity-50 lg:hidden"

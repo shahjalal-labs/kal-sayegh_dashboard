@@ -11,11 +11,13 @@ export default function Notes() {
   };
 
   return (
-    <div className="w-full min-h-screen bg-secondary p-6 rounded-md">
+    <div className="w-full min-h-screen bg-secondary p-6 rounded-2xl">
       <div className="max-w-2xl">
         {/* Header */}
         <div className="flex items-center justify-start gap-2 mb-12">
-          <h1 className="text-3xl font-semibold text-slate-900">Notes</h1>
+          <h1 className="text-lg md:text-xl font-semibold text-slate-900">
+            Notes
+          </h1>
           <Info className="w-5 h-5 text-slate-500" />
         </div>
 

@@ -72,7 +72,7 @@ function ProfileInfo() {
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm">
+    <div className="bg-secondary p-6 rounded-2xl shadow-sm">
       <h2 className="text-lg md:text-xl font-semibold pb-6 border-b">
         Profile Information
       </h2>
@@ -236,9 +236,9 @@ export default function Settings() {
   }, [tabFromUrl]);
 
   return (
-    <div className="flex flex-col md:flex-row gap-8 p-8">
+    <div className="flex flex-col md:flex-row gap-8 ">
       {/* Sidebar */}
-      <div className="md:w-[348px] h-80 bg-white flex flex-col gap-4 p-6 rounded-lg shadow-sm">
+      <div className="md:w-[348px] h-80 bg-white flex flex-col gap-4 p-6 rounded-2xl shadow-sm">
         {tabs.map((tab) => (
           <button
             key={tab.key}

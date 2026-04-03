@@ -401,7 +401,7 @@ export default function OfficeAdministration() {
   };
 
   return (
-    <div className="min-h-screen bg-secondary p-6 rounded-2xl">
+    <div className=" bg-secondary p-6 rounded-2xl">
       <CustomModal
         open={openModal}
         onClose={() => {

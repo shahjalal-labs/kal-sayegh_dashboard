@@ -2,8 +2,9 @@
 
 import { Edit, Eye } from "lucide-react";
 import React from "react";
-import { FaSpinner } from "react-icons/fa";
 import { RiDeleteBin6Line } from "react-icons/ri";
+
+import { DNA } from "react-loader-spinner";
 
 interface Column {
   key: string;
@@ -30,7 +31,14 @@ const ReusableTable: React.FC<ReusableTableProps> = ({
   if (isLoading)
     return (
       <div className="flex items-center justify-center h-64">
-        <FaSpinner className="animate-spin text-orange-500 text-4xl" />
+        <DNA
+          visible={true}
+          height="80"
+          width="80"
+          ariaLabel="dna-loading"
+          wrapperStyle={{}}
+          wrapperClass="dna-wrapper"
+        />
       </div>
     );
 

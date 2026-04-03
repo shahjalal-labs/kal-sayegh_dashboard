@@ -64,7 +64,7 @@ export default function Message() {
   };
 
   return (
-    <div className="flex h-screen p-2 md:p-4 gap-4">
+    <div className="flex h-screen  gap-5">
       <div
         className={`
         ${activeChat !== null ? "hidden" : "flex"}

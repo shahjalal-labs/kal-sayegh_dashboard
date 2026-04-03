@@ -54,11 +54,13 @@ export default function Account() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFFFFF]">
-      <div className=" px-4 py-8 ">
+    <div className="min-h-screen bg-secondary rounded-2xl">
+      <div className=" px-4">
         {/* Header */}
-        <div className="flex items-center gap-2 mb-8  border-b p-4">
-          <h1 className="text-lg font-semibold text-gray-900 ">Password</h1>
+        <div className="flex items-center gap-2 mb-8  border-b py-5">
+          <h1 className="text-lg md:text-xl font-semibold text-gray-900 ">
+            Password
+          </h1>
           <Info className="w-4 h-4 text-gray-400 cursor-help" />
         </div>
 

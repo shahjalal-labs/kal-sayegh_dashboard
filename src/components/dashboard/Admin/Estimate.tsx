@@ -45,7 +45,7 @@ export default function Estimate() {
   ];
 
   return (
-    <div className="bg-secondary p-6 rounded-lg">
+    <div className="bg-secondary p-6 rounded-2xl">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <h2 className="text-lg md:text-2xl font-normal">Estimate List</h2>
 
