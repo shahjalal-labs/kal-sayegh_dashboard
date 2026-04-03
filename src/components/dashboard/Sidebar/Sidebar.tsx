@@ -16,7 +16,8 @@ import Cookies from "js-cookie";
 import { LayoutDashboard, LogOut, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 interface SidebarProps {
   onCloseClick?: () => void;
@@ -32,63 +33,128 @@ interface MenuItem {
 const Sidebar = ({ onCloseClick }: SidebarProps) => {
   const pathname = usePathname();
   const router = useRouter();
-  const role = "Admin";
-  let allMenuItems: MenuItem[] = [];
+  const params = useParams();
+  const role = "Administration";
+  // const role = "Admin";
+  const currentRole = role.toLowerCase();
+  // const role = params.role as string;
+  const [userRole, setUserRole] = useState<string>("");
+
+  useEffect(() => {
+    const role =
+      Cookies.get("role") || localStorage.getItem("role") || "Administration";
+    setUserRole(role);
+  }, []);
 
   const isActive = (href: string) => {
-    if (href === "/admin/estimate") {
-      return pathname.startsWith("/admin/estimate");
+    if (href.includes("/estimate")) {
+      return pathname.includes("/estimate");
+    }
+    if (href.includes("/employee-management")) {
+      return pathname.includes("/employee-management");
+    }
+    if (href.includes("/estimator-management")) {
+      return pathname.includes("/estimator-management");
+    }
+    if (href.includes("/invoice")) {
+      return pathname.includes("/invoice");
+    }
+    if (href.includes("/office-administration")) {
+      return pathname.includes("/office-administration");
+    }
+    if (href.includes("/calendar")) {
+      return pathname.includes("/calendar");
+    }
+    if (href.includes("/message")) {
+      return pathname.includes("/message");
+    }
+    if (href.includes("/settings")) {
+      return pathname.includes("/settings");
+    }
+    if (href === `/${currentRole}/dashboard`) {
+      return pathname === `/${currentRole}/dashboard`;
     }
     return pathname === href;
   };
 
-  if (role === "Admin") {
+  const getHref = (path: string) => {
+    return `/${currentRole}${path}`;
+  };
+
+  let allMenuItems: MenuItem[] = [];
+
+  if (userRole === "Admin") {
     allMenuItems = [
-      { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
       {
-        href: "/admin/employee-management",
+        href: getHref("/dashboard"),
+        icon: LayoutDashboard,
+        label: "Dashboard",
+      },
+      {
+        href: getHref("/employee-management"),
         icon: filemanagement,
         label: "Employee Management",
         isImage: true,
       },
       {
-        href: "/admin/estimator-management",
+        href: getHref("/estimator-management"),
         icon: estimator,
         label: "Estimator Management",
         isImage: true,
       },
       {
-        href: "/admin/estimate",
+        href: getHref("/estimate"),
         icon: estimate,
         label: "Estimate",
         isImage: true,
       },
       {
-        href: "/admin/invoice",
+        href: getHref("/invoice"),
         icon: invoiceIcon,
         label: "Invoice",
         isImage: true,
       },
       {
-        href: "/admin/office-administration",
+        href: getHref("/office-administration"),
         icon: newOffice,
         label: "Office Administration",
         isImage: true,
       },
       {
-        href: "/admin/calendar",
+        href: getHref("/calendar"),
         icon: calender,
         label: "Calendar",
         isImage: true,
       },
       {
-        href: "/admin/message",
+        href: getHref("/message"),
         icon: chat,
         label: "Message",
         isImage: true,
       },
       {
-        href: "/admin/settings",
+        href: getHref("/settings"),
+        icon: settingIcon,
+        label: "Settings",
+        isImage: true,
+      },
+    ];
+  } else if (userRole === "Administration") {
+    allMenuItems = [
+      {
+        href: getHref("/office-administration"),
+        icon: newOffice,
+        label: "Office Administration",
+        isImage: true,
+      },
+      {
+        href: getHref("/calendar"),
+        icon: calender,
+        label: "Calendar",
+        isImage: true,
+      },
+      {
+        href: getHref("/settings"),
         icon: settingIcon,
         label: "Settings",
         isImage: true,
@@ -98,6 +164,8 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
 
   const handleLogout = () => {
     Cookies.remove("token");
+    Cookies.remove("role");
+    localStorage.removeItem("role");
     router.push("/login");
     logOut();
   };
@@ -119,7 +187,7 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4">
+        <nav className="flex-1 p-4 overflow-y-auto">
           <ul className="space-y-2">
             {allMenuItems.map((item) => {
               const active = isActive(item.href);
@@ -157,7 +225,7 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
         </nav>
 
         {/* Logout */}
-        <div className="p-4">
+        <div className="p-4 border-t border-gray-200">
           <button
             onClick={handleLogout}
             className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-lg text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
