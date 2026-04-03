@@ -188,7 +188,7 @@ export default function Message() {
             <input
               type="text"
               placeholder="Type Messages"
-              className="w-full border rounded-xl pl-10 pr-12 py-6 text-sm focus:outline-none focus:ring-1 focus:ring-orange-400"
+              className="w-full border rounded-xl pl-10 pr-12 py-6 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
             />
 
             <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary p-2 mr-2 rounded-lg text-white">
