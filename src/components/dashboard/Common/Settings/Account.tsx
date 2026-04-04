@@ -1,9 +1,7 @@
 "use client";
 
-import { useChangePasswordMutation } from "@/redux/api/authApi";
 import { Eye, EyeOff, Info } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 export default function Account() {
   const [showOldPassword, setShowOldPassword] = useState(false);
@@ -15,43 +13,43 @@ export default function Account() {
     confirmPassword: "",
   });
 
-  const [changePassword, { isLoading }] = useChangePasswordMutation();
+  // const [changePassword, { isLoading }] = useChangePasswordMutation();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
 
-    if (formData.newPassword !== formData.confirmPassword) {
-      toast.error("Password does not match");
-      return;
-    }
+  //   if (formData.newPassword !== formData.confirmPassword) {
+  //     toast.error("Password does not match");
+  //     return;
+  //   }
 
-    if (formData.newPassword.length < 8) {
-      toast.error(" Password must be at least 8 characters");
-      return;
-    }
+  //   if (formData.newPassword.length < 8) {
+  //     toast.error(" Password must be at least 8 characters");
+  //     return;
+  //   }
 
-    try {
-      const res = await changePassword({
-        oldPassword: formData.oldPassword,
-        newPassword: formData.newPassword,
-      }).unwrap();
+  //   try {
+  //     const res = await changePassword({
+  //       oldPassword: formData.oldPassword,
+  //       newPassword: formData.newPassword,
+  //     }).unwrap();
 
-      toast.success(res?.message || " Password changed successfully");
+  //     toast.success(res?.message || " Password changed successfully");
 
-      setFormData({
-        oldPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
-    } catch (error: any) {
-      toast.error(error?.data?.message || " Failed to change password");
-    }
-  };
+  //     setFormData({
+  //       oldPassword: "",
+  //       newPassword: "",
+  //       confirmPassword: "",
+  //     });
+  //   } catch (error: any) {
+  //     toast.error(error?.data?.message || " Failed to change password");
+  //   }
+  // };
 
   return (
     <div className="min-h-screen bg-secondary rounded-2xl">
@@ -64,7 +62,7 @@ export default function Account() {
           <Info className="w-4 h-4 text-gray-400 cursor-help" />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form className="space-y-6">
           {/* Old Password */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -157,7 +155,7 @@ export default function Account() {
               type="submit"
               className="bg-primary text-white px-16 py-3 rounded-xl"
             >
-              {isLoading ? "Changing..." : "Save "}
+              {/* {isLoading ? "Changing..." : "Save "} */} save
             </button>
           </div>
         </form>
