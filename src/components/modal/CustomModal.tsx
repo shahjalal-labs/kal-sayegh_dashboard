@@ -54,8 +54,10 @@ export const CustomModal: React.FC<CustomModalProps> = ({
         className={`bg-white rounded-xl w-full ${maxWidthClasses[maxWidth]} relative max-h-[90vh] flex flex-col`}
       >
         {(title || showCloseButton) && (
-          <div className="flex justify-between items-center p-6 pb-4 border-b">
-            {title && <h2 className="text-xl font-semibold">{title}</h2>}
+          <div className="flex justify-between items-center p-6 pb-4 ">
+            {title && (
+              <h2 className="text-xl md:text-2xl font-semibold">{title}</h2>
+            )}
           </div>
         )}
 

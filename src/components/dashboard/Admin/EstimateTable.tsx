@@ -1,8 +1,15 @@
 "use client";
 
-import { ArrowLeft, Calendar, Plus, User } from "lucide-react";
+import { CustomModal } from "@/components/modal/CustomModal";
+import {
+  DepositModalContent,
+  DiscountModalContent,
+  MarkupModalContent,
+} from "@/components/modal/PopUp";
+import { ArrowLeft, Calendar, Plus } from "lucide-react";
 import Link from "next/link";
 import React, { useState } from "react";
+import { FiUserPlus } from "react-icons/fi";
 
 interface LineItem {
   id: string;
@@ -13,6 +20,14 @@ interface LineItem {
 }
 
 export default function EstimateTable() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [addClientModalOpen, setAddClientModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<
+    "markup" | "discount" | "deposit" | null
+  >(null);
+
+  const [tempValue, setTempValue] = useState(0);
+
   const [lineItems, setLineItems] = useState<LineItem[]>([
     {
       id: "1",
@@ -80,9 +95,73 @@ export default function EstimateTable() {
   const discountAmount = discount ? (subtotal * discount) / 100 : 0;
   const depositAmount = deposit ? (subtotal * deposit) / 100 : 0;
   const total = subtotal + markupAmount - discountAmount - depositAmount;
+
+  const handleOpenModal = (type: "markup" | "discount" | "deposit") => {
+    setModalType(type);
+    setTempValue(0);
+    setIsModalOpen(true);
+  };
+
+  const handleSave = () => {
+    if (modalType === "markup") setMarkup(tempValue);
+    if (modalType === "discount") setDiscount(tempValue);
+    if (modalType === "deposit") setDeposit(tempValue);
+
+    setIsModalOpen(false);
+  };
+
+  const getModalActions = () => {
+    switch (modalType) {
+      case "markup":
+        return [
+          {
+            label: "Cancel",
+            onClick: () => setIsModalOpen(false),
+            variant: "secondary" as const,
+          },
+          {
+            label: "Done",
+            onClick: handleSave,
+            variant: "primary" as const,
+          },
+        ];
+
+      case "discount":
+        return [
+          {
+            label: "Cancel",
+            onClick: () => setIsModalOpen(false),
+            variant: "secondary" as const,
+          },
+          {
+            label: "Add",
+            onClick: handleSave,
+            variant: "primary" as const,
+          },
+        ];
+
+      case "deposit":
+        return [
+          {
+            label: "Cancel",
+            onClick: () => setIsModalOpen(false),
+            variant: "secondary" as const,
+          },
+          {
+            label: "Add",
+            onClick: handleSave,
+            variant: "primary" as const,
+          },
+        ];
+
+      default:
+        return [];
+    }
+  };
+
   return (
     <div>
-      <div className="flex gap-3 justify-between">
+      <div className="flex flex-col md:flex-row gap-3 justify-between">
         <Link
           href={"/admin/estimate"}
           className="flex items-center gap-2 cursor-pointer text-gray-700 hover:text-orange-500 transition"
@@ -102,16 +181,19 @@ export default function EstimateTable() {
         </div>
       </div>
       <div className="bg-secondary rounded-lg overflow-hidden shadow-md mt-10">
-        <div className=" px-8 py-6 flex justify-between ">
+        <div className=" px-8 py-6 flex flex-col md:flex-row md:justify-between">
           <div>
             <p className="text-gray-600 font-normal">United States</p>
             <p className="text-gray-600">example03@gmail.com</p>
           </div>
 
-          <div className="p-6 space-y-6 w-[456px]">
+          <div className="md:p-6 space-y-6 md:w-[456px] mt-3">
             <div className="border-dashed border-[#67C118] border-2 p-6 h-[167px] flex justify-center items-center rounded-2xl">
-              <button className="text-primary hover:text-orange-600 flex items-center justify-center gap-2 font-semibold transition-colors">
-                <User size={20} />
+              <button
+                onClick={() => setAddClientModalOpen(true)}
+                className="text-primary hover:text-orange-600 flex items-center justify-center gap-2 font-semibold transition-colors"
+              >
+                <FiUserPlus size={20} />
                 Add Client
               </button>
             </div>
@@ -198,6 +280,108 @@ export default function EstimateTable() {
                 />
               </div>
             </div>
+
+            <CustomModal
+              open={addClientModalOpen}
+              onClose={() => setAddClientModalOpen(false)}
+              title="Add Client"
+              maxWidth="2xl"
+              actions={[
+                {
+                  label: "Cancel",
+                  onClick: () => setAddClientModalOpen(false),
+                  variant: "secondary",
+                },
+                {
+                  label: "Add",
+                  onClick: () => console.log("Add Client logic here"),
+                  variant: "primary",
+                },
+              ]}
+            >
+              <div className="space-y-4">
+                <p className="font-normal">Basic Information</p>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder=" Name"
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Phone Number
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Phone Number"
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Email Address
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Email Address"
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  />
+                </div>
+
+                <div className="pt-4 space-y-4">
+                  <h3 className="text-gray-700">Billing Information</h3>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Address
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Address"
+                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    />
+                  </div>
+
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        City
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="City"
+                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        State
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="State"
+                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      ZIP Code
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="ZIP Code"
+                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    />
+                  </div>
+                </div>
+              </div>
+            </CustomModal>
           </div>
         </div>
 
@@ -319,24 +503,21 @@ export default function EstimateTable() {
                 </span>
               </div>
 
+              {/* Markup */}
               <div className="flex justify-between items-center">
                 <span className="text-gray-700 font-medium">Markup</span>
+
                 {markup !== null ? (
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      value={markup}
-                      onChange={(e) =>
-                        setMarkup(parseFloat(e.target.value) || 0)
-                      }
-                      className="w-20 px-2 py-1 border border-gray-300 rounded text-right focus:outline-none focus:ring-2 focus:ring-orange-400"
-                    />
-                    <span className="text-gray-600">%</span>
-                  </div>
+                  <span
+                    className="font-semibold text-gray-900 cursor-pointer"
+                    onClick={() => handleOpenModal("markup")}
+                  >
+                    {markup}%
+                  </span>
                 ) : (
                   <button
-                    onClick={() => setMarkup(0)}
-                    className="text-orange-500 hover:text-orange-600 font-semibold transition-colors"
+                    onClick={() => handleOpenModal("markup")}
+                    className="text-orange-500 hover:text-orange-600 font-semibold"
                   >
                     Add
                   </button>
@@ -345,22 +526,18 @@ export default function EstimateTable() {
 
               <div className="flex justify-between items-center">
                 <span className="text-gray-700 font-medium">Discount</span>
+
                 {discount !== null ? (
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      value={discount}
-                      onChange={(e) =>
-                        setDiscount(parseFloat(e.target.value) || 0)
-                      }
-                      className="w-20 px-2 py-1 border border-gray-300 rounded text-right focus:outline-none focus:ring-2 focus:ring-orange-400"
-                    />
-                    <span className="text-gray-600">%</span>
-                  </div>
+                  <span
+                    className="font-semibold text-gray-900 cursor-pointer"
+                    onClick={() => handleOpenModal("discount")}
+                  >
+                    {discount}%
+                  </span>
                 ) : (
                   <button
-                    onClick={() => setDiscount(0)}
-                    className="text-orange-500 hover:text-orange-600 font-semibold transition-colors"
+                    onClick={() => handleOpenModal("discount")}
+                    className="text-orange-500 hover:text-orange-600 font-semibold"
                   >
                     Add
                   </button>
@@ -371,22 +548,18 @@ export default function EstimateTable() {
                 <span className="text-gray-700 font-medium">
                   Request a deposit
                 </span>
+
                 {deposit !== null ? (
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      value={deposit}
-                      onChange={(e) =>
-                        setDeposit(parseFloat(e.target.value) || 0)
-                      }
-                      className="w-20 px-2 py-1 border border-gray-300 rounded text-right focus:outline-none focus:ring-2 focus:ring-orange-400"
-                    />
-                    <span className="text-gray-600">%</span>
-                  </div>
+                  <span
+                    className="font-semibold text-gray-900 cursor-pointer"
+                    onClick={() => handleOpenModal("deposit")}
+                  >
+                    {deposit}%
+                  </span>
                 ) : (
                   <button
-                    onClick={() => setDeposit(0)}
-                    className="text-orange-500 hover:text-orange-600 font-semibold transition-colors"
+                    onClick={() => handleOpenModal("deposit")}
+                    className="text-orange-500 hover:text-orange-600 font-semibold"
                   >
                     Add
                   </button>
@@ -401,6 +574,34 @@ export default function EstimateTable() {
                   ${total.toFixed(2)}
                 </span>
               </div>
+
+              <CustomModal
+                open={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                maxWidth="sm"
+                actions={getModalActions()}
+              >
+                {modalType === "markup" && (
+                  <MarkupModalContent
+                    value={tempValue}
+                    setValue={setTempValue}
+                  />
+                )}
+
+                {modalType === "discount" && (
+                  <DiscountModalContent
+                    value={tempValue}
+                    setValue={setTempValue}
+                  />
+                )}
+
+                {modalType === "deposit" && (
+                  <DepositModalContent
+                    value={tempValue}
+                    setValue={setTempValue}
+                  />
+                )}
+              </CustomModal>
             </div>
           </div>
         </div>
