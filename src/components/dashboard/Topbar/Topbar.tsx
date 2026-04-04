@@ -77,12 +77,12 @@ const Topbar: React.FC<{ onHamburgerClick: () => void }> = ({
         </button>
 
         <div className="flex items-center gap-6">
-          <h1 className="text-[#161616] text-[16px] md:text-[24px] font-bold">
+          <h1 className="text-[#161616] text-[14px] md:text-[24px] font-bold">
             {getPageTitle()}
           </h1>
         </div>
 
-        <div className="flex items-center gap-5">
+        <div className="flex items-center md:gap-5">
           <Link href={"/admin/calendar"}>
             <div
               className={`relative p-2 rounded-full cursor-pointer ${
