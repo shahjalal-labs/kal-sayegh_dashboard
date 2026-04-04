@@ -1,10 +1,16 @@
+import { IResponse } from "@/types/common.type";
+import { IUser } from "@/types/user.Type";
+import Cookies from "js-cookie";
 import baseApi from "./baseApi";
 
 const authApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    login: builder.mutation({
+    login: builder.mutation<
+      IResponse<IUser>,
+      { email: string; password: string }
+    >({
       query: (data) => ({
-        url: `/auth/admin-login`,
+        url: `/auth/login`,
         method: "POST",
         body: data,
       }),
@@ -19,12 +25,34 @@ const authApi = baseApi.injectEndpoints({
       providesTags: ["auth"],
     }),
 
-    changePassword: builder.mutation({
-      query: (data) => ({
-        url: "/auth/change-pass",
-        method: "PATCH",
-        body: data,
+    forgotPassword: builder.mutation({
+      query: ({ email }) => ({
+        url: "/auth/send-forgot-otp",
+        method: "POST",
+        body: { email },
       }),
+    }),
+
+    verifyOTP: builder.mutation({
+      query: ({ email, otp }) => ({
+        url: "/auth/verify-forgot-otp",
+        method: "POST",
+        body: { email, otp },
+      }),
+    }),
+
+    resetPassword: builder.mutation<IResponse<any>, { newPassword: string }>({
+      query: ({ newPassword }) => {
+        const token = Cookies.get("token");
+        return {
+          url: "/auth/reset-password",
+          method: "PATCH",
+          body: { newPassword },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        };
+      },
     }),
 
     updateProfile: builder.mutation({
@@ -35,58 +63,14 @@ const authApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["auth"],
     }),
-
-    createTips: builder.mutation({
-      query: (data) => ({
-        url: "/auth/create-tips",
-        method: "POST",
-        body: data,
-      }),
-      invalidatesTags: ["auth"],
-    }),
-
-    allTips: builder.query({
-      query: () => ({
-        url: "/auth/all-tips",
-        method: "GET",
-      }),
-      providesTags: ["auth"],
-    }),
-
-    createTrade: builder.mutation({
-      query: (formData: FormData) => ({
-        url: "/auth/create-trade",
-        method: "POST",
-        body: formData,
-      }),
-    }),
-
-    allTrades: builder.query({
-      query: ({ page, limit }) => ({
-        url: "/auth/all-trades",
-        method: "GET",
-        params: { page, limit },
-      }),
-      providesTags: ["auth"],
-    }),
-
-    getAllGallery: builder.query({
-      query: () => ({
-        url: "/auth/gallery-images",
-        method: "GET",
-      }),
-    }),
   }),
 });
 
 export const {
   useLoginMutation,
   useMyProfileQuery,
-  useChangePasswordMutation,
+  useForgotPasswordMutation,
+  useVerifyOTPMutation,
+  useResetPasswordMutation,
   useUpdateProfileMutation,
-  useCreateTipsMutation,
-  useAllTipsQuery,
-  useCreateTradeMutation,
-  useAllTradesQuery,
-  useGetAllGalleryQuery,
 } = authApi;

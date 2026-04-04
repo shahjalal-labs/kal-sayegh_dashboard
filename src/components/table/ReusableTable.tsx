@@ -4,7 +4,7 @@ import { Edit, Eye } from "lucide-react";
 import React from "react";
 import { RiDeleteBin6Line } from "react-icons/ri";
 
-import { DNA } from "react-loader-spinner";
+import { ColorRing } from "react-loader-spinner";
 
 interface Column {
   key: string;
@@ -31,13 +31,14 @@ const ReusableTable: React.FC<ReusableTableProps> = ({
   if (isLoading)
     return (
       <div className="flex items-center justify-center h-64">
-        <DNA
+        <ColorRing
           visible={true}
           height="80"
           width="80"
-          ariaLabel="dna-loading"
+          ariaLabel="color-ring-loading"
           wrapperStyle={{}}
-          wrapperClass="dna-wrapper"
+          wrapperClass="color-ring-wrapper"
+          colors={["#e15b64", "#f47e60", "#f8b26a", "#abbd81", "#849b87"]}
         />
       </div>
     );
@@ -50,17 +51,17 @@ const ReusableTable: React.FC<ReusableTableProps> = ({
     const base = "px-4 py-2 rounded-lg text-white text-sm font-normal";
     if (status === "Active")
       return (
-        <span className={`${base} bg-[#52C41A1A] text-[#47c706]`}>
+        <span className={`${base} bg-[#52C41A1A] text-green-700`}>
           {status}
         </span>
       );
     if (status === "Inactive")
       return (
-        <span className={`${base} bg-red-200 text-red-700`}>{status}</span>
+        <span className={`${base} bg-red-200 text-red-800`}>{status}</span>
       );
     if (status === "Pending")
       return (
-        <span className={`${base}  bg-[#FAAD141A] text-[#e29a08]`}>
+        <span className={`${base}  bg-[#FAAD141A] text-orange-600`}>
           {status}
         </span>
       );

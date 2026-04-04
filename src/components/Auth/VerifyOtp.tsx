@@ -8,7 +8,8 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { useVerifyOtpMutation } from "@/redux/api/admin/dashboarApi";
+
+import { useVerifyOTPMutation } from "@/redux/api/authApi";
 import AuthLayout from "./AuthLayout";
 
 export default function VerifyOTP() {
@@ -39,7 +40,7 @@ export default function VerifyOTP() {
     }
   };
 
-  const [verifyOtpFn] = useVerifyOtpMutation();
+  const [verifyOtp] = useVerifyOTPMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +50,7 @@ export default function VerifyOTP() {
 
     setIsLoading(true);
     try {
-      const response = await verifyOtpFn({ email, otp: otpValue }).unwrap();
+      const response = await verifyOtp({ email, otp: otpValue }).unwrap();
 
       if (response?.success) {
         toast.success("OTP verified successfully");

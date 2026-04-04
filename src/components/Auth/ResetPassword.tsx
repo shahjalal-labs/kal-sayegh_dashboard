@@ -2,7 +2,8 @@
 
 import type React from "react";
 
-import { useResetPasswordMutation } from "@/redux/api/admin/dashboarApi";
+import { useResetPasswordMutation } from "@/redux/api/authApi";
+import Cookies from "js-cookie";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -20,7 +21,7 @@ export default function ResetPassword() {
 
   // const email = searchParams.get("email");
 
-  const [resetPasswordFn] = useResetPasswordMutation();
+  const [resetPassword] = useResetPasswordMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,16 +37,26 @@ export default function ResetPassword() {
       return;
     }
 
+    const token = Cookies.get("token");
+    if (!token) {
+      setError("No authentication token found. Please login again.");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const response = await resetPasswordFn(newPassword).unwrap();
+      const response = await resetPassword({ newPassword }).unwrap();
+
       if (response.success) {
         toast.success("Password reset successfully");
         router.push("/login");
+      } else {
+        setError(response.message || "Failed to reset password");
       }
-    } catch {
-      setError("Failed to reset password");
+    } catch (err: any) {
+      console.error("Reset password error:", err);
+      setError(err?.data?.message || "Failed to reset password");
     } finally {
       setIsLoading(false);
     }

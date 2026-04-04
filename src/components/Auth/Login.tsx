@@ -22,7 +22,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const [loginFn] = useLoginMutation();
+  const [login] = useLoginMutation();
   const dispatch = useDispatch();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -30,26 +30,31 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const response = await loginFn({ email, password }).unwrap();
-      if (response.success) {
+      const response = await login({ email, password }).unwrap();
+      console.log("Login response:", response);
+
+      if (response.success && response.result) {
+        const user = response.result;
         toast.success("Login successful");
-        Cookies.set("token", response?.result?.accessToken);
+
+        Cookies.set("token", user.accessToken);
+
         router.push("/admin/dashboard");
+
         dispatch(
           setUser({
-            role: response.result.role,
-            token: response.result.accessToken,
+            role: user.role,
+            token: user.accessToken,
             email: email,
-            me: response.result,
+            me: user,
           }),
         );
-      }
-    } catch (err: any) {
-      console.error("Login error", err);
-      if (err?.data?.message) {
-        toast.error(err.data.message);
+      } else {
         toast.error("Login failed");
       }
+    } catch (err: any) {
+      console.error("Login error:", err);
+      toast.error(err?.data?.message || "Login failed");
     } finally {
       setIsLoading(false);
     }
@@ -112,7 +117,7 @@ export default function Login() {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full h-12 bg-primary text-white rounded-2xl hover:bg-none font-normal"
+          className="w-full h-12 bg-primary text-white rounded-2xl hover:bg-primary/90 transition-colors font-normal"
         >
           {isLoading ? "Logging in..." : "Log in"}
         </button>
