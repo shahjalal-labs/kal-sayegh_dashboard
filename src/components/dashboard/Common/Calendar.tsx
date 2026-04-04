@@ -43,7 +43,6 @@ function generateMonthData(year: number, month: number): DayData[] {
     });
   }
 
-  // Fill in current month days
   for (let i = 1; i <= daysInMonth; i++) {
     monthData.push({
       date: i,
@@ -53,7 +52,6 @@ function generateMonthData(year: number, month: number): DayData[] {
     });
   }
 
-  // Fill in days for next month to complete the week grid
   while (monthData.length % 7 !== 0) {
     const nextMonth = month + 1 > 11 ? 0 : month + 1;
     const nextYear = month + 1 > 11 ? year + 1 : year;
@@ -346,24 +344,31 @@ export default function Calendar() {
                 onClick={() => handleDateClick(day)}
                 className={`min-h-[120px] p-2 transition-all cursor-pointer rounded-md ${bgColorClass} ${!isCurrentMonth ? "" : ""} ${isToday ? "ring-1 ring-primary ring-inset" : ""}`}
               >
-                <div className={` mb-1 flex justify-between `}>
+                <div className={`mb-1 flex justify-between`}>
                   <span
-                    className={`text-lg inline-flex items-center justify-center w-6 h-6 rounded-full ${isToday ? " " : ""}`}
+                    className={`text-lg inline-flex items-center justify-center w-6 h-6 rounded-full ${isToday ? "" : ""}`}
                   >
                     {day.date}
                   </span>
-                  <CiEdit
-                    onClick={() => setIsOpen(true)}
-                    size={25}
-                    className="font-bold"
-                  />
+
+                  {appointments.length > 0 && (
+                    <CiEdit
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsOpen(true);
+                        handleDateClick(day);
+                      }}
+                      size={25}
+                      className="font-bold cursor-pointer"
+                    />
+                  )}
                 </div>
 
                 <div className="space-y-1">
                   {appointments.slice(0, 2).map((apt, i) => (
                     <div
                       key={i}
-                      className={`text-xs p-1 rounded truncate `}
+                      className={`text-xs p-1 rounded truncate`}
                       title={apt.title}
                     >
                       {apt.startTime && (
