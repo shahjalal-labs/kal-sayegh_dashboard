@@ -1,8 +1,8 @@
 "use client";
 
-import calender from "@/assets/dashboard//calendar.png";
 import settingIcon from "@/assets/dashboard/account-setting-01.png";
 import chat from "@/assets/dashboard/bubble-chat.png";
+import calender from "@/assets/dashboard/calendar.png";
 import checklist from "@/assets/dashboard/check-list.png";
 import estimate from "@/assets/dashboard/estimate.png";
 import estimator from "@/assets/dashboard/estimator.png";
