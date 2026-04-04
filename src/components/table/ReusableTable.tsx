@@ -33,8 +33,8 @@ const ReusableTable: React.FC<ReusableTableProps> = ({
       <div className="flex items-center justify-center h-64">
         <ColorRing
           visible={true}
-          height="80"
-          width="80"
+          height="70"
+          width="70"
           ariaLabel="color-ring-loading"
           wrapperStyle={{}}
           wrapperClass="color-ring-wrapper"
