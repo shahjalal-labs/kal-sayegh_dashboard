@@ -356,7 +356,9 @@ export default function Dashboard() {
 
       <div className="bg-secondary p-6 brounded-2xl space-y-6">
         <div className="flex justify-between">
-          <h1 className="text-2xl font-semibold mb-4">Employee List</h1>
+          <h1 className="text-xl md:text-2xl font-semibold mb-4">
+            Employee List
+          </h1>
           <button className="bg-primary text-secondary px-6 py-2 rounded-lg font-normal text-base">
             See All
           </button>
