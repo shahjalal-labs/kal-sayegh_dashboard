@@ -17,6 +17,8 @@ interface LineItem {
   qty: number;
   unit: string;
   unitCost: number;
+  price: number;
+  notes: string;
 }
 
 export default function EstimateTable() {
@@ -30,18 +32,13 @@ export default function EstimateTable() {
 
   const [lineItems, setLineItems] = useState<LineItem[]>([
     {
-      id: "1",
-      description: "Description",
-      qty: 2435,
-      unit: "SF",
-      unitCost: 18.0,
-    },
-    {
-      id: "2",
-      description: "Notes",
+      id: Date.now().toString(),
+      description: "",
       qty: 0,
       unit: "",
       unitCost: 0,
+      price: 0,
+      notes: "",
     },
   ]);
 
@@ -50,6 +47,11 @@ export default function EstimateTable() {
     date: "02-27-2026",
     expirationDate: "02-27-2026",
     poNumber: "",
+    unit: "",
+    unitCost: "",
+    price: "",
+    description: "",
+    notes: "",
   });
 
   const [markup, setMarkup] = useState<number | null>(null);
@@ -65,6 +67,8 @@ export default function EstimateTable() {
         qty: 0,
         unit: "",
         unitCost: 0,
+        price: 0,
+        notes: "",
       },
     ]);
   };
@@ -161,7 +165,7 @@ export default function EstimateTable() {
 
   return (
     <div>
-      <div className="flex flex-col md:flex-row gap-3 justify-between">
+      <div className="hidden md:flex flex-row justify-between items-center gap-3">
         <Link
           href={"/admin/estimate"}
           className="flex items-center gap-2 cursor-pointer text-gray-700 hover:text-orange-500 transition"
@@ -169,26 +173,40 @@ export default function EstimateTable() {
           <ArrowLeft size={18} />
           <h2 className="text-lg font-normal">Back to Estimate</h2>
         </Link>
-        <div className="space-x-4">
+
+        <div className="flex space-x-4">
           <Link href={"/admin/estimate"}>
-            <button className="px-6 py-2 border-[1px] border-primary text-primary hover:bg-primary transition-colors duration-300 hover:text-white rounded-xl ">
+            <button className="px-6 py-2 border-[1px] border-primary text-primary hover:bg-primary transition-colors duration-300 hover:text-white rounded-xl">
               Cancel
             </button>
           </Link>
-          <button className="px-6 py-2 bg-primary hover:bg-primary/90  text-white font-normal rounded-xl transition-colors">
+          <button className="px-6 py-2 bg-primary hover:bg-primary/90 text-white font-normal rounded-xl transition-colors">
             Submit Estimate
           </button>
         </div>
       </div>
-      <div className="bg-secondary rounded-lg overflow-hidden shadow-md mt-10">
-        <div className=" px-8 py-6 flex flex-col md:flex-row md:justify-between">
-          <div>
+
+      <div className="relative flex items-center justify-center py-2 md:hidden block">
+        {/* Arrow button on the left */}
+        <Link
+          href={"/admin/estimate"}
+          className="absolute left-0 flex items-center gap-2 text-gray-700 hover:text-orange-500 transition"
+        >
+          <ArrowLeft size={18} />
+        </Link>
+
+        {/* Centered title */}
+        <h2 className="text-2xl font-medium">Estimates</h2>
+      </div>
+      <div className="bg-none md:bg-secondary rounded-lg overflow-hidden md:shadow-md md:mt-10">
+        <div className=" md:px-8 py-6 flex flex-col md:flex-row md:justify-between">
+          <div className="hidden md:block">
             <p className="text-gray-600 font-normal">United States</p>
             <p className="text-gray-600">example03@gmail.com</p>
           </div>
 
           <div className="md:p-6 space-y-6 md:w-[456px] mt-3">
-            <div className="border-dashed border-[#67C118] border-2 p-6 h-[167px] flex justify-center items-center rounded-2xl">
+            <div className="border-dashed border-primary border-2 p-6 h-[167px] flex justify-center items-center rounded-2xl">
               <button
                 onClick={() => setAddClientModalOpen(true)}
                 className="text-primary hover:text-orange-600 flex items-center justify-center gap-2 font-semibold transition-colors"
@@ -385,9 +403,9 @@ export default function EstimateTable() {
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="md:p-6">
           {/* Table */}
-          <div className="overflow-x-auto  rounded-sm">
+          <div className="overflow-x-auto md:block hidden rounded-sm">
             <table className="w-full text-sm ">
               <thead>
                 <tr className="text-gray-700">
@@ -484,10 +502,120 @@ export default function EstimateTable() {
             </table>
           </div>
 
-          <div className="border border-primary mt-3">
+          <div className="block  md:hidden space-y-4">
+            <h2 className="text-lg font-normal">SCOPE OF WORK </h2>
+            <div>
+              <label className="block text-base font-semibold text-gray-700 mb-2">
+                Quantity
+              </label>
+              <input
+                type="text"
+                placeholder="Quantity"
+                value={estimateData.poNumber}
+                onChange={(e) =>
+                  setEstimateData({
+                    ...estimateData,
+                    poNumber: e.target.value,
+                  })
+                }
+                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400"
+              />
+            </div>
+
+            <div>
+              <label className="block text-base font-semibold text-gray-700 mb-2">
+                Unit
+              </label>
+              <input
+                type="text"
+                placeholder="Unit"
+                value={estimateData.unit}
+                onChange={(e) =>
+                  setEstimateData({
+                    ...estimateData,
+                    unit: e.target.value,
+                  })
+                }
+                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400"
+              />
+            </div>
+
+            <div>
+              <label className="block text-base font-semibold text-gray-700 mb-2">
+                Unit Cost
+              </label>
+              <input
+                type="text"
+                placeholder="Unit Cost"
+                value={estimateData.unitCost}
+                onChange={(e) =>
+                  setEstimateData({
+                    ...estimateData,
+                    unitCost: e.target.value,
+                  })
+                }
+                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400"
+              />
+            </div>
+            <div>
+              <label className="block text-base font-semibold text-gray-700 mb-2">
+                Price
+              </label>
+              <input
+                type="text"
+                placeholder="Price"
+                value={estimateData.price}
+                onChange={(e) =>
+                  setEstimateData({
+                    ...estimateData,
+                    price: e.target.value,
+                  })
+                }
+                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400"
+              />
+            </div>
+
+            <div>
+              <label className="block text-base font-semibold text-gray-700 mb-2">
+                Description
+              </label>
+              <textarea
+                rows={6}
+                placeholder="Description"
+                value={estimateData.description}
+                onChange={(e) =>
+                  setEstimateData({
+                    ...estimateData,
+                    description: e.target.value,
+                  })
+                }
+                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400"
+              />
+            </div>
+
+            <div>
+              <label className="block text-base font-semibold text-gray-700 mb-2">
+                Notes
+              </label>
+              <textarea
+                rows={6}
+                placeholder="Notes"
+                value={estimateData.notes}
+                onChange={(e) =>
+                  setEstimateData({
+                    ...estimateData,
+                    notes: e.target.value,
+                  })
+                }
+                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400"
+              />
+            </div>
+          </div>
+
+          <div className="border border-dashed border-primary mt-3 flex justify-center md:justify-start rounded-2xl md:rounded-none">
             <button
               onClick={handleAddLineItem}
-              className="w-full py-3 text-left px-4 text-primary border-t border-gray-300 hover:bg-orange-50 flex items-center gap-2"
+              className="py-3 px-4 text-primary border-t border-gray-300 hover:bg-orange-50 flex items-center gap-2"
             >
               <Plus size={18} />
               Add Line Item
@@ -496,7 +624,7 @@ export default function EstimateTable() {
 
           <div className="mt-6 flex justify-end">
             <div className="w-[356px] flex flex-col space-y-3">
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center border-b py-1">
                 <span className="text-gray-700 font-medium">Subtotal</span>
                 <span className="font-semibold text-gray-900">
                   ${subtotal.toFixed(2)}
@@ -504,7 +632,7 @@ export default function EstimateTable() {
               </div>
 
               {/* Markup */}
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center  border-b py-1">
                 <span className="text-gray-700 font-medium">Markup</span>
 
                 {markup !== null ? (
@@ -524,7 +652,7 @@ export default function EstimateTable() {
                 )}
               </div>
 
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center  border-b py-1">
                 <span className="text-gray-700 font-medium">Discount</span>
 
                 {discount !== null ? (
@@ -574,6 +702,10 @@ export default function EstimateTable() {
                   ${total.toFixed(2)}
                 </span>
               </div>
+
+              <button className="px-5 py-2 md:hidden rounded-lg bg-primary text-white hover:bg-primary/90 w-full transition-colors">
+                Submit
+              </button>
 
               <CustomModal
                 open={isModalOpen}

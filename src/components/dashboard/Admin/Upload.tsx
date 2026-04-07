@@ -1,10 +1,12 @@
-import { ArrowLeft, UploadCloud } from "lucide-react";
+import cloud from "@/assets/dashboard/cloud-upload.png";
+import { ArrowLeft } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
 export default function Upload() {
   return (
-    <div className="px-8 bg-white rounded-2xl py-4">
-      <div className="flex gap-3 justify-between">
+    <div className="md:px-8 bg-none md:bg-secondary rounded-2xl py-4">
+      <div className="hidden md:flex flex-row justify-between items-center gap-3">
         <Link
           href={"/admin/estimate"}
           className="flex items-center gap-2 cursor-pointer text-gray-700 hover:text-orange-500 transition"
@@ -22,6 +24,19 @@ export default function Upload() {
         </div>
       </div>
 
+      <div className="relative flex items-center justify-center py-2 md:hidden block">
+        {/* Arrow button on the left */}
+        <Link
+          href={"/admin/estimate"}
+          className="absolute left-0 flex items-center gap-2 text-gray-700 hover:text-orange-500 transition"
+        >
+          <ArrowLeft size={18} />
+        </Link>
+
+        {/* Centered title */}
+        <h2 className="text-2xl font-medium">Estimates</h2>
+      </div>
+
       <div className="border-2 border-dashed border-primary bg-[#E279320D] rounded-lg p-10 text-center hover:bg-orange-50 transition cursor-pointer mt-12">
         <input type="file" className="hidden" id="fileUpload" />
 
@@ -29,8 +44,13 @@ export default function Upload() {
           htmlFor="fileUpload"
           className="cursor-pointer flex flex-col items-center gap-3"
         >
-          {/* Icon */}
-          <UploadCloud className="w-10 h-10 text-primary" />
+          <Image
+            src={cloud}
+            alt="cloud"
+            width={40}
+            height={40}
+            className="mb-2"
+          />
 
           <span className="text-primary font-medium">Click to upload</span>
 
@@ -40,14 +60,14 @@ export default function Upload() {
 
       <div className="mt-6 flex justify-end">
         <div className="w-[356px] flex flex-col space-y-3">
-          <div className="flex justify-between items-center border-b p-3">
+          <div className="flex justify-between items-center border-b py-3">
             <span className="text-gray-700 font-medium text-base ">
               Subtotal
             </span>
             <span className="font-semibold text-gray-900">$0.00</span>
           </div>
 
-          <div className="flex justify-between items-center border-b p-3">
+          <div className="flex justify-between items-center border-b py-3">
             <span className="text-gray-700 font-medium">Markup</span>
 
             <div className="flex items-center gap-2"></div>
@@ -57,7 +77,7 @@ export default function Upload() {
             </button>
           </div>
 
-          <div className="flex justify-between items-center border-b p-3">
+          <div className="flex justify-between items-center border-b py-3">
             <span className="text-gray-700 font-medium">Discount</span>
 
             <button className="text-orange-500 hover:text-orange-600 font-semibold transition-colors">
@@ -81,6 +101,10 @@ export default function Upload() {
           </div>
         </div>
       </div>
+
+      <button className="px-5 py-2 md:hidden rounded-lg bg-primary text-white hover:bg-primary/90 w-full transition-colors mt-8">
+        Submit
+      </button>
     </div>
   );
 }
