@@ -3,8 +3,15 @@
 import { Edit, Eye } from "lucide-react";
 import React from "react";
 import { RiDeleteBin6Line } from "react-icons/ri";
-
 import { ColorRing } from "react-loader-spinner";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "../ui/Pagination";
 
 interface Column {
   key: string;
@@ -18,6 +25,10 @@ interface ReusableTableProps {
   error?: string | null;
   onView?: (row: any) => void;
   onEdit?: (row: any) => void;
+
+  page?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
 }
 
 const ReusableTable: React.FC<ReusableTableProps> = ({
@@ -27,6 +38,9 @@ const ReusableTable: React.FC<ReusableTableProps> = ({
   error,
   onView,
   onEdit,
+  page = 1,
+  totalPages = 1,
+  onPageChange,
 }) => {
   if (isLoading)
     return (
@@ -35,9 +49,6 @@ const ReusableTable: React.FC<ReusableTableProps> = ({
           visible={true}
           height="70"
           width="70"
-          ariaLabel="color-ring-loading"
-          wrapperStyle={{}}
-          wrapperClass="color-ring-wrapper"
           colors={["#e15b64", "#f47e60", "#f8b26a", "#abbd81", "#849b87"]}
         />
       </div>
@@ -48,71 +59,114 @@ const ReusableTable: React.FC<ReusableTableProps> = ({
     return <p className="text-center py-4">No data available</p>;
 
   const getStatusBadge = (status: string) => {
-    const base = "px-4 py-2 rounded-lg text-white text-sm font-normal";
-    if (status === "Active")
+    const base = "px-4 py-2 rounded-lg text-sm font-normal";
+
+    if (status === "active")
       return (
-        <span className={`${base} bg-[#52C41A1A] text-green-700`}>
-          {status}
-        </span>
+        <span className={`${base} bg-green-100 text-green-700`}>Active</span>
       );
-    if (status === "Inactive")
+
+    if (status === "inactive")
       return (
-        <span className={`${base} bg-red-200 text-red-800`}>{status}</span>
+        <span className={`${base} bg-red-100 text-red-700`}>Inactive</span>
       );
-    if (status === "Pending")
+
+    if (status === "pending")
       return (
-        <span className={`${base}  bg-[#FAAD141A] text-orange-600`}>
-          {status}
-        </span>
+        <span className={`${base} bg-yellow-100 text-yellow-700`}>Pending</span>
       );
+
+    return <span className={base}>{status}</span>;
   };
 
   return (
-    <div className="overflow-x-auto ">
-      <table className="w-full ">
-        <thead className="">
-          <tr>
-            {columns.map((col) => (
-              <th key={col.key} className="p-2 text-left border-b">
-                {col.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((row) => (
-            <tr key={row.id} className="hover:bg-gray-50">
+    <div className="space-y-4">
+      {/* TABLE */}
+      <div className="overflow-x-auto mb-14">
+        <table className="w-full">
+          <thead>
+            <tr>
               {columns.map((col) => (
-                <td key={col.key} className="p-2 ">
-                  {col.key === "action" ? (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => onView?.(row)}
-                        className="text-primary"
-                      >
-                        <Eye size={20} />
-                      </button>
-                      <button
-                        onClick={() => onEdit?.(row)}
-                        className="text-[#11AD32]"
-                      >
-                        <Edit size={20} />
-                      </button>
-                      <button className="text-red-500">
-                        <RiDeleteBin6Line size={20} />
-                      </button>
-                    </div>
-                  ) : col.key === "status" ? (
-                    getStatusBadge(row[col.key])
-                  ) : (
-                    row[col.key]
-                  )}
-                </td>
+                <th key={col.key} className="p-2 text-left border-b">
+                  {col.label}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+
+          <tbody>
+            {data.map((row) => (
+              <tr key={row.id} className="hover:bg-gray-50">
+                {columns.map((col) => (
+                  <td key={col.key} className="p-2">
+                    {col.key === "action" ? (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => onView?.(row)}
+                          className="text-orange-500"
+                        >
+                          <Eye size={20} />
+                        </button>
+
+                        <button
+                          onClick={() => onEdit?.(row)}
+                          className="text-green-600"
+                        >
+                          <Edit size={20} />
+                        </button>
+
+                        <button className="text-red-500">
+                          <RiDeleteBin6Line size={20} />
+                        </button>
+                      </div>
+                    ) : col.key === "status" ? (
+                      getStatusBadge(row[col.key])
+                    ) : (
+                      row[col.key]
+                    )}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* PAGINATION */}
+
+      {totalPages > 1 && (
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                onClick={() => onPageChange?.(Math.max(page - 1, 1))}
+              />
+            </PaginationItem>
+
+            {Array.from({ length: totalPages }).map((_, idx) => {
+              const pageNum = idx + 1;
+
+              return (
+                <PaginationItem key={pageNum}>
+                  <PaginationLink
+                    isActive={pageNum === page}
+                    onClick={() => onPageChange?.(pageNum)}
+                  >
+                    {pageNum}
+                  </PaginationLink>
+                </PaginationItem>
+              );
+            })}
+
+            {/* Next */}
+            <PaginationItem>
+              <PaginationNext
+                onClick={() => onPageChange?.(Math.min(page + 1, totalPages))}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
     </div>
   );
 };

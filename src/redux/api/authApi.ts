@@ -1,6 +1,5 @@
 import { IResponse } from "@/types/common.type";
 import { IUser } from "@/types/user.Type";
-import Cookies from "js-cookie";
 import baseApi from "./baseApi";
 
 const authApi = baseApi.injectEndpoints({
@@ -41,18 +40,12 @@ const authApi = baseApi.injectEndpoints({
       }),
     }),
 
-    resetPassword: builder.mutation<IResponse<any>, { newPassword: string }>({
-      query: ({ newPassword }) => {
-        const token = Cookies.get("token");
-        return {
-          url: "/auth/reset-password",
-          method: "PATCH",
-          body: { newPassword },
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        };
-      },
+    resetPassword: builder.mutation({
+      query: (data: { newPassword: string }) => ({
+        url: "/auth/reset-password",
+        method: "PATCH",
+        body: data,
+      }),
     }),
 
     updateProfile: builder.mutation({

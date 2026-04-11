@@ -3,7 +3,6 @@
 import type React from "react";
 
 import { useResetPasswordMutation } from "@/redux/api/authApi";
-import Cookies from "js-cookie";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -37,12 +36,6 @@ export default function ResetPassword() {
       return;
     }
 
-    const token = Cookies.get("token");
-    if (!token) {
-      setError("No authentication token found. Please login again.");
-      return;
-    }
-
     setIsLoading(true);
 
     try {
@@ -65,9 +58,7 @@ export default function ResetPassword() {
   return (
     <AuthLayout title="Input the new password">
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* New Password */}
         <div className="relative w-full mb-6">
-          {/* Floating label */}
           <label
             htmlFor="newPassword"
             className="absolute -top-[10px] left-4 bg-white px-1 text-sm font-medium text-gray-700"

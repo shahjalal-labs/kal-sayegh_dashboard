@@ -10,15 +10,15 @@ export const baseApi = createApi({
       const token = Cookies.get("token");
 
       if (token) {
-        headers.set("Authorization", `${token}`);
+        headers.set("Authorization", `Bearer ${token}`);
       } else {
       }
-      // hello
+
       return headers;
     },
   }),
   endpoints: () => ({}),
-  tagTypes: ["auth", "service", "dashboard", "user", "quote", "coupon"],
+  tagTypes: ["auth", "service", "dashboard", "user", "estimate", "invoice"],
 });
 
 export default baseApi;

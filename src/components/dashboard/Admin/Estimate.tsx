@@ -56,7 +56,7 @@ export default function Estimate() {
   return (
     <div className="md:bg-secondary bg-secondary-none p-0 md:p-6 rounded-2xl">
       {/* HEADER */}
-      <div className=" md:p-4 rounded-lg mb-6">
+      <div className=" md:p-2 rounded-lg mb-6">
         <div className="flex items-center justify-between md:flex-row md:items-center md:justify-between gap-4 ">
           {/* LEFT SIDE */}
           <h2 className="text-lg md:text-2xl font-normal">

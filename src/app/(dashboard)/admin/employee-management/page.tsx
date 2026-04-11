@@ -5,11 +5,11 @@ export default function EmployeeManagementPage() {
   return (
     <div className="bg-secondary p-6 rounded-2xl">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-0">
-        <div className="flex flex-wrap gap-4">
-          <button className="bg-primary hover:bg-primary/90 transition-all flex items-center px-6 md:px-20 py-3 md:py-4 rounded-lg text-secondary">
+        <div className="flex  gap-4">
+          <button className="bg-primary hover:bg-primary/90 transition-all flex items-center px-6 md:px-20 py-1 md:py-4 rounded-lg text-secondary">
             Employee
           </button>
-          <button className="border border-primary text-primary px-6 md:px-10 py-3 md:py-4 rounded-lg">
+          <button className="border border-primary text-primary px-6 md:px-10 py-1 md:py-4 rounded-lg">
             Office Administration
           </button>
         </div>
