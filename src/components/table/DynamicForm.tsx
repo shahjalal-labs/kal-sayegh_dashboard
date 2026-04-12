@@ -11,6 +11,7 @@ export interface FormField {
   options?: { value: string; label: string }[];
   step?: string;
   rows?: number;
+  readOnly?: boolean;
 }
 
 interface DynamicFormProps {

@@ -1,9 +1,12 @@
 "use client";
 
-import { useGetOfficesQuery } from "@/redux/api/jobApi";
+import {
+  useGetAllJobRequestsQuery,
+  useGetOfficesQuery,
+} from "@/redux/api/jobApi";
 import { Calendar, Mail, MapPin, Phone, Upload } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { LiaEditSolid } from "react-icons/lia";
 import { RiFolderDownloadLine } from "react-icons/ri";
 import { CustomModal } from "../../modal/CustomModal";
@@ -151,12 +154,24 @@ function CreateNewJobForm({ form, setForm }: any) {
 
 export default function OfficeAdministration() {
   const [openModal, setOpenModal] = useState(false);
-  const [selectedJob, setSelectedJob] = useState<JobItem | null>(null);
+
   const [isOpen, setIsOpen] = useState(false);
 
   const { data } = useGetOfficesQuery({});
   const offices = data?.result || [];
-  console.log(",,,,,,,,,,,,,,,,", offices);
+
+  const { data: allJobsData } = useGetAllJobRequestsQuery({});
+
+  const allJobs =
+    allJobsData?.result?.flatMap((office: any) =>
+      office.jobRequests.map((job: any) => ({
+        ...job,
+        officeName: office.name,
+        officeId: office.id,
+      })),
+    ) || [];
+
+  console.log(allJobs);
 
   const [form, setForm] = useState<FormData>({
     office: "",
@@ -178,35 +193,14 @@ export default function OfficeAdministration() {
     note: "",
   };
 
-  useEffect(() => {
-    if (selectedJob) {
-      setForm({
-        office: "",
-        date: selectedJob.date,
-        location: "",
-        phone: "",
-        email: "",
-        address: "",
-        note: "",
-      });
-    } else {
-      setForm(initialForm);
-    }
-  }, [selectedJob]);
-
-  const handleSubmit = () => {
-    if (selectedJob) {
-      console.log("UPDATED:", form);
-    } else {
-      console.log("CREATED:", form);
-    }
-
-    setOpenModal(false);
-    setSelectedJob(null);
-  };
-
   const handleNewJob = () => {
     console.log("new");
+  };
+
+  const handleJobClick = (job: JobItem) => {
+    if (job.status === "NEW") {
+      setIsOpen(true);
+    }
   };
 
   return (
@@ -217,14 +211,12 @@ export default function OfficeAdministration() {
           open={openModal}
           onClose={() => {
             setOpenModal(false);
-            setSelectedJob(null);
           }}
-          title={selectedJob ? "Edit Job Request" : "Create New Job Request"}
+          title={"Create New Job Request"}
         >
           <CreateJobForm
             onClose={() => {
               setOpenModal(false);
-              setSelectedJob(null);
             }}
           />
         </CustomModal>
@@ -279,53 +271,52 @@ export default function OfficeAdministration() {
               </div>
 
               <div className="space-y-7">
-                <div
-                  key={office.id}
-                  className="flex items-center justify-between py-6 px-4 bg-[#F7F8F8] border border-orange-100 rounded-2xl hover:bg-gray-50 transition"
-                >
-                  <div className="flex items-center gap-3 flex-1">
+                {allJobs.length > 0 ? (
+                  allJobs.map((job: JobItem) => (
                     <div
-                      className={`w-3 h-3 rounded-full ${
-                        office.status === "NEW" ? "bg-red-500" : "bg-green-500"
-                      }`}
-                    />
-
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {office?.jobRequests?.title}
-                      </p>
-                      <p className="text-xs text-gray-500">{office.date}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col items-end gap-3">
-                    <button
-                      onClick={() => {
-                        setSelectedJob(office);
-                        setOpenModal(true);
-                      }}
-                      className="text-gray-400 hover:text-gray-600"
+                      key={job.id}
+                      className="flex items-center justify-between py-6 px-4 bg-[#F7F8F8] border border-orange-100 rounded-2xl hover:bg-gray-50 transition cursor-pointer"
+                      onClick={() => handleJobClick(job)}
                     >
-                      <LiaEditSolid size={25} />
-                    </button>
+                      <div className="flex items-center gap-3 flex-1">
+                        <div
+                          className={`w-3 h-3 rounded-full ${
+                            job.status === "NEW" ? "bg-red-500" : "bg-green-500"
+                          }`}
+                        />
 
-                    <div
-                      onClick={() => {
-                        if (office.status === "NEW") {
-                          setSelectedJob(office);
-                          setIsOpen(true);
-                        }
-                      }}
-                      className={`px-4 py-2 mt-1 rounded-lg text-white text-xs cursor-pointer ${
-                        office.status === "NEW"
-                          ? "bg-[#D40C1A] hover:bg-red-600"
-                          : "bg-green-500 cursor-not-allowed"
-                      }`}
-                    >
-                      {office.status}
+                        <div>
+                          <p className="text-lg font-medium text-gray-900">
+                            {job.title}
+                          </p>
+                          <p className="text-base text-gray-500">
+                            {new Date(job.date).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col items-end gap-3">
+                        <button className="text-gray-400 hover:text-gray-600">
+                          <LiaEditSolid size={25} />
+                        </button>
+
+                        <div
+                          className={`px-4 py-2 mt-1 rounded-lg text-white text-xs ${
+                            job.status === "NEW"
+                              ? "bg-[#D40C1A] hover:bg-red-600 cursor-pointer"
+                              : "bg-green-500 cursor-not-allowed"
+                          }`}
+                        >
+                          {job.status}
+                        </div>
+                      </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="py-6 px-4 bg-[#F7F8F8] border border-orange-100 rounded-2xl text-center text-gray-500">
+                    No job requests found.
                   </div>
-                </div>
+                )}
               </div>
             </div>
           ))}

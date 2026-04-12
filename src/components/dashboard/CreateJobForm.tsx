@@ -22,10 +22,15 @@ interface FormData {
 }
 
 interface CreateJobFormProps {
+  selectedJob?: any;
+
   onClose?: () => void;
 }
 
-export default function CreateJobForm({ onClose }: CreateJobFormProps) {
+export default function CreateJobForm({
+  selectedJob,
+  onClose,
+}: CreateJobFormProps) {
   const { data } = useGetOfficesQuery({});
   const offices = data?.result;
 

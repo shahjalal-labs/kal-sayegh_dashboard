@@ -25,6 +25,7 @@ interface ReusableTableProps {
   error?: string | null;
   onView?: (row: any) => void;
   onEdit?: (row: any) => void;
+  onDelete?: (row: any) => void;
 
   page?: number;
   totalPages?: number;
@@ -38,6 +39,7 @@ const ReusableTable: React.FC<ReusableTableProps> = ({
   error,
   onView,
   onEdit,
+  onDelete,
   page = 1,
   totalPages = 1,
   onPageChange,
@@ -115,7 +117,10 @@ const ReusableTable: React.FC<ReusableTableProps> = ({
                           <Edit size={20} />
                         </button>
 
-                        <button className="text-red-500">
+                        <button
+                          onClick={() => onDelete?.(row)}
+                          className="text-red-500"
+                        >
                           <RiDeleteBin6Line size={20} />
                         </button>
                       </div>

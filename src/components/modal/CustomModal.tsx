@@ -13,7 +13,7 @@ interface CustomModalProps {
   children: React.ReactNode;
   actions?: ModalAction[];
   title?: string;
-  maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "full";
+  maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "full";
   showCloseButton?: boolean;
   closeOnOutsideClick?: boolean;
 }
@@ -24,6 +24,7 @@ const maxWidthClasses = {
   lg: "max-w-lg",
   xl: "max-w-xl",
   "2xl": "max-w-2xl",
+  "3xl": "max-w-3xl",
   full: "max-w-full",
 };
 
@@ -33,7 +34,7 @@ export const CustomModal: React.FC<CustomModalProps> = ({
   children,
   actions = [],
   title,
-  maxWidth = "2xl",
+  maxWidth = "3xl",
   showCloseButton = true,
   closeOnOutsideClick = true,
 }) => {

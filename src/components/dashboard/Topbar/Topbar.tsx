@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import profileAvatar from "@/assets/navbar/profile.png";
 import { useMyProfileQuery } from "@/redux/api/authApi";
 import Cookies from "js-cookie";
 import { jwtDecode } from "jwt-decode";
@@ -17,7 +16,7 @@ const Topbar: React.FC<{ onHamburgerClick: () => void }> = ({
   onHamburgerClick,
 }) => {
   const { data: myProfileData } = useMyProfileQuery({});
-  const profile = myProfileData?.result?.profileimage;
+  const profile = myProfileData?.result;
 
   const token = Cookies.get("token");
   let decodedToken: any = null;
@@ -103,15 +102,13 @@ const Topbar: React.FC<{ onHamburgerClick: () => void }> = ({
             </div>
           </Link>
 
-          <Link href={`/admin/settings`}>
-            <Image
-              src={profile || profileAvatar}
-              className="w-10 h-10 rounded-full"
-              alt="profile icon"
-              width={40}
-              height={40}
-            />
-          </Link>
+          <Image
+            src={profile?.profileImage}
+            className="w-10 h-10 rounded-full bg-gray-200 "
+            alt="profile icon"
+            width={40}
+            height={40}
+          />
         </div>
       </div>
     </header>

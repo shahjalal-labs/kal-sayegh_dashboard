@@ -1,11 +1,14 @@
 "use client";
 
 import profile from "@/assets/navbar/profile.png";
+import { useCreateGroupMutation } from "@/redux/api/admin/messageApi";
+import { useGetAllUsersQuery } from "@/redux/api/userApi";
 import { Plus, Search, Send } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 import { CiCirclePlus } from "react-icons/ci";
 import { TbUserPlus } from "react-icons/tb";
+import { toast } from "sonner";
 
 const chats = [
   {
@@ -57,11 +60,50 @@ export default function Message() {
   const [preview, setPreview] = useState<string | null>(null);
   const [activeChat, setActiveChat] = useState<number | null>(null);
 
+  const [groupName, setGroupName] = useState("");
+  const [memberIds, setMemberIds] = useState<string[]>([]);
+  const [groupPhoto, setGroupPhoto] = useState<File | null>(null);
+  const [showUsers, setShowUsers] = useState(false);
+
+  const [createGroup] = useCreateGroupMutation();
+
+  const { data } = useGetAllUsersQuery({});
+  const users = data?.result || [];
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setPreview(imageUrl);
+    if (!file) return;
+
+    setGroupPhoto(file);
+    setPreview(URL.createObjectURL(file));
+  };
+
+  const handleCreateGroup = async () => {
+    try {
+      const formData = new FormData();
+
+      formData.append("groupName", groupName);
+
+      memberIds.forEach((id) => {
+        formData.append("memberIds[]", id);
+      });
+
+      if (groupPhoto) {
+        formData.append("groupPhoto", groupPhoto);
+      }
+
+      await createGroup(formData).unwrap();
+
+      toast.success("Group created successfully");
+
+      setGroupName("");
+      setMemberIds([]);
+      setGroupPhoto(null);
+      setPreview(null);
+      setOpen(false);
+    } catch (err) {
+      console.log(err);
+      toast.error("Failed to create group");
     }
   };
 
@@ -206,7 +248,12 @@ export default function Message() {
             <div className="space-y-4">
               <div>
                 <label>Group Name</label>
-                <input className="w-full mt-1 border rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary" />
+                <input
+                  type="text"
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                  className="w-full mt-1 border rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
+                />
               </div>
 
               <div>
@@ -237,6 +284,62 @@ export default function Message() {
                 </div>
               </div>
 
+              <button
+                onClick={() => setShowUsers((prev) => !prev)}
+                className="border-primary border py-2 px-4 rounded-xl"
+              >
+                +Add Members
+              </button>
+
+              {showUsers && (
+                <div className="mt-3 border rounded-xl p-3 max-h-60 overflow-y-auto space-y-2 bg-white">
+                  {users.length === 0 ? (
+                    <p className="text-base text-gray-400">No users found</p>
+                  ) : (
+                    users.map((user: any) => {
+                      const isSelected = memberIds.includes(user.id);
+
+                      return (
+                        <div
+                          key={user.id}
+                          onClick={() => {
+                            setMemberIds((prev) =>
+                              prev.includes(user.id)
+                                ? prev.filter((id) => id !== user.id)
+                                : [...prev, user.id],
+                            );
+                          }}
+                          className={`flex items-center justify-between p-2 rounded-lg cursor-pointer ${
+                            isSelected
+                              ? "bg-primary text-white "
+                              : "hover:bg-gray-100"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Image
+                              src={user.image || profile}
+                              alt="user"
+                              width={30}
+                              height={30}
+                              className="rounded-full"
+                            />
+
+                            <div className="flex flex-col">
+                              <span className="text-b font-medium">
+                                {user.name}
+                              </span>
+                              <span className="text-base ">{user.email}</span>
+                            </div>
+                          </div>
+
+                          {isSelected && <span className="text-xs">✓</span>}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+
               <div className="flex justify-end gap-3 pt-4">
                 <button
                   onClick={() => setOpen(false)}
@@ -244,7 +347,10 @@ export default function Message() {
                 >
                   Close
                 </button>
-                <button className="px-6 py-2 bg-primary hover:bg-primary/90 transition text-white rounded-xl">
+                <button
+                  onClick={handleCreateGroup}
+                  className="px-6 py-2 bg-primary hover:bg-primary/90 text-white rounded-xl"
+                >
                   Submit
                 </button>
               </div>

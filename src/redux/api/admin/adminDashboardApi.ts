@@ -8,8 +8,39 @@ const adminDashboardApi = baseApi.injectEndpoints({
         method: "GET",
         params: { page, limit },
       }),
+      providesTags: ["user"],
+    }),
+
+    deleteUser: builder.mutation({
+      query: (userId: string) => ({
+        url: `/admin/${userId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["user"],
+    }),
+
+    getSingleUser: builder.query({
+      query: (userId: string) => ({
+        url: `/admin/${userId}`,
+        method: "GET",
+      }),
+      providesTags: ["user"],
+    }),
+
+    updateUser: builder.mutation({
+      query: ({ userId, data }) => ({
+        url: `/admin/${userId}`,
+        method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: ["user"],
     }),
   }),
 });
 
-export const { useGetEmployeesQuery } = adminDashboardApi;
+export const {
+  useGetEmployeesQuery,
+  useDeleteUserMutation,
+  useGetSingleUserQuery,
+  useUpdateUserMutation,
+} = adminDashboardApi;

@@ -24,11 +24,29 @@ const jobApi = baseApi.injectEndpoints({
         method: "GET",
       }),
     }),
+
+    getAllJobRequests: builder.query({
+      query: () => ({
+        url: "/job-request/all",
+        method: "GET",
+      }),
+    }),
+
+    updateJobRequest: builder.mutation({
+      query: ({ jobRequestId, data }) => ({
+        url: `/job-request/update-job-request/${jobRequestId}`,
+        method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: ["jobs"],
+    }),
   }),
 });
 
 export const {
   useCreateOfficeMutation,
+  useUpdateJobRequestMutation,
   useGetOfficesQuery,
   useCreateJobRequestMutation,
+  useGetAllJobRequestsQuery,
 } = jobApi;

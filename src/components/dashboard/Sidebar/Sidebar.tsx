@@ -18,7 +18,6 @@ import { LayoutDashboard, LogOut, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 
 interface SidebarProps {
   onCloseClick?: () => void;
@@ -35,16 +34,6 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
   const pathname = usePathname();
   const router = useRouter();
   const params = useParams();
-  // const role = "Administration";
-  const role = "Admin";
-  const currentRole = role.toLowerCase();
-  // const role = params.role as string;
-  const [userRole, setUserRole] = useState<string>("");
-
-  useEffect(() => {
-    const role = Cookies.get("role") || "Admin";
-    setUserRole(role);
-  }, []);
 
   const isActive = (href: string) => {
     if (href.includes("/estimate")) {
@@ -71,102 +60,74 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
     if (href.includes("/settings")) {
       return pathname.includes("/settings");
     }
-    if (href === `/${currentRole}/dashboard`) {
-      return pathname === `/${currentRole}/dashboard`;
-    }
-    return pathname === href;
-  };
 
-  const getHref = (path: string) => {
-    return `/${currentRole}${path}`;
+    return pathname === href;
   };
 
   let allMenuItems: MenuItem[] = [];
 
-  if (userRole === "Admin") {
-    allMenuItems = [
-      {
-        href: getHref("/dashboard"),
-        icon: LayoutDashboard,
-        label: "Dashboard",
-      },
-      {
-        href: getHref("/employee-management"),
-        icon: filemanagement,
-        label: "Employee Management",
-        isImage: true,
-      },
-      {
-        href: getHref("/estimator-management"),
-        icon: estimator,
-        label: "Estimator Management",
-        isImage: true,
-      },
-      {
-        href: getHref("/estimate"),
-        icon: estimate,
-        label: "Estimate",
-        isImage: true,
-      },
-      {
-        href: getHref("/invoice"),
-        icon: invoiceIcon,
-        label: "Invoice",
-        isImage: true,
-      },
-      {
-        href: getHref("/office-administration"),
-        icon: newOffice,
-        label: "Office Administration",
-        isImage: true,
-      },
-      {
-        href: getHref("/calendar"),
-        icon: calender,
-        label: "Calendar",
-        isImage: true,
-      },
-      {
-        href: getHref("/message"),
-        icon: chat,
-        label: "Message",
-        isImage: true,
-      },
-      {
-        href: getHref("/settings"),
-        icon: settingIcon,
-        label: "Settings",
-        isImage: true,
-      },
-    ];
-  } else if (userRole === "Administration") {
-    allMenuItems = [
-      {
-        href: getHref("/office-administration"),
-        icon: newOffice,
-        label: "Office Administration",
-        isImage: true,
-      },
-      {
-        href: getHref("/to-do"),
-        icon: checklist,
-        label: "Office To Do List",
-        isImage: true,
-      },
-      {
-        href: getHref("/calendar"),
-        icon: calender,
-        label: "Calendar",
-        isImage: true,
-      },
-      {
-        href: getHref("/settings"),
-        icon: settingIcon,
-        label: "Settings",
-        isImage: true,
-      },
-    ];
-  }
+  allMenuItems = [
+    {
+      href: "/admin/dashboard",
+      icon: LayoutDashboard,
+      label: "Dashboard",
+    },
+    {
+      href: "/admin/employee-management",
+      icon: filemanagement,
+      label: "Employee Management",
+      isImage: true,
+    },
+    {
+      href: "/admin/estimator-management",
+      icon: estimator,
+      label: "Estimator Management",
+      isImage: true,
+    },
+    {
+      href: "/admin/estimate",
+      icon: estimate,
+      label: "Estimate",
+      isImage: true,
+    },
+    {
+      href: "/admin/invoice",
+      icon: invoiceIcon,
+      label: "Invoice",
+      isImage: true,
+    },
+    {
+      href: "/office-administration",
+      icon: newOffice,
+      label: "Office Administration",
+      isImage: true,
+    },
+    {
+      href: "/calendar",
+      icon: calender,
+      label: "Calendar",
+      isImage: true,
+    },
+    {
+      href: "/admin/message",
+      icon: chat,
+      label: "Message",
+      isImage: true,
+    },
+    {
+      href: "/settings",
+      icon: settingIcon,
+      label: "Settings",
+      isImage: true,
+    },
+
+    {
+      href: "administration/to-do",
+      icon: checklist,
+      label: "Office To Do List",
+      isImage: true,
+    },
+  ];
 
   const handleLogout = () => {
     Cookies.remove("token");
@@ -195,11 +156,11 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
         {/* Navigation */}
         <nav className="flex-1 p-4 overflow-y-auto">
           <ul className="space-y-2">
-            {allMenuItems.map((item) => {
+            {allMenuItems.map((item, index) => {
               const active = isActive(item.href);
 
               return (
-                <li key={item.href}>
+                <li key={index}>
                   <Link
                     href={item.href}
                     className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base transition-colors ${
@@ -212,7 +173,7 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
                     {item.isImage ? (
                       <Image
                         src={item.icon}
-                        alt={item.label}
+                        alt={"icon"}
                         width={20}
                         height={20}
                         className={active ? "filter brightness-0 invert" : ""}

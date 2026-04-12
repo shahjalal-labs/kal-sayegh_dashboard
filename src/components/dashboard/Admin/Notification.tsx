@@ -1,5 +1,6 @@
 "use client";
 
+import { useGetMyNotificationsQuery } from "@/redux/api/notificationApi";
 import { Bell, Clock, CreditCard, Eye, User } from "lucide-react";
 
 interface Notification {
@@ -13,6 +14,9 @@ interface Notification {
 }
 
 export default function Notification() {
+  const { data } = useGetMyNotificationsQuery({});
+  const notification = data?.result?.data;
+
   const notifications = {
     today: [
       {
