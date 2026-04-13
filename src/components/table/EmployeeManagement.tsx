@@ -8,69 +8,12 @@ import {
   useUpdateUserMutation,
 } from "@/redux/api/admin/adminDashboardApi";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import Swal from "sweetalert2";
 import { CustomModal } from "../modal/CustomModal";
-import DynamicForm, { FormField } from "./DynamicForm";
 import { EmployeeSchedule } from "./EmployeeSchedule";
 import ReusableTable from "./ReusableTable";
-
-const employeeFormFields: FormField[] = [
-  {
-    name: "fullName",
-    label: "User Name",
-    type: "text",
-    placeholder: "User Name",
-    required: true,
-  },
-  {
-    name: "email",
-    label: "Email Address",
-    type: "email",
-    placeholder: "Email Address",
-  },
-  {
-    name: "profession",
-    label: "Profession",
-    type: "text",
-    placeholder: "Profession",
-  },
-  {
-    name: "hiringDate",
-    label: "Hiring Date",
-    type: "date",
-    readOnly: true,
-  },
-  {
-    name: "regularHours",
-    label: "Regular Hours (This Week)",
-    type: "number",
-    step: "0.5",
-    readOnly: true,
-  },
-  {
-    name: "prevailingWageHours",
-    label: "Prevailing Wage Hours",
-    type: "number",
-    step: "0.5",
-    readOnly: true,
-  },
-  {
-    name: "overtimeHours",
-    label: "Over Time Hours",
-    type: "number",
-    step: "0.5",
-    readOnly: true,
-  },
-  {
-    name: "totalHours",
-    label: "Total Hours (This Week)",
-    type: "number",
-    step: "0.5",
-    readOnly: true,
-  },
-];
 
 export default function EmployeeManagement() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -80,6 +23,17 @@ export default function EmployeeManagement() {
   const [selectedRow, setSelectedRow] = useState<any>(null);
 
   const [page, setPage] = useState(1);
+
+  const [formData, setFormData] = useState({
+    fullName: "",
+    email: "",
+    profession: "",
+    hiringDate: "",
+    regularHours: 0,
+    pwHours: 0,
+    overTime: 0,
+    totalHours: 0,
+  });
 
   const { data: employeesList, isLoading } = useGetEmployeesQuery({
     page,
@@ -92,6 +46,14 @@ export default function EmployeeManagement() {
   const [deleteUser] = useDeleteUserMutation();
   const [updateUser] = useUpdateUserMutation();
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
   const employees =
     employeesList?.result?.data?.map((emp: any) => ({
       id: emp.id,
@@ -117,6 +79,21 @@ export default function EmployeeManagement() {
     { key: "status", label: "Status" },
     { key: "action", label: "Action" },
   ];
+
+  useEffect(() => {
+    if (modalType === "edit" && selectedRow) {
+      setFormData({
+        fullName: selectedRow.fullName || "",
+        email: selectedRow.email || "",
+        profession: selectedRow.profession || "",
+        hiringDate: selectedRow.hiringDate || "",
+        regularHours: selectedRow.regularHours || 0,
+        pwHours: selectedRow.pwHours || 0,
+        overTime: selectedRow.overtimeHours || 0,
+        totalHours: selectedRow.totalHours || 0,
+      });
+    }
+  }, [modalType, selectedRow]);
 
   const handleDelete = async (row: any) => {
     const result = await Swal.fire({
@@ -152,17 +129,15 @@ export default function EmployeeManagement() {
     }
   };
 
-  const handleUpdate = async (formData: any) => {
-    const updateData = {
-      email: formData?.email,
-      fullName: formData?.fullName,
-      profession: formData?.profession,
-    };
-
+  const handleUpdate = async () => {
     try {
       await updateUser({
         userId: selectedRow?.id,
-        data: updateData,
+        data: {
+          fullName: formData.fullName,
+          email: formData.email,
+          profession: formData.profession,
+        },
       }).unwrap();
 
       toast.success("User updated successfully");
@@ -313,7 +288,7 @@ export default function EmployeeManagement() {
       <CustomModal
         open={modalOpen && modalType === "edit"}
         onClose={() => setModalOpen(false)}
-        title="Edit Employee"
+        title="Edit Employee List"
         maxWidth="2xl"
         actions={[
           {
@@ -323,16 +298,126 @@ export default function EmployeeManagement() {
           },
           {
             label: "Save",
-            onClick: () => handleUpdate(selectedRow), // Pass selectedRow directly
+            onClick: handleUpdate,
             variant: "primary",
           },
         ]}
       >
-        <DynamicForm
-          fields={employeeFormFields}
-          initialData={selectedRow || {}} // Use selectedRow, not formValues
-          onSubmit={handleUpdate}
-        />
+        <div className="grid grid-cols-2 gap-6">
+          {/* Full Name */}
+          <div>
+            <label className="block text-sm font-semibold mb-2">
+              User Name
+            </label>
+            <input
+              type="text"
+              name="fullName"
+              value={formData.fullName}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-sm font-semibold mb-2">
+              Email Address
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+
+          {/* Profession */}
+          <div>
+            <label className="block text-sm font-semibold mb-2">
+              Profession
+            </label>
+            <input
+              type="text"
+              name="profession"
+              value={formData.profession}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-sm font-semibold mb-2">
+              Hiring Date
+            </label>
+            <input
+              type="date"
+              name="hiringDate"
+              value={formData.hiringDate}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold mb-2">
+              Regular Hours (This Week)
+            </label>
+            <input
+              type="text"
+              name="regularHours"
+              value={formData.regularHours}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+              readOnly
+            />
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-sm font-semibold mb-2">
+              Prevailing Wage Hours
+            </label>
+            <input
+              type="text"
+              name="pwHours"
+              value={formData.pwHours}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+              readOnly
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold mb-2">
+              Over Time Hours
+            </label>
+            <input
+              type="text"
+              name="overTime"
+              value={formData.overTime}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+              readOnly
+            />
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-sm font-semibold mb-2">
+              Total Hours (This Week)
+            </label>
+            <input
+              type="text"
+              name="totalHours"
+              value={formData.totalHours}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+              readOnly
+            />
+          </div>
+        </div>
       </CustomModal>
     </div>
   );

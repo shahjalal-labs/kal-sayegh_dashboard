@@ -24,6 +24,8 @@ import cardBg3 from "@/assets/dashboard/cardBg3.png";
 import d1 from "@/assets/dashboard/d1.png";
 import d2 from "@/assets/dashboard/d2.png";
 import d3 from "@/assets/dashboard/d3.png";
+import { useGetAdminOverviewQuery } from "@/redux/api/admin/adminDashboardApi";
+import Link from "next/link";
 import EmployeeManagement from "../table/EmployeeManagement";
 
 const result = {
@@ -54,41 +56,31 @@ const result = {
 export default function Dashboard() {
   const [selected, setSelected] = useState("monthly");
   const [open, setOpen] = useState(false);
+  const { data, isLoading, isError } = useGetAdminOverviewQuery({});
 
-  // Fetch dashboard overview with filter
-  // const {
-  //   data: overviewData,
-  //   isLoading,
-  //   isError,
-  // } = useGetAdminOverviewQuery({
-  //   filter: selected,
-  // });
+  const overviewData = data?.result;
 
-  // if (isLoading) return <p className="p-4">Loading dashboard...</p>;
-  // if (isError)
-  //   return <p className="p-4 text-red-500">Error loading dashboard</p>;
-
-  // const result = overviewData?.result;
+  if (isLoading) return <p className="p-4">Loading dashboard...</p>;
 
   // Stats Cards
   const stats = [
     {
       title: "Active Employees",
-      value: result?.summary?.newQuotes || 0,
+      value: overviewData.activeEmployees || 0,
       description: "Clocked in today",
       icon: d1,
       bg: cardBg1,
     },
     {
       title: "Today's Work Hours",
-      value: result?.summary?.totalEmploys + "h" || 0,
+      value: overviewData.todaysWorkHours + "h" || 0,
       description: "Regular + PW + Travel",
       icon: d2,
       bg: cardBg2,
     },
     {
       title: "Pending Estimates",
-      value: result?.summary?.pendingPayments || 0,
+      value: overviewData.pendingEstimates || 0,
       description: "Awaiting client response",
       icon: d3,
       bg: cardBg3,
@@ -359,9 +351,12 @@ export default function Dashboard() {
           <h1 className="text-xl md:text-2xl font-semibold mb-4">
             Employee List
           </h1>
-          <button className="bg-primary text-secondary px-6 py-2 rounded-lg font-normal text-base">
+          <Link
+            href={"/admin/employee-management"}
+            className="bg-primary text-secondary px-6 py-2 rounded-lg font-normal text-base"
+          >
             See All
-          </button>
+          </Link>
         </div>
         <EmployeeManagement />
       </div>

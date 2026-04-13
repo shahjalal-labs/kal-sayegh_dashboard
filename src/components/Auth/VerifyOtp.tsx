@@ -53,6 +53,8 @@ export default function VerifyOTP() {
       const response = await verifyOtp({ email, otp: otpValue }).unwrap();
 
       if (response?.success) {
+        localStorage.setItem("forgetToken", response?.result?.forgetToken);
+
         toast.success("OTP verified successfully");
         router.push(`/reset-password?email=${encodeURIComponent(email)}`);
       } else {

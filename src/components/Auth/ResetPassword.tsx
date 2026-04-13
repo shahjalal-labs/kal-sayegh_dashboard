@@ -18,8 +18,6 @@ export default function ResetPassword() {
   const [error, setError] = useState("");
   const router = useRouter();
 
-  // const email = searchParams.get("email");
-
   const [resetPassword] = useResetPasswordMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,20 +34,33 @@ export default function ResetPassword() {
       return;
     }
 
+    const forgetToken = localStorage.getItem("forgetToken");
+
+    console.log("forget", forgetToken);
+    if (!forgetToken) {
+      toast.error("Session expired. Please try again.");
+      router.push("/forgot-password");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const response = await resetPassword({ newPassword }).unwrap();
+      const response = await resetPassword({
+        newPassword,
+        forgetToken,
+      }).unwrap();
 
       if (response.success) {
         toast.success("Password reset successfully");
+        localStorage.removeItem("forgetToken");
+
         router.push("/login");
       } else {
         setError(response.message || "Failed to reset password");
       }
     } catch (err: any) {
-      console.error("Reset password error:", err);
-      setError(err?.data?.message || "Failed to reset password");
+      toast.error(err?.data?.message || "Failed to reset password");
     } finally {
       setIsLoading(false);
     }
@@ -87,9 +98,7 @@ export default function ResetPassword() {
           </button>
         </div>
 
-        {/* Confirm Password */}
         <div className="relative w-full">
-          {/* Floating label */}
           <label
             htmlFor="confirmPassword"
             className="absolute -top-[10px] left-4 bg-white px-1 text-sm font-medium text-gray-700"
@@ -97,7 +106,6 @@ export default function ResetPassword() {
             Confirm new password
           </label>
 
-          {/* Input field */}
           <input
             id="confirmPassword"
             type={showConfirmPassword ? "text" : "password"}

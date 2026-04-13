@@ -14,32 +14,18 @@ import Account from "./Account";
 import { useRouter, useSearchParams } from "next/navigation";
 import Notes from "./Notes";
 
-// Profile Info Component
 function ProfileInfo() {
   const { data } = useMyProfileQuery(undefined);
   const [updateProfile, { isLoading }] = useUpdateProfileMutation();
 
   const [form, setForm] = useState({
-    fullname: "",
+    fullName: "",
     email: "",
-    country: "",
-    city: "",
+    profession: "",
   });
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (data?.result) {
-      setForm({
-        fullname: data?.result?.fullname || "",
-        email: data?.result?.email || "",
-        country: data?.result?.country || "",
-        city: data?.result?.city || "",
-      });
-      setPreview(data?.result?.profileimage || null);
-    }
-  }, [data]);
 
   const handleChange = (field: string, value: string) => {
     setForm({ ...form, [field]: value });
@@ -55,12 +41,28 @@ function ProfileInfo() {
     }
   };
 
+  useEffect(() => {
+    if (data?.result) {
+      console.log("PROFILE DATA:", data.result);
+
+      setForm({
+        fullName: data?.result?.fullName || "",
+        email: data?.result?.email || "",
+        profession: data?.result?.profession || "",
+      });
+    }
+  }, [data]);
+
   const handleSubmit = async () => {
     try {
       const body = new FormData();
-      body.append("fullname", form.fullname);
-      body.append("country", form.country);
-      body.append("city", form.city);
+
+      const bodyData = {
+        fullName: form.fullName,
+        profession: form.profession,
+      };
+
+      body.append("bodyData", JSON.stringify(bodyData));
 
       if (file) body.append("profileImage", file);
 
@@ -81,9 +83,9 @@ function ProfileInfo() {
         <h3 className="font-medium text-lg mb-2">Profile Photo</h3>
 
         <div className="relative w-24 h-24 bg-gray-100 rounded-lg">
-          {(preview || data?.result?.profileimage) && (
+          {(preview || data?.result?.profileImage) && (
             <Image
-              src={preview || data?.result?.profileimage}
+              src={preview || data?.result?.profileImage}
               alt="Profile"
               width={96}
               height={96}
@@ -117,8 +119,8 @@ function ProfileInfo() {
             type="text"
             placeholder="Full Name"
             className="w-full border px-4 py-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
-            value={form.fullname}
-            onChange={(e) => handleChange("fullname", e.target.value)}
+            value={form.fullName}
+            onChange={(e) => handleChange("fullName", e.target.value)}
           />
         </div>
         <div>
@@ -127,41 +129,58 @@ function ProfileInfo() {
           </label>
           <input
             type="email"
-            placeholder="Email"
-            className="w-full border px-4 py-2 rounded-lg bg-primary placeholder:text-white focus:outline-none "
+            className="w-full border px-4 py-2 rounded-lg bg-primary text-white placeholder:text-white focus:outline-none"
             value={form.email}
             readOnly
           />
         </div>
-
         <div>
           <label htmlFor="" className="font-normal text-base">
-            Country
+            Profession
           </label>
-          <div className="flex flex-col md:flex-row gap-4">
-            <select
-              className="flex-1 border px-4 py-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
-              value={form.country}
-              onChange={(e) => handleChange("country", e.target.value)}
-            >
-              <option value="">Select Country</option>
-              <option value="Bangladesh">Bangladesh</option>
-              <option value="USA">USA</option>
-              <option value="UK">UK</option>
-            </select>
-
-            <select
-              className="flex-1 border px-4 py-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
-              value={form.city}
-              onChange={(e) => handleChange("city", e.target.value)}
-            >
-              <option value="">Select City</option>
-              <option value="Dhaka">Dhaka</option>
-              <option value="Chittagong">Chittagong</option>
-              <option value="Khulna">Khulna</option>
-            </select>
-          </div>
+          <input
+            type="text"
+            placeholder="Profession"
+            className="w-full border px-4 py-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+            value={form.profession}
+            onChange={(e) => handleChange("profession", e.target.value)}
+          />
         </div>
+        {/* <div className="flex gap-4">
+        
+          <div className="flex-1">
+            <label className="font-normal text-base">Country</label>
+            <input
+              type="text"
+              placeholder="Country"
+              className="w-full border px-4 py-2 rounded-lg focus:outline-none"
+              value={form.country}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  country: e.target.value,
+                }))
+              }
+            />
+          </div>
+
+         
+          <div className="flex-1">
+            <label className="font-normal text-base">City</label>
+            <input
+              type="text"
+              placeholder="City"
+              className="w-full border px-4 py-2 rounded-lg focus:outline-none"
+              value={form.city}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  city: e.target.value,
+                }))
+              }
+            />
+          </div>
+        </div> */}
       </div>
 
       <button
@@ -175,7 +194,6 @@ function ProfileInfo() {
   );
 }
 
-// Settings Page
 export default function Settings() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -185,7 +203,6 @@ export default function Settings() {
   const userPlan = "basic";
 
   useEffect(() => {
-    // Get role from cookies or localStorage
     const userRole =
       Cookies.get("role") || localStorage.getItem("role") || "Admin";
     setRole(userRole);
@@ -236,7 +253,7 @@ export default function Settings() {
   }, [tabFromUrl]);
 
   return (
-    <div className="flex flex-col md:flex-row gap-8 ">
+    <div className="flex flex-col md:flex-row gap-8">
       {/* Sidebar */}
       <div className="md:w-[348px] h-80 bg-white flex flex-col gap-4 p-6 rounded-2xl shadow-sm">
         {tabs.map((tab) => (

@@ -1,0 +1,381 @@
+"use client";
+
+import { Input } from "@/components/ui/input";
+import { useCreateGroupMutation } from "@/redux/api/admin/messageApi";
+import { useGetAllUsersQuery } from "@/redux/api/userApi";
+import { Plus, Search } from "lucide-react";
+import Image from "next/image";
+import { useState } from "react";
+
+import { toast } from "sonner";
+
+type MemberConversation = {
+  roomId: string;
+  partner?: {
+    id: string;
+    fullName: string;
+    profileImage?: string;
+    isActive?: boolean;
+  };
+  lastMessage?: {
+    content?: string;
+    createdAt?: string;
+  };
+  unreadCount: number;
+};
+
+type UserType = {
+  id: string;
+  fullName: string;
+  profileImage?: string | null;
+};
+
+type Props = {
+  socket: WebSocket | null;
+  searchInput: string;
+  setSearchInput: (value: string) => void;
+  setSelectedChat: (value: MemberConversation) => void;
+  memberConversations: MemberConversation[];
+  users: UserType[];
+  isConnected: boolean;
+};
+
+function isValidUrl(url: string) {
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export default function ChatSidebar({
+  socket,
+  searchInput,
+  setSearchInput,
+  setSelectedChat,
+  memberConversations,
+  users,
+  isConnected,
+}: Props) {
+  const filteredConversations = (memberConversations || []).filter((conv) =>
+    conv.partner?.fullName?.toLowerCase().includes(searchInput.toLowerCase()),
+  );
+
+  const filteredUsers = (users || []).filter((user) =>
+    user.fullName.toLowerCase().includes(searchInput.toLowerCase()),
+  );
+
+  const [groupPhoto, setGroupPhoto] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [groupName, setGroupName] = useState("");
+  const [memberIds, setMemberIds] = useState<string[]>([]);
+  const [open, setOpen] = useState(false);
+  const [showUsers, setShowUsers] = useState(false);
+
+  const [createGroup] = useCreateGroupMutation();
+  const { data } = useGetAllUsersQuery({});
+  const userInfo = data?.result || [];
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setGroupPhoto(file);
+    setPreview(URL.createObjectURL(file));
+  };
+
+  const handleCreateGroup = async () => {
+    try {
+      const formData = new FormData();
+
+      formData.append("groupName", groupName);
+
+      memberIds.forEach((id) => {
+        formData.append("memberIds[]", id);
+      });
+
+      if (groupPhoto) {
+        formData.append("groupPhoto", groupPhoto);
+      }
+
+      await createGroup(formData).unwrap();
+
+      toast.success("Group created successfully");
+
+      setGroupName("");
+      setMemberIds([]);
+      setGroupPhoto(null);
+      setPreview(null);
+      setOpen(false);
+    } catch (err) {
+      console.log(err);
+      toast.error("Failed to create group");
+    }
+  };
+
+  return (
+    <div className="w-80 flex flex-col gap-4">
+      <div className="p-4 bg-white">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-xl font-semibold">Chats</h1>
+          {!isConnected && (
+            <span className="text-xs text-red-500">(Disconnected)</span>
+          )}
+          <Plus
+            onClick={() => setOpen(true)}
+            className="w-5 h-5 text-gray-500 cursor-pointer"
+          />
+        </div>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#817F9B] " />
+          <Input
+            placeholder="Search chats"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="pl-10 border border-[#E1E5F3] outline-none placeholder:text-base focus:ring-1 focus:ring-primary focus:outline-none "
+            disabled={!isConnected}
+          />
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto bg-white">
+        {/* Always show Users section */}
+        <h2 className="px-4 pt-4 pb-2 text-sm font-semibold text-[#817F9B] uppercase">
+          All Users
+        </h2>
+        {filteredUsers.length > 0 ? (
+          filteredUsers.map((user) => (
+            <div
+              key={user.id}
+              onClick={() => {
+                if (!isConnected) {
+                  toast.error("Connection lost. Please try again later.");
+                  return;
+                }
+                const newConversation: MemberConversation = {
+                  roomId: `new-${user.id}`,
+                  partner: {
+                    id: user.id,
+                    fullName: user.fullName,
+                    profileImage: user.profileImage || undefined,
+                  },
+                  lastMessage: undefined,
+                  unreadCount: 0,
+                };
+                setSelectedChat(newConversation);
+              }}
+              className={`flex items-center gap-3 px-4 py-4 hover:bg-orange-50 cursor-pointer ${
+                !isConnected ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+            >
+              <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-200">
+                {user.profileImage && isValidUrl(user.profileImage) && (
+                  <Image
+                    src={user.profileImage}
+                    alt="avatar"
+                    fill
+                    className="object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium text-sm truncate">
+                  {user.fullName}
+                </h3>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="px-4 py-2 text-sm text-[#817F9B]">No users found</p>
+        )}
+
+        {/* Always show Conversations section */}
+        <h2 className="px-4 pt-4 pb-2 text-sm font-semibold text-[#817F9B] uppercase">
+          Conversations
+        </h2>
+        {filteredConversations.length > 0 ? (
+          filteredConversations.map((conv) => (
+            <div
+              key={conv.roomId}
+              onClick={() => {
+                if (!isConnected) {
+                  toast.error("Connection lost. Please try again later.");
+                  return;
+                }
+                setSelectedChat(conv);
+                if (
+                  socket &&
+                  socket.readyState === WebSocket.OPEN &&
+                  conv.partner?.id
+                ) {
+                  socket.send(
+                    JSON.stringify({
+                      type: "member-subscribe",
+                      receiverId: conv.partner.id,
+                    }),
+                  );
+                }
+              }}
+              className={`flex items-center gap-3 px-4 py-4 hover:bg-[#00A8CC1A] cursor-pointer ${
+                !isConnected ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+            >
+              <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-200">
+                {conv.partner?.profileImage &&
+                  isValidUrl(conv.partner.profileImage) && (
+                    <Image
+                      src={conv.partner.profileImage}
+                      alt="avatar"
+                      fill
+                      className="object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium text-sm truncate">
+                  {conv.partner?.fullName || "Unknown"}
+                </h3>
+                <p className="text-xs text-[#817F9B] truncate">
+                  {conv.lastMessage?.content || "No messages"}
+                </p>
+              </div>
+              <span className="text-[10px] text-[#817F9B]">
+                {conv.lastMessage?.createdAt ? conv.lastMessage.createdAt : ""}
+              </span>
+            </div>
+          ))
+        ) : (
+          <p className="px-4 py-2 text-sm text-[#817F9B]">
+            No conversations found
+          </p>
+        )}
+      </div>
+
+      {open && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-xl rounded-2xl p-6 relative">
+            <h2 className="text-xl mb-4">Create New Group</h2>
+
+            <div className="space-y-4">
+              <div>
+                <label>Group Name</label>
+                <input
+                  type="text"
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                  className="w-full mt-1 border rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label>Group Image</label>
+                <div className="mt-2">
+                  <label className="w-full h-32 flex flex-col items-center justify-center border-2 border-dashed border-primary rounded-xl cursor-pointer">
+                    {preview ? (
+                      <Image
+                        src={preview}
+                        alt="preview"
+                        width={100}
+                        height={100}
+                        className="h-full w-full object-contain rounded-xl"
+                      />
+                    ) : (
+                      <div className="text-gray-400 text-sm text-center">
+                        Click to upload
+                      </div>
+                    )}
+
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowUsers((prev) => !prev)}
+                className="border-primary border py-2 px-4 rounded-xl"
+              >
+                +Add Members
+              </button>
+
+              {showUsers && (
+                <div className="mt-3 border rounded-xl p-3 max-h-60 overflow-y-auto space-y-2 bg-white">
+                  {userInfo.length === 0 ? (
+                    <p className="text-base text-gray-400">No users found</p>
+                  ) : (
+                    userInfo.map((user: any) => {
+                      const isSelected = memberIds.includes(user.id);
+
+                      return (
+                        <div
+                          key={user.id}
+                          onClick={() => {
+                            setMemberIds((prev) =>
+                              prev.includes(user.id)
+                                ? prev.filter((id) => id !== user.id)
+                                : [...prev, user.id],
+                            );
+                          }}
+                          className={`flex items-center justify-between p-2 rounded-lg cursor-pointer ${
+                            isSelected
+                              ? "bg-primary text-white "
+                              : "hover:bg-gray-100"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Image
+                              src={user.profileImage}
+                              alt="user"
+                              width={30}
+                              height={30}
+                              className="rounded-full"
+                            />
+
+                            <div className="flex flex-col">
+                              <span className="text-b font-medium">
+                                {user.fullName}
+                              </span>
+                              <span className="text-base ">{user.email}</span>
+                            </div>
+                          </div>
+
+                          {isSelected && <span className="text-xs">✓</span>}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  onClick={() => setOpen(false)}
+                  className="px-6 py-2 border rounded-xl border-primary hover:bg-primary transition-colors duration-300 ease-in hover:text-secondary text-primary"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={handleCreateGroup}
+                  className="px-6 py-2 bg-primary hover:bg-primary/90 text-white rounded-xl"
+                >
+                  Submit
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

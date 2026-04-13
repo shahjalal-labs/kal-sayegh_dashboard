@@ -35,11 +35,19 @@ const adminDashboardApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["user"],
     }),
+
+    getAdminOverview: builder.query({
+      query: () => ({
+        url: "/admin/overview",
+        method: "GET",
+      }),
+    }),
   }),
 });
 
 export const {
   useGetEmployeesQuery,
+  useGetAdminOverviewQuery,
   useDeleteUserMutation,
   useGetSingleUserQuery,
   useUpdateUserMutation,
