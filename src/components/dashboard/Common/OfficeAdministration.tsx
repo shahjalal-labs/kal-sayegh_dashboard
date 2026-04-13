@@ -2,9 +2,10 @@
 
 import {
   useGetAllJobRequestsQuery,
+  useGetJobRequestDetailsQuery,
   useGetOfficesQuery,
 } from "@/redux/api/jobApi";
-import { Calendar, Mail, MapPin, Phone, Upload } from "lucide-react";
+import { Calendar, Mail, MapPin, Phone } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 import { LiaEditSolid } from "react-icons/lia";
@@ -12,8 +13,10 @@ import { RiFolderDownloadLine } from "react-icons/ri";
 import { CustomModal } from "../../modal/CustomModal";
 import CreateJobForm from "../CreateJobForm";
 import CreateOffice from "../CreateOffice";
+import EditJobForm from "../EditJobForm";
 
 interface FormData {
+  title: string;
   office: string;
   date: string;
   location: string;
@@ -36,12 +39,17 @@ interface Office {
   jobs: JobItem[];
 }
 
-function CreateNewJobForm({ form, setForm }: any) {
+function CreateNewJobForm({ form, setForm, jobRequestId }: any) {
   const [images, setImages] = useState<string[]>([]);
+  const { data, isLoading } = useGetJobRequestDetailsQuery(jobRequestId, {
+    skip: !jobRequestId,
+  });
+  const jobDetails = data?.result;
 
   const handleFiles = (files: FileList | null) => {
     if (!files) return;
-
+    {
+    }
     const newImages = Array.from(files).map((file) =>
       URL.createObjectURL(file),
     );
@@ -49,103 +57,59 @@ function CreateNewJobForm({ form, setForm }: any) {
     setImages((prev) => [...prev, ...newImages]);
   };
   return (
-    <div className="space-y-5 text-base">
-      {[
-        { icon: Calendar, label: "Date :", value: "Monday, March 2, 2026" },
-        { icon: Phone, label: "Contact :", value: "(555) 234-5678" },
-        { icon: Mail, label: "Email", value: "im@email.com" },
-        {
-          icon: MapPin,
-          label: "Job Address",
-          value: "4517 Washington Ave. Manchester, Kentucky 39495",
-          long: true,
-        },
-      ].map((item, i) => (
-        <div
-          key={i}
-          className="flex justify-between items-start border-b border-dashed border-gray-300 pb-3"
-        >
-          <div className="flex items-center gap-2 text-gray-500">
-            <item.icon size={16} />
-            {item.label}
-          </div>
-
-          <span
-            className={`${
-              item.long ? "text-right max-w-[60%]  text-base" : ""
-            } font-medium`}
+    <div>
+      <h2 className="text-xl font-semibold">{jobDetails?.title}</h2>
+      <div className="space-y-5 text-base mt-4">
+        {[
+          {
+            icon: Calendar,
+            label: "Date :",
+            value: jobDetails?.date
+              ? new Date(jobDetails.date).toLocaleDateString("en-BD", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })
+              : "N/A",
+          },
+          { icon: Phone, label: "Contact :", value: jobDetails?.contact },
+          { icon: Mail, label: "Email", value: jobDetails?.email },
+          {
+            icon: MapPin,
+            label: "Job Address",
+            value: jobDetails?.address,
+            long: true,
+          },
+        ].map((item, i) => (
+          <div
+            key={i}
+            className="flex justify-between items-start border-b border-dashed border-gray-300 pb-3"
           >
-            {item.value}
-          </span>
-        </div>
-      ))}
-
-      <div>
-        <label className="block mb-2 font-semibold text-lg">
-          Internal Notes
-        </label>
-
-        <textarea
-          placeholder="e.g. Spoke to client, sending estimate tomorrow"
-          className="w-full border border-gray-200 rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-orange-400"
-          rows={3}
-        />
-      </div>
-
-      <div>
-        <label className="block mb-2 font-semibold text-lg">
-          Upload Picture
-        </label>
-
-        <input
-          type="file"
-          accept="image/*"
-          multiple
-          id="upload"
-          className="hidden"
-          onChange={(e) => handleFiles(e.target.files)}
-        />
-
-        <label
-          htmlFor="upload"
-          onDrop={(e) => {
-            e.preventDefault();
-            handleFiles(e.dataTransfer.files);
-          }}
-          onDragOver={(e) => e.preventDefault()}
-          className="border border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 transition"
-        >
-          <Upload className="text-gray-400 mb-2" size={22} />
-
-          <div className="flex items-center gap-1">
-            <span className="text-primary font-medium">Upload</span>
-            <span>Picture</span>
-          </div>
-
-          <p className="text-xs text-gray-400 mt-1">Supports: JPG, PNG</p>
-        </label>
-
-        <div className="flex gap-3 mt-3 flex-wrap">
-          {images.map((img, i) => (
-            <div key={i} className="relative">
-              <Image
-                src={img}
-                alt="preview"
-                width={200}
-                height={200}
-                className="rounded-md object-cover"
-              />
-
-              <button
-                onClick={() =>
-                  setImages((prev) => prev.filter((_, index) => index !== i))
-                }
-                className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-1"
-              >
-                ✕
-              </button>
+            <div className="flex items-center gap-2 text-gray-500">
+              <item.icon size={16} />
+              {item.label}
             </div>
-          ))}
+
+            <span
+              className={`${
+                item.long ? "text-right max-w-[60%]  text-base" : ""
+              } font-medium`}
+            >
+              {item.value}
+            </span>
+          </div>
+        ))}
+
+        <div>
+          <Image
+            src={jobDetails?.images}
+            alt="Job Image"
+            width={100}
+            height={100}
+            className="bg-gray-200"
+          />
+
+          <p>{jobDetails?.note}</p>
         </div>
       </div>
     </div>
@@ -154,7 +118,8 @@ function CreateNewJobForm({ form, setForm }: any) {
 
 export default function OfficeAdministration() {
   const [openModal, setOpenModal] = useState(false);
-
+  const [openEditModal, setOpenEditModal] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<any>(null);
   const [isOpen, setIsOpen] = useState(false);
 
   const { data } = useGetOfficesQuery({});
@@ -174,6 +139,7 @@ export default function OfficeAdministration() {
   console.log(allJobs);
 
   const [form, setForm] = useState<FormData>({
+    title: "",
     office: "",
     date: "",
     location: "",
@@ -182,16 +148,6 @@ export default function OfficeAdministration() {
     address: "",
     note: "",
   });
-
-  const initialForm: FormData = {
-    office: "",
-    date: "",
-    location: "",
-    phone: "",
-    email: "",
-    address: "",
-    note: "",
-  };
 
   const handleNewJob = () => {
     console.log("new");
@@ -222,9 +178,22 @@ export default function OfficeAdministration() {
         </CustomModal>
 
         <CustomModal
+          open={openEditModal}
+          onClose={() => setOpenEditModal(false)}
+          title="Edit Job Request"
+        >
+          {selectedJob && (
+            <EditJobForm
+              selectedJob={selectedJob}
+              onClose={() => setOpenEditModal(false)}
+            />
+          )}
+        </CustomModal>
+
+        <CustomModal
           open={isOpen}
           onClose={() => setIsOpen(false)}
-          title="Roof Repair – Elm St Office"
+          title=""
           actions={[
             {
               label: "Close",
@@ -245,7 +214,11 @@ export default function OfficeAdministration() {
             },
           ]}
         >
-          <CreateNewJobForm form={form} setForm={setForm} />
+          <CreateNewJobForm
+            form={form}
+            setForm={setForm}
+            jobRequestId={selectedJob?.id}
+          />
         </CustomModal>
 
         <div className="grid md:grid-cols-2 gap-8">
@@ -296,7 +269,14 @@ export default function OfficeAdministration() {
                       </div>
 
                       <div className="flex flex-col items-end gap-3">
-                        <button className="text-gray-400 hover:text-gray-600">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedJob(job);
+                            setOpenEditModal(true);
+                          }}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
                           <LiaEditSolid size={25} />
                         </button>
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useCreateClientMutation } from "@/redux/api/admin/estimateApi";
 import { Clock, Search } from "lucide-react";
 import { useState } from "react";
 import DatePicker from "react-datepicker";
@@ -250,12 +251,78 @@ export default function Calendar() {
 
   const [openStartPicker, setOpenStartPicker] = useState(false);
   const [openEndPicker, setOpenEndPicker] = useState(false);
+  const [openScheduleModal, setOpenScheduleModal] = useState(false);
 
   const monthData = generateMonthData(currentYear, currentMonth);
 
+  const [createSchedule] = useCreateClientMutation();
+
+  const [form, setForm] = useState({
+    scheduleDate: "",
+    workScope: "",
+    location: "",
+    startTime: "",
+    endTime: "",
+  });
+
   const handleDateClick = (day: DayData) => {
     const appointments = getAppointmentsForDay(day.date, day.month, day.year);
+
+    const dateStr = new Date(day.year, day.month, day.date)
+      .toISOString()
+      .split("T")[0];
+
+    setForm((prev) => ({
+      ...prev,
+      scheduleDate: dateStr,
+    }));
+
     setSelectedDate({ ...day, appointments });
+  };
+
+  const buildISO = (date: string, time: string) => {
+    if (!date || !time) return null;
+
+    // prevent Invalid Date issue
+    const safeDate = new Date(`${date}T${time}:00`);
+
+    if (isNaN(safeDate.getTime())) return null;
+
+    return safeDate.toISOString();
+  };
+
+  const handleCreateSchedule = async () => {
+    try {
+      if (!form.scheduleDate) {
+        console.log("No schedule date selected");
+        return;
+      }
+
+      const payload = {
+        scheduleDate: form.scheduleDate,
+        workScope: form.workScope,
+        location: form.location || null,
+
+        startTime: buildISO(form.scheduleDate, form.startTime),
+        endTime: buildISO(form.scheduleDate, form.endTime),
+      };
+
+      console.log("FINAL PAYLOAD:", payload);
+
+      await createSchedule(payload).unwrap();
+
+      setOpenScheduleModal(false);
+
+      setForm({
+        scheduleDate: "",
+        workScope: "",
+        location: "",
+        startTime: "",
+        endTime: "",
+      });
+    } catch (error) {
+      console.log("CREATE SCHEDULE ERROR:", error);
+    }
   };
 
   return (
@@ -307,8 +374,11 @@ export default function Calendar() {
             />
           </div>
 
-          <button className="px-8 py-4 rounded-xl bg-primary text-white text-base font-normal hover:bg-primary/90 transition-colors">
-            + New Job Request
+          <button
+            onClick={() => setOpenScheduleModal(true)}
+            className="px-8 py-4 rounded-xl bg-primary text-white text-base font-normal hover:bg-primary/90 transition-colors"
+          >
+            + Add Schedule
           </button>
         </div>
       </div>
@@ -486,6 +556,90 @@ export default function Calendar() {
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg cursor-pointer"
                 />
               </div>
+            </div>
+          </div>
+        </div>
+      </CustomModal>
+
+      <CustomModal
+        open={openScheduleModal}
+        onClose={() => setOpenScheduleModal(false)}
+        title="Add New Schedule"
+        maxWidth="2xl"
+        actions={[
+          {
+            label: "Close",
+            variant: "secondary",
+            onClick: () => setOpenScheduleModal(false),
+          },
+          {
+            label: "Submit",
+            variant: "primary",
+            onClick: handleCreateSchedule,
+          },
+        ]}
+      >
+        <div className="space-y-5">
+          {/* Scope */}
+          <div>
+            <label className="text-sm font-medium text-gray-700">
+              Scope Of Work
+            </label>
+
+            <input
+              type="text"
+              value={form.workScope}
+              onChange={(e) => setForm({ ...form, workScope: e.target.value })}
+              placeholder="Scope Of Work"
+              className="mt-2 w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+
+          {/* Location */}
+          <div>
+            <label className="text-sm font-medium text-gray-700">
+              Location Name (Optional)
+            </label>
+
+            <input
+              type="text"
+              value={form.location}
+              onChange={(e) => setForm({ ...form, location: e.target.value })}
+              placeholder="Location Name"
+              className="mt-2 w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+
+          {/* Time */}
+          <div className="flex gap-4">
+            {/* From */}
+            <div className="w-full">
+              <label className="text-sm font-medium text-gray-700">
+                Time (From)
+              </label>
+
+              <input
+                type="time"
+                value={form.startTime}
+                onChange={(e) =>
+                  setForm({ ...form, startTime: e.target.value })
+                }
+                className="mt-2 w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+
+            {/* To */}
+            <div className="w-full">
+              <label className="text-sm font-medium text-gray-700">
+                Time (To)
+              </label>
+
+              <input
+                type="time"
+                value={form.endTime}
+                onChange={(e) => setForm({ ...form, endTime: e.target.value })}
+                className="mt-2 w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary"
+              />
             </div>
           </div>
         </div>

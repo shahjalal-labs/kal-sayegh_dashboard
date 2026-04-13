@@ -10,14 +10,16 @@ import filemanagement from "@/assets/dashboard/file-management.png";
 import invoiceIcon from "@/assets/dashboard/invoice.png";
 import newOffice from "@/assets/dashboard/new-office.png";
 import logo from "@/assets/kal-logo.png";
+import { User } from "@/proxy";
 
 import { logOut } from "@/redux/ReduxFunction";
 
 import Cookies from "js-cookie";
+import { jwtDecode } from "jwt-decode";
 import { LayoutDashboard, LogOut, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useParams, usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 interface SidebarProps {
   onCloseClick?: () => void;
@@ -33,7 +35,18 @@ interface MenuItem {
 const Sidebar = ({ onCloseClick }: SidebarProps) => {
   const pathname = usePathname();
   const router = useRouter();
-  const params = useParams();
+
+  const token = Cookies.get("token");
+
+  let user: User | null = null;
+
+  if (token) {
+    try {
+      user = jwtDecode<User>(token);
+    } catch (err) {
+      user = null;
+    }
+  }
 
   const isActive = (href: string) => {
     if (href.includes("/estimate")) {
@@ -66,68 +79,77 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
 
   let allMenuItems: MenuItem[] = [];
 
-  allMenuItems = [
-    {
-      href: "/admin/dashboard",
-      icon: LayoutDashboard,
-      label: "Dashboard",
-    },
-    {
-      href: "/admin/employee-management",
-      icon: filemanagement,
-      label: "Employee Management",
-      isImage: true,
-    },
-    {
-      href: "/admin/estimator-management",
-      icon: estimator,
-      label: "Estimator Management",
-      isImage: true,
-    },
-    {
-      href: "/admin/estimate",
-      icon: estimate,
-      label: "Estimate",
-      isImage: true,
-    },
-    {
-      href: "/admin/invoice",
-      icon: invoiceIcon,
-      label: "Invoice",
-      isImage: true,
-    },
-    {
-      href: "/office-administration",
-      icon: newOffice,
-      label: "Office Administration",
-      isImage: true,
-    },
-    {
-      href: "/calendar",
-      icon: calender,
-      label: "Calendar",
-      isImage: true,
-    },
-    {
-      href: "/admin/message",
-      icon: chat,
-      label: "Message",
-      isImage: true,
-    },
-    {
-      href: "/settings",
-      icon: settingIcon,
-      label: "Settings",
-      isImage: true,
-    },
+  if (user?.role === "ADMIN") {
+    allMenuItems = [
+      { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+      {
+        href: "/admin/employee-management",
+        icon: filemanagement,
+        label: "Employee Management",
+        isImage: true,
+      },
+      {
+        href: "/admin/estimator-management",
+        icon: estimator,
+        label: "Estimator Management",
+        isImage: true,
+      },
+      {
+        href: "/admin/estimate",
+        icon: estimate,
+        label: "Estimate",
+        isImage: true,
+      },
+      {
+        href: "/admin/invoice",
+        icon: invoiceIcon,
+        label: "Invoice",
+        isImage: true,
+      },
+      {
+        href: "/office-administration",
+        icon: newOffice,
+        label: "Office Administration",
+        isImage: true,
+      },
+      {
+        href: "/calendar",
+        icon: calender,
+        label: "Calendar",
+        isImage: true,
+      },
+      {
+        href: "/admin/message",
+        icon: chat,
+        label: "Message",
+        isImage: true,
+      },
+      {
+        href: "/settings",
+        icon: settingIcon,
+        label: "Settings",
+        isImage: true,
+      },
+    ];
+  }
 
-    {
-      href: "administration/to-do",
-      icon: checklist,
-      label: "Office To Do List",
-      isImage: true,
-    },
-  ];
+  if (user?.role === "OFFICE_ADMINISTRATOR") {
+    allMenuItems = [
+      {
+        href: "/settings",
+        icon: settingIcon,
+        label: "Settings",
+        isImage: true,
+      },
+
+      {
+        href: "administration/to-do",
+        icon: checklist,
+        label: "Office To Do List",
+        isImage: true,
+      },
+    ];
+  }
 
   const handleLogout = () => {
     Cookies.remove("token");

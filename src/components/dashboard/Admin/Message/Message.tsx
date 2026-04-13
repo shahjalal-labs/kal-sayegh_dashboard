@@ -199,7 +199,7 @@ export default function Message() {
 
     return () => {
       if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.onclose = null; // Remove the handler to prevent reconnect on intentional close
+        socket.onclose = null;
         socket.close();
       }
     };

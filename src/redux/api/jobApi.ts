@@ -40,6 +40,14 @@ const jobApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["jobs"],
     }),
+
+    getJobRequestDetails: builder.query({
+      query: (jobRequestId) => ({
+        url: `/job-request/details/${jobRequestId}`,
+        method: "GET",
+      }),
+      providesTags: ["jobs"],
+    }),
   }),
 });
 
@@ -49,4 +57,5 @@ export const {
   useGetOfficesQuery,
   useCreateJobRequestMutation,
   useGetAllJobRequestsQuery,
+  useGetJobRequestDetailsQuery,
 } = jobApi;

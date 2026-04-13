@@ -65,7 +65,7 @@ export const CustomModal: React.FC<CustomModalProps> = ({
         <div className="p-6 overflow-y-auto flex-1">{children}</div>
 
         {actions.length > 0 && (
-          <div className="flex justify-end gap-3 p-6 pt-4 border-t">
+          <div className="flex justify-end gap-3 p-6 pt-4 ">
             {actions.map((btn, i) => (
               <button
                 key={i}

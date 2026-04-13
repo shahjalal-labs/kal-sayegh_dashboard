@@ -66,21 +66,21 @@ export default function Dashboard() {
   const stats = [
     {
       title: "Active Employees",
-      value: overviewData.activeEmployees || 0,
+      value: overviewData?.activeEmployees || 0,
       description: "Clocked in today",
       icon: d1,
       bg: cardBg1,
     },
     {
       title: "Today's Work Hours",
-      value: overviewData.todaysWorkHours + "h" || 0,
+      value: overviewData?.todaysWorkHours + "h" || 0,
       description: "Regular + PW + Travel",
       icon: d2,
       bg: cardBg2,
     },
     {
       title: "Pending Estimates",
-      value: overviewData.pendingEstimates || 0,
+      value: overviewData?.pendingEstimates || 0,
       description: "Awaiting client response",
       icon: d3,
       bg: cardBg3,
