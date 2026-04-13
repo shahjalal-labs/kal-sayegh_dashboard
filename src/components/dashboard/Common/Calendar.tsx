@@ -7,6 +7,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { CiEdit } from "react-icons/ci";
 import { FaRegCalendarAlt } from "react-icons/fa";
+import { toast } from "sonner";
 import { CustomModal } from "../../modal/CustomModal";
 
 type Appointment = {
@@ -283,36 +284,79 @@ export default function Calendar() {
   const buildISO = (date: string, time: string) => {
     if (!date || !time) return null;
 
-    // prevent Invalid Date issue
-    const safeDate = new Date(`${date}T${time}:00`);
+    // Create date object from the date string
+    const dateObj = new Date(date);
 
-    if (isNaN(safeDate.getTime())) return null;
+    // Parse time string (format: "HH:MM")
+    const [hours, minutes] = time.split(":");
 
-    return safeDate.toISOString();
+    // Set the time on the date object
+    dateObj.setHours(parseInt(hours, 10));
+    dateObj.setMinutes(parseInt(minutes, 10));
+    dateObj.setSeconds(0);
+    dateObj.setMilliseconds(0);
+
+    // Check if valid
+    if (isNaN(dateObj.getTime())) return null;
+
+    // Return ISO string
+    return dateObj.toISOString();
   };
 
   const handleCreateSchedule = async () => {
     try {
+      // Validate required fields
       if (!form.scheduleDate) {
-        console.log("No schedule date selected");
+        toast.error("Please select a date");
         return;
       }
 
-      const payload = {
-        scheduleDate: form.scheduleDate,
-        workScope: form.workScope,
-        location: form.location || null,
+      if (!form.workScope) {
+        toast.error("Please enter scope of work");
+        return;
+      }
 
-        startTime: buildISO(form.scheduleDate, form.startTime),
-        endTime: buildISO(form.scheduleDate, form.endTime),
+      if (!form.startTime) {
+        toast.error("Please select start time");
+        return;
+      }
+
+      if (!form.endTime) {
+        toast.error("Please select end time");
+        return;
+      }
+
+      // Build ISO strings for start and end times
+      const startTimeISO = buildISO(form.scheduleDate, form.startTime);
+      const endTimeISO = buildISO(form.scheduleDate, form.endTime);
+
+      if (!startTimeISO || !endTimeISO) {
+        toast.error("Invalid date or time format");
+        return;
+      }
+
+      // Create schedule date in ISO format (start of day)
+      const scheduleDateObj = new Date(form.scheduleDate);
+      scheduleDateObj.setHours(0, 0, 0, 0);
+
+      const payload = {
+        scheduleDate: scheduleDateObj.toISOString(), // ISO format for the date
+        workScope: form.workScope,
+        location: form.location || null, // Send null if empty
+        startTime: startTimeISO,
+        endTime: endTimeISO,
       };
 
-      console.log("FINAL PAYLOAD:", payload);
+      console.log("PAYLOAD:", payload);
+      console.log("Start Time ISO:", startTimeISO);
+      console.log("End Time ISO:", endTimeISO);
 
-      await createSchedule(payload).unwrap();
+      const response = await createSchedule(payload).unwrap();
 
+      toast.success("Schedule created successfully");
       setOpenScheduleModal(false);
 
+      // Reset form
       setForm({
         scheduleDate: "",
         workScope: "",
@@ -320,8 +364,9 @@ export default function Calendar() {
         startTime: "",
         endTime: "",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.log("CREATE SCHEDULE ERROR:", error);
+      toast.error(error?.data?.message || "Failed to create schedule");
     }
   };
 
@@ -591,6 +636,21 @@ export default function Calendar() {
               value={form.workScope}
               onChange={(e) => setForm({ ...form, workScope: e.target.value })}
               placeholder="Scope Of Work"
+              className="mt-2 w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700">
+              ScheduleDate
+            </label>
+
+            <input
+              type="text"
+              value={form.scheduleDate}
+              onChange={(e) =>
+                setForm({ ...form, scheduleDate: e.target.value })
+              }
+              placeholder="scheduleDate"
               className="mt-2 w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
