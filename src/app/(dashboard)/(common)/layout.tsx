@@ -12,7 +12,7 @@ export default function RoleLayout({
 
   return (
     <div className="flex h-screen">
-      <main className="flex-1 overflow-y-auto ">{children}</main>
+      <main className="flex-1 ">{children}</main>
     </div>
   );
 }
