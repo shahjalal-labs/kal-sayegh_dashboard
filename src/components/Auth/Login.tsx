@@ -31,7 +31,6 @@ export default function Login() {
 
     try {
       const response = await login({ email, password }).unwrap();
-      console.log("Login response:", response);
 
       if (response.success && response.result) {
         const user = response.result;

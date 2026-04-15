@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +25,7 @@ import d2 from "@/assets/dashboard/d2.png";
 import d3 from "@/assets/dashboard/d3.png";
 import { useGetAdminOverviewQuery } from "@/redux/api/admin/adminDashboardApi";
 import Link from "next/link";
+import { ColorRing } from "react-loader-spinner";
 import EmployeeManagement from "../table/EmployeeManagement";
 
 const result = {
@@ -60,7 +60,17 @@ export default function Dashboard() {
 
   const overviewData = data?.result;
 
-  if (isLoading) return <p className="p-4">Loading dashboard...</p>;
+  if (isLoading)
+    return (
+      <div className="flex items-center justify-center h-64">
+        <ColorRing
+          visible={true}
+          height="70"
+          width="70"
+          colors={["#e15b64", "#f47e60", "#f8b26a", "#abbd81", "#849b87"]}
+        />
+      </div>
+    );
 
   // Stats Cards
   const stats = [

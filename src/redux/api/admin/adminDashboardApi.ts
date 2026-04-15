@@ -3,10 +3,10 @@ import baseApi from "../baseApi";
 const adminDashboardApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getEmployees: builder.query({
-      query: ({ page, limit }) => ({
+      query: ({ page, limit, search }) => ({
         url: "/admin/employees",
         method: "GET",
-        params: { page, limit },
+        params: { page, limit, search },
       }),
       providesTags: ["user"],
     }),

@@ -147,6 +147,11 @@ export default function EmployeeManagement() {
     }
   };
 
+  const totalPages =
+    employeesList?.result?.meta?.totalPages ||
+    Math.ceil((employeesList?.result?.meta?.total || 0) / 20) ||
+    1;
+
   return (
     <div className="border-t">
       <ReusableTable
@@ -154,7 +159,7 @@ export default function EmployeeManagement() {
         data={employees}
         isLoading={isLoading}
         page={page}
-        totalPages={employeesList?.result?.meta?.totalPages}
+        totalPages={totalPages}
         onPageChange={(p) => setPage(p)}
         onView={(row) => {
           setSelectedRow(row);

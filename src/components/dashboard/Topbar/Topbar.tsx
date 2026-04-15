@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useMyProfileQuery } from "@/redux/api/authApi";
@@ -30,7 +28,7 @@ const Topbar: React.FC<{ onHamburgerClick: () => void }> = ({
   }
 
   const pathname = usePathname();
-  const isCalendarActive = pathname === "/admin/calendar";
+  const isCalendarActive = pathname === "/calendar";
   const isNotificationActive = pathname === "/admin/notification";
 
   const getPageTitle = () => {
@@ -82,7 +80,7 @@ const Topbar: React.FC<{ onHamburgerClick: () => void }> = ({
         </div>
 
         <div className="flex items-center md:gap-5">
-          <Link href={"/admin/calendar"}>
+          <Link href={"/calendar"}>
             <div
               className={`relative p-2 rounded-full cursor-pointer ${
                 isCalendarActive ? "bg-primary text-white" : "text-gray-700"
