@@ -46,7 +46,7 @@ export default function Estimate() {
   const options = [
     { id: "description", label: "Description" },
     { id: "table", label: "Table Format" },
-    { id: "upload", label: "Upload File" },
+    { id: "upload", label: "Upload Picture ,PDF , Document" },
   ];
 
   const filteredEstimates = estimates.filter(
@@ -210,7 +210,7 @@ export default function Estimate() {
               if (selected === "description") {
                 router.push("/admin/estimate/estimate-description");
               } else if (selected === "table") {
-                router.push("/admin/estimate/estimate-table");
+                router.push("/admin/estimate/estimate-description");
               } else if (selected === "upload") {
                 router.push("/admin/estimate/upload");
               } else {
