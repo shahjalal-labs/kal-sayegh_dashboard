@@ -15,17 +15,39 @@ import {
   useCreateClientMutation,
   useCreateEstimateMutation,
   useGetAllItemsQuery,
+  useGetAllMarkupsQuery,
   useGetMyClientsQuery,
 } from "@/redux/api/admin/estimateApi";
 import Image from "next/image";
 import { useRef, useState } from "react";
+import { GoPlus } from "react-icons/go";
 import { LuMapPin } from "react-icons/lu";
 import { toast } from "sonner";
 
+// Add these interfaces
+interface LineItem {
+  id: string;
+  description: string;
+  itemName: string;
+  rate: number;
+  markUp: number;
+  quantity: number;
+  tax: number;
+  total: number;
+  originalItem?: any;
+  percentage: number;
+  amount: number;
+}
+
+interface LineItemTable {
+  id: number;
+  items: LineItem[];
+}
+
 export default function EstimateDescription() {
   const [open, setOpen] = useState(false);
-
-  const [lineItemOpen, setLineItemOpen] = useState(false);
+  const [activeTableId, setActiveTableId] = useState<number | null>(null);
+  const [itemModalOpen, setItemModalOpen] = useState(false);
   const [selectedLineItems, setSelectedLineItems] = useState<any[]>([]);
   const [sideMap, setSideMap] = useState<File | null>(null);
   const [images, setImages] = useState<File[]>([]);
@@ -35,6 +57,10 @@ export default function EstimateDescription() {
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const sideMapRef = useRef<HTMLInputElement | null>(null);
   const imageRef = useRef<HTMLInputElement | null>(null);
+  const [activeMarkupItem, setActiveMarkupItem] = useState<any>(null);
+  const [selectedItemsByTable, setSelectedItemsByTable] = useState<{
+    [tableId: number]: string; // itemId
+  }>({});
   const [formData, setFormData] = useState({
     email: "",
     clientName: "",
@@ -66,6 +92,9 @@ export default function EstimateDescription() {
   >(null);
   const [tempValue, setTempValue] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [lineItems, setLineItems] = useState<number[]>([]);
+  const [lineItemTables, setLineItemTables] = useState<LineItemTable[]>([]);
+  const [addMarkUp, setAddMarkUp] = useState(false);
 
   const [createClient, { isLoading }] = useCreateClientMutation();
   const [createEstimate] = useCreateEstimateMutation();
@@ -75,6 +104,48 @@ export default function EstimateDescription() {
 
   const { data: allItem } = useGetAllItemsQuery({});
   const items = allItem?.result ?? [];
+
+  const { data: allMarkup } = useGetAllMarkupsQuery();
+  const markups = allMarkup?.result ?? [];
+
+  const handleAddLineItem = () => {
+    const newTable = {
+      id: Date.now(),
+      items: [],
+    };
+    setLineItemTables((prev) => [...prev, newTable]);
+  };
+
+  const handleToggleItem = (item: any) => {
+    if (!activeTableId) return;
+
+    setLineItemTables((prev) =>
+      prev.map((table) => {
+        if (table.id !== activeTableId) return table;
+
+        const isSelected = selectedItemsByTable[table.id] === item.id;
+
+        const newItem = {
+          ...item,
+          description: item.description ?? "",
+          amount: item?.markUp?.amount ?? 0,
+          percentage: item?.markUp?.percentage ?? 0,
+        };
+
+        const updatedItems = isSelected ? [] : [newItem];
+
+        return {
+          ...table,
+          items: updatedItems,
+        };
+      }),
+    );
+
+    setSelectedItemsByTable((prev) => ({
+      ...prev,
+      [activeTableId]: item.id,
+    }));
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -451,33 +522,128 @@ export default function EstimateDescription() {
           </div>
         </div>
 
+        <div>
+          {lineItemTables.map((table) => (
+            <div
+              key={table.id}
+              className="mt-3 w-full border rounded-xl overflow-x-auto relative"
+            >
+              {/* CLOSE */}
+              <button
+                onClick={() => {
+                  setLineItemTables((prev) =>
+                    prev.filter((t) => t.id !== table.id),
+                  );
+
+                  // reset active table if deleted
+                  setActiveTableId((prev) => (prev === table.id ? null : prev));
+                }}
+                className="absolute right-2 top-2 text-red-500 font-bold"
+              >
+                ✕
+              </button>
+
+              <table className="w-full border border-gray-200">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="p-2 border">Description</th>
+
+                    <th
+                      className="p-2 border cursor-pointer"
+                      onClick={() => {
+                        setActiveTableId(table.id);
+                        setItemModalOpen(true);
+                      }}
+                    >
+                      Item List
+                    </th>
+
+                    <th className="p-2 border">Rate</th>
+                    <th className="p-2 border">Markup</th>
+                    <th className="p-2 border">Quantity</th>
+                    <th className="p-2 border">Tax</th>
+                    <th className="p-2 border">Total</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {(table.items ?? []).length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="text-center text-gray-400 p-3">
+                        No items selected
+                      </td>
+                    </tr>
+                  ) : (
+                    (table.items ?? []).map((item) => (
+                      <tr key={item.id}>
+                        <td className="p-2 border">{item.description}</td>
+
+                        <td className="p-2 border text-center">
+                          {item.itemName}
+                        </td>
+
+                        <td className="p-2 border text-center">
+                          <input
+                            type="number"
+                            value={item.amount ?? 0}
+                            placeholder="$"
+                            onChange={(e) => {
+                              const value = e.target.value;
+
+                              setLineItemTables((prev) =>
+                                prev.map((table) => {
+                                  if (table.id !== activeTableId) return table;
+
+                                  return {
+                                    ...table,
+                                    items: table.items.map((i) =>
+                                      i.id === item.id
+                                        ? {
+                                            ...i,
+                                            amount:
+                                              value === "" ? 0 : Number(value),
+                                          }
+                                        : i,
+                                    ),
+                                  };
+                                }),
+                              );
+                            }}
+                            className="w-20 text-center border rounded px-1 py-0.5"
+                          />
+                        </td>
+                        <td
+                          className="p-2 border text-center cursor-pointer hover:bg-gray-50"
+                          onClick={() => {
+                            setActiveMarkupItem(item);
+                            setAddMarkUp(true);
+                          }}
+                        >
+                          {item?.percentage || 0}%
+                        </td>
+
+                        <td className="p-2 border text-center">1</td>
+
+                        <td className="p-2 border text-center">0</td>
+
+                        <td className="p-2 border text-center">
+                          {(item?.amount || 0) * 1}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          ))}
+        </div>
+
         <div className="w-full">
           <button
-            onClick={() => setLineItemOpen(true)}
+            onClick={handleAddLineItem}
             className="w-full border border-primary text-primary rounded-xl py-2 px-3 flex flex-wrap gap-2 items-center justify-center md:justify-start"
           >
-            {selectedLineItems.length === 0 && <span>+ Add Line Item</span>}
-
-            {selectedLineItems.map((item) => (
-              <span
-                key={item.id}
-                className="flex items-center gap-1 bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs"
-              >
-                {item.itemName}
-
-                <span
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedLineItems((prev) =>
-                      prev.filter((i) => i.id !== item.id),
-                    );
-                  }}
-                  className="ml-1 text-red-500 font-bold cursor-pointer"
-                >
-                  ×
-                </span>
-              </span>
-            ))}
+            <span>+ Add Line Item</span>
           </button>
         </div>
 
@@ -662,52 +828,42 @@ export default function EstimateDescription() {
 
         {/* items modal */}
         <CustomModal
-          open={lineItemOpen}
-          onClose={() => setLineItemOpen(false)}
+          open={itemModalOpen}
+          onClose={() => setItemModalOpen(false)}
           title="Item List"
           actions={[
             {
               label: "Cancel",
               variant: "secondary",
-              onClick: () => setLineItemOpen(false),
+              onClick: () => setItemModalOpen(false),
             },
             {
               label: "Add",
               variant: "primary",
-              onClick: () => setLineItemOpen(false),
+              onClick: () => setItemModalOpen(false),
             },
           ]}
         >
           <div className="space-y-3">
             {items.map((item: any) => {
-              const isSelected = selectedLineItems.some(
-                (i) => i.id === item.id,
-              );
+              const isSelected =
+                selectedItemsByTable[activeTableId as number] === item.id;
 
               return (
                 <div
                   key={item.id}
-                  onClick={() => {
-                    setSelectedLineItems((prev) =>
-                      prev.some((i) => i.id === item.id)
-                        ? prev.filter((i) => i.id !== item.id)
-                        : [...prev, item],
-                    );
-                  }}
+                  onClick={() => handleToggleItem(item)}
                   className={`flex justify-between items-start border p-3 rounded-xl cursor-pointer transition ${
                     isSelected ? "bg-orange-50 border-orange-400" : ""
                   }`}
                 >
-                  {/* LEFT SIDE */}
                   <div className="space-y-1">
                     <p className="font-semibold text-gray-800">
                       {item.itemName}
                     </p>
-
                     <p className="text-sm text-gray-500">{item.description}</p>
                   </div>
 
-                  {/* RIGHT SIDE */}
                   <div className="text-right min-w-[80px]">
                     <p className="font-semibold text-gray-800">
                       ${item?.markUp?.amount || 0}
@@ -726,6 +882,59 @@ export default function EstimateDescription() {
           Submit
         </button>
       </div>
+
+      {addMarkUp && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white w-[400px] rounded-xl p-5 space-y-3">
+            <h2 className="text-lg font-semibold">Select Markup</h2>
+
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              {markups?.length > 0 ? (
+                markups.map((m: any) => (
+                  <div
+                    key={m.id}
+                    onClick={() => {
+                      setAddMarkUp(false);
+                    }}
+                    className="p-3 border rounded-lg cursor-pointer hover:bg-orange-50"
+                  >
+                    <p className="font-semibold">{m.name}</p>
+                    <p className="text-sm text-gray-500">{m.percentage}%</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-400 text-center">
+                  No markup found
+                </p>
+              )}
+            </div>
+
+            <button className="flex items-center gap-2  mt-3  py-4">
+              <GoPlus
+                size={30}
+                className="text-lg bg-primary p-1 text-white rounded-full"
+              />
+              <span className="font-medium">Add Markup</span>
+            </button>
+
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setAddMarkUp(false)}
+                className="w-full mt-3 border border-primary  py-2 rounded-xl hover:bg-primary hover:text-white duration-300 ease-in"
+              >
+                Close
+              </button>
+
+              <button
+                onClick={() => setAddMarkUp(false)}
+                className="w-full mt-3 bg-primary hover:bg-primary/90 text-white transition-colors py-2 rounded-xl "
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {openClientModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
