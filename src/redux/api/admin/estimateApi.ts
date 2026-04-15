@@ -44,6 +44,14 @@ const estimateApi = baseApi.injectEndpoints({
       invalidatesTags: ["estimate"],
     }),
 
+    createMarkup: builder.mutation({
+      query: (body) => ({
+        url: "/estimate/create-markup",
+        method: "POST",
+        body,
+      }),
+    }),
+
     getAllItems: builder.query({
       query: () => ({
         url: "/estimate/all-items",
@@ -70,4 +78,5 @@ export const {
   useGetAllItemsQuery,
   useCreateTaxMutation,
   useGetAllTaxesQuery,
+  useCreateMarkupMutation,
 } = estimateApi;

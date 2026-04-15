@@ -14,19 +14,27 @@ import {
 import {
   useCreateClientMutation,
   useCreateEstimateMutation,
+  useGetAllItemsQuery,
   useGetMyClientsQuery,
 } from "@/redux/api/admin/estimateApi";
 import Image from "next/image";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { LuMapPin } from "react-icons/lu";
 import { toast } from "sonner";
 
 export default function EstimateDescription() {
   const [open, setOpen] = useState(false);
 
+  const [lineItemOpen, setLineItemOpen] = useState(false);
+  const [selectedLineItems, setSelectedLineItems] = useState<any[]>([]);
+  const [sideMap, setSideMap] = useState<File | null>(null);
+  const [images, setImages] = useState<File[]>([]);
+  const [submitMarkup, setSubmitMarkup] = useState<() => void>(() => () => {});
   const [openClientModal, setOpenClientModal] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any>(null);
+  const sideMapRef = useRef<HTMLInputElement | null>(null);
+  const imageRef = useRef<HTMLInputElement | null>(null);
   const [formData, setFormData] = useState({
     email: "",
     clientName: "",
@@ -42,6 +50,7 @@ export default function EstimateDescription() {
     clientId: "",
     date: "",
     endDate: "",
+    poNumber: "",
     items: [] as any[],
     additionalMarkUp: 0,
     grandTotal: 0,
@@ -64,6 +73,9 @@ export default function EstimateDescription() {
   const { data } = useGetMyClientsQuery({});
   const myClients = data?.result;
 
+  const { data: allItem } = useGetAllItemsQuery({});
+  const items = allItem?.result ?? [];
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
@@ -78,7 +90,9 @@ export default function EstimateDescription() {
   };
 
   const handleSave = () => {
-    if (modalType === "markup") setMarkup(tempValue);
+    if (modalType === "markup") {
+      submitMarkup();
+    }
     if (modalType === "discount") setDiscount(tempValue);
     if (modalType === "deposit") setDeposit(tempValue);
 
@@ -96,7 +110,7 @@ export default function EstimateDescription() {
           },
           {
             label: "Done",
-            onClick: handleSave,
+            onClick: submitMarkup,
             variant: "primary" as const,
           },
         ];
@@ -166,26 +180,55 @@ export default function EstimateDescription() {
     try {
       const bodyData = {
         estimateName: estimateForm.estimateName,
-        clientId: estimateForm.clientId,
+        clientId: selectedClient?.id,
         date: estimateForm.date,
         endDate: estimateForm.endDate,
-        items: estimateForm.items.map((item: any) => ({
+
+        items: selectedLineItems.map((item) => ({
           id: item.id,
-          quantity: item.quantity,
-          subTotal: item.subTotal,
+          quantity: item.quantity || 1,
+          subTotal: (item?.markUp?.amount || 0) * (item.quantity || 1),
         })),
-        additionalMarkUp: Number(estimateForm.additionalMarkUp),
-        grandTotal: Number(estimateForm.grandTotal),
-        discountAmount: Number(estimateForm.discountAmount),
-        depositAmount: Number(estimateForm.depositAmount),
+
+        additionalMarkUp: Number(markup || 0),
+        discountAmount: Number(discount || 0),
+        depositAmount: Number(deposit || 0),
+
+        grandTotal: selectedLineItems.reduce(
+          (acc, item) => acc + (item?.markUp?.amount || 0),
+          0,
+        ),
       };
 
       const res = await createEstimate(bodyData).unwrap();
 
-      console.log("Success:", res);
       toast.success("Estimate created successfully");
+
+      setEstimateForm({
+        estimateName: "",
+        clientId: "",
+        date: "",
+        endDate: "",
+        poNumber: "",
+        items: [],
+        additionalMarkUp: 0,
+        grandTotal: 0,
+        discountAmount: 0,
+        depositAmount: 0,
+      });
+
+      setSelectedLineItems([]);
+      setMarkup(null);
+      setDiscount(null);
+      setDeposit(null);
+      setSelectedClient(null);
+
+      setSideMap(null);
+      setImages([]);
+
+      if (sideMapRef.current) sideMapRef.current.value = "";
+      if (imageRef.current) imageRef.current.value = "";
     } catch (err: any) {
-      console.log(err);
       toast.error(err?.data?.message || "Failed to create estimate");
     }
   };
@@ -202,8 +245,8 @@ export default function EstimateDescription() {
             Back to Estimate
           </h2>
         </Link>
-        <h2 className="text-lg md:text-2xl font-normal md:hidden block ">
-          Add Estimate
+        <h2 className="text-xl md:text-2xl font-normal text-center block md:hidden w-full">
+          Estimates
         </h2>
         <div className="space-x-4 hidden md:block">
           <Link href={"/admin/estimate"}>
@@ -351,7 +394,14 @@ export default function EstimateDescription() {
             <label className="text-sm text-gray-600">Estimate#</label>
             <input
               placeholder="Estimate#"
-              className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-orange-400"
+              value={estimateForm.estimateName}
+              onChange={(e) =>
+                setEstimateForm((prev) => ({
+                  ...prev,
+                  estimateName: e.target.value,
+                }))
+              }
+              className="w-full mt-1 border rounded-lg p-3"
             />
           </div>
 
@@ -359,7 +409,14 @@ export default function EstimateDescription() {
             <label className="text-sm text-gray-600">Date</label>
             <input
               type="date"
-              className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-orange-400"
+              value={estimateForm.date}
+              onChange={(e) =>
+                setEstimateForm((prev) => ({
+                  ...prev,
+                  date: e.target.value,
+                }))
+              }
+              className="w-full mt-1 border rounded-lg p-3"
             />
           </div>
 
@@ -367,7 +424,14 @@ export default function EstimateDescription() {
             <label className="text-sm text-gray-600">Expiration Date</label>
             <input
               type="date"
-              className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-orange-400"
+              value={estimateForm.endDate}
+              onChange={(e) =>
+                setEstimateForm((prev) => ({
+                  ...prev,
+                  endDate: e.target.value,
+                }))
+              }
+              className="w-full mt-1 border rounded-lg p-3"
             />
           </div>
 
@@ -375,52 +439,136 @@ export default function EstimateDescription() {
             <label className="text-sm text-gray-600">PO Number</label>
             <input
               placeholder="PO Number"
+              value={estimateForm.poNumber}
+              onChange={(e) =>
+                setEstimateForm((prev) => ({
+                  ...prev,
+                  poNumber: e.target.value,
+                }))
+              }
               className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-orange-400"
             />
           </div>
         </div>
 
-        {/* <div>
-          <label className="text-sm text-gray-600">Description</label>
-          <textarea
-            rows={4}
-            placeholder="Description"
-            className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-orange-400"
-          />
-        </div> */}
-
         <div className="w-full">
-          <button className="w-full border border-primary text-primary rounded-xl py-2 text-left p-2">
-            + Add Line Item
+          <button
+            onClick={() => setLineItemOpen(true)}
+            className="w-full border border-primary text-primary rounded-xl py-2 px-3 flex flex-wrap gap-2 items-center justify-center md:justify-start"
+          >
+            {selectedLineItems.length === 0 && <span>+ Add Line Item</span>}
+
+            {selectedLineItems.map((item) => (
+              <span
+                key={item.id}
+                className="flex items-center gap-1 bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs"
+              >
+                {item.itemName}
+
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedLineItems((prev) =>
+                      prev.filter((i) => i.id !== item.id),
+                    );
+                  }}
+                  className="ml-1 text-red-500 font-bold cursor-pointer"
+                >
+                  ×
+                </span>
+              </span>
+            ))}
           </button>
         </div>
 
         <div>
           <label className="text-base font-normal">Side Map</label>
-          <div className="mt-2 border border-dashed border-orange-300 rounded-xl p-10 flex flex-col items-center justify-center text-orange-500 cursor-pointer hover:bg-orange-100/60 bg-orange-50 duration-300">
-            <Image
-              src={cloud}
-              alt="cloud"
-              width={40}
-              height={40}
-              className="mb-2"
-            />
-            Upload Side Map
+
+          <div
+            onClick={() => document.getElementById("sideMapInput")?.click()}
+            className="mt-2 border border-dashed border-orange-300 rounded-xl p-6 flex flex-col items-center justify-center text-orange-500 cursor-pointer hover:bg-orange-100/60 bg-orange-50 duration-300"
+          >
+            {sideMap ? (
+              <Image
+                alt="side map"
+                width={400}
+                height={300}
+                src={URL.createObjectURL(sideMap)}
+                className="w-full h-40 object-contain rounded-lg"
+              />
+            ) : (
+              <>
+                <Image
+                  src={cloud}
+                  alt="cloud"
+                  width={40}
+                  height={40}
+                  className="mb-2"
+                />
+                Upload Side Map
+              </>
+            )}
           </div>
+
+          <input
+            ref={sideMapRef}
+            id="sideMapInput"
+            type="file"
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files?.[0]) {
+                setSideMap(e.target.files[0]);
+              }
+            }}
+          />
         </div>
 
         <div>
           <label className="text-base font-normal">Upload Image</label>
-          <div className="mt-2 border border-dashed border-orange-300 rounded-xl p-10 flex flex-col items-center justify-center text-orange-500 cursor-pointer hover:bg-orange-100/60 bg-orange-50 duration-300">
-            <Image
-              src={cloud}
-              alt="cloud"
-              width={40}
-              height={40}
-              className="mb-2"
-            />
-            Upload Image
+
+          <div
+            onClick={() => document.getElementById("imageInput")?.click()}
+            className="mt-2 border border-dashed border-orange-300 rounded-xl p-6 flex flex-col items-center justify-center text-orange-500 cursor-pointer hover:bg-orange-100/60 bg-orange-50 duration-300"
+          >
+            {images.length > 0 ? (
+              <div className=" w-full">
+                {images.map((file, idx) => (
+                  <Image
+                    alt="upload images"
+                    width={400}
+                    height={400}
+                    key={idx}
+                    src={URL.createObjectURL(file)}
+                    className="w-full h-40 object-contain rounded-lg"
+                  />
+                ))}
+              </div>
+            ) : (
+              <>
+                <Image
+                  src={cloud}
+                  alt="cloud"
+                  width={40}
+                  height={40}
+                  className="mb-2"
+                />
+                Upload Image
+              </>
+            )}
           </div>
+
+          <input
+            ref={imageRef}
+            id="imageInput"
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files) {
+                setImages(Array.from(e.target.files));
+              }
+            }}
+          />
         </div>
 
         <div className="mt-6 flex justify-end">
@@ -434,21 +582,12 @@ export default function EstimateDescription() {
             <div className="flex justify-between items-center  border-b py-1">
               <span className="text-gray-700 font-medium">Markup</span>
 
-              {markup !== null ? (
-                <span
-                  className="font-semibold text-gray-900 cursor-pointer"
-                  onClick={() => handleOpenModal("markup")}
-                >
-                  {markup}%
-                </span>
-              ) : (
-                <button
-                  onClick={() => handleOpenModal("markup")}
-                  className="text-orange-500 hover:text-orange-600 font-semibold"
-                >
-                  Add
-                </button>
-              )}
+              <button
+                onClick={() => handleOpenModal("markup")}
+                className="text-orange-500 hover:text-orange-600 font-semibold"
+              >
+                Add
+              </button>
             </div>
 
             <div className="flex justify-between items-center  border-b py-1">
@@ -499,39 +638,91 @@ export default function EstimateDescription() {
               </span>
               <span className="text-orange-500 font-bold text-lg">0</span>
             </div>
-
-            <button className="px-5 py-2 md:hidden rounded-lg bg-primary text-white hover:bg-primary/90 w-full transition-colors">
-              Submit
-            </button>
-
-            <CustomModal
-              open={isModalOpen}
-              onClose={() => setIsModalOpen(false)}
-              maxWidth="sm"
-              actions={getModalActions()}
-            >
-              {modalType === "markup" && (
-                <MarkupModalContent value={tempValue} setValue={setTempValue} />
-              )}
-
-              {modalType === "discount" && (
-                <DiscountModalContent
-                  value={tempValue}
-                  setValue={setTempValue}
-                />
-              )}
-
-              {modalType === "deposit" && (
-                <DepositModalContent
-                  value={tempValue}
-                  setValue={setTempValue}
-                />
-              )}
-            </CustomModal>
           </div>
         </div>
 
-        <button className="px-5 py-2 md:hidden rounded-lg bg-primary text-white hover:bg-primary/90 w-full transition-colors">
+        <CustomModal
+          open={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          maxWidth="sm"
+          actions={getModalActions()}
+        >
+          {modalType === "markup" && (
+            <MarkupModalContent setSubmit={setSubmitMarkup} />
+          )}
+
+          {modalType === "discount" && (
+            <DiscountModalContent value={tempValue} setValue={setTempValue} />
+          )}
+
+          {modalType === "deposit" && (
+            <DepositModalContent value={tempValue} setValue={setTempValue} />
+          )}
+        </CustomModal>
+
+        {/* items modal */}
+        <CustomModal
+          open={lineItemOpen}
+          onClose={() => setLineItemOpen(false)}
+          title="Item List"
+          actions={[
+            {
+              label: "Cancel",
+              variant: "secondary",
+              onClick: () => setLineItemOpen(false),
+            },
+            {
+              label: "Add",
+              variant: "primary",
+              onClick: () => setLineItemOpen(false),
+            },
+          ]}
+        >
+          <div className="space-y-3">
+            {items.map((item: any) => {
+              const isSelected = selectedLineItems.some(
+                (i) => i.id === item.id,
+              );
+
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => {
+                    setSelectedLineItems((prev) =>
+                      prev.some((i) => i.id === item.id)
+                        ? prev.filter((i) => i.id !== item.id)
+                        : [...prev, item],
+                    );
+                  }}
+                  className={`flex justify-between items-start border p-3 rounded-xl cursor-pointer transition ${
+                    isSelected ? "bg-orange-50 border-orange-400" : ""
+                  }`}
+                >
+                  {/* LEFT SIDE */}
+                  <div className="space-y-1">
+                    <p className="font-semibold text-gray-800">
+                      {item.itemName}
+                    </p>
+
+                    <p className="text-sm text-gray-500">{item.description}</p>
+                  </div>
+
+                  {/* RIGHT SIDE */}
+                  <div className="text-right min-w-[80px]">
+                    <p className="font-semibold text-gray-800">
+                      ${item?.markUp?.amount || 0}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CustomModal>
+
+        <button
+          onClick={handleCreateEstimate}
+          className="px-5 py-2 md:hidden rounded-lg bg-primary text-white hover:bg-primary/90 w-full transition-colors"
+        >
           Submit
         </button>
       </div>
