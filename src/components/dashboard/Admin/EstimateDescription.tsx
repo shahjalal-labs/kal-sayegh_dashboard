@@ -14,8 +14,11 @@ import {
 import {
   useCreateClientMutation,
   useCreateEstimateMutation,
+  useCreateMarkupMutation,
+  useCreateTaxMutation,
   useGetAllItemsQuery,
   useGetAllMarkupsQuery,
+  useGetAllTaxesQuery,
   useGetMyClientsQuery,
 } from "@/redux/api/admin/estimateApi";
 import Image from "next/image";
@@ -57,10 +60,29 @@ export default function EstimateDescription() {
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const sideMapRef = useRef<HTMLInputElement | null>(null);
   const imageRef = useRef<HTMLInputElement | null>(null);
+  const [taxModalOpen, setTaxModalOpen] = useState(false);
+  const [activeTaxItem, setActiveTaxItem] = useState<any>(null);
+  const [addTax, setAddTax] = useState(false);
+  const [openCreateTaxModal, setOpenCreateTaxModal] = useState(false);
   const [activeMarkupItem, setActiveMarkupItem] = useState<any>(null);
+  const [openCreateMarkupModal, setOpenCreateMarkupModal] = useState(false);
+  const [selectedMarkup, setSelectedMarkup] = useState<number | null>(null);
   const [selectedItemsByTable, setSelectedItemsByTable] = useState<{
     [tableId: number]: string; // itemId
   }>({});
+
+  const [createMarkup] = useCreateMarkupMutation();
+  const [markupValue, setMarkupValue] = useState({
+    name: "",
+    percentage: "",
+  });
+
+  const [createTax] = useCreateTaxMutation();
+  const [taxValue, setTaxValue] = useState({
+    name: "",
+    percentage: "",
+  });
+
   const [formData, setFormData] = useState({
     email: "",
     clientName: "",
@@ -105,8 +127,11 @@ export default function EstimateDescription() {
   const { data: allItem } = useGetAllItemsQuery({});
   const items = allItem?.result ?? [];
 
-  const { data: allMarkup } = useGetAllMarkupsQuery();
+  const { data: allMarkup, refetch } = useGetAllMarkupsQuery();
   const markups = allMarkup?.result ?? [];
+
+  const { data: taxData, refetch: refetchTaxes } = useGetAllTaxesQuery({});
+  const allTax = taxData?.result;
 
   const handleAddLineItem = () => {
     const newTable = {
@@ -114,6 +139,58 @@ export default function EstimateDescription() {
       items: [],
     };
     setLineItemTables((prev) => [...prev, newTable]);
+  };
+
+  const calculateTableTotal = (table: LineItemTable) => {
+    return table.items.reduce((acc, item) => {
+      const rate = item.amount || 0;
+      const qty = item.quantity || 1;
+      const markup = item.percentage || 0;
+      const tax = item.tax || 0;
+
+      const base = rate * qty;
+      const markupAmount = (base * markup) / 100;
+      const taxAmount = ((base + markupAmount) * tax) / 100;
+
+      return acc + base + markupAmount + taxAmount;
+    }, 0);
+  };
+
+  const grandSubtotal = lineItemTables.reduce((acc, table) => {
+    return acc + calculateTableTotal(table);
+  }, 0);
+
+  const updateItemField = (
+    tableId: number,
+    itemId: string,
+    field: string,
+    value: number,
+  ) => {
+    setLineItemTables((prev) =>
+      prev.map((table) => {
+        if (table.id !== tableId) return table;
+
+        return {
+          ...table,
+          items: table.items.map((i) =>
+            i.id === itemId ? { ...i, [field]: value } : i,
+          ),
+        };
+      }),
+    );
+  };
+
+  const calculateTotal = (item: any) => {
+    const rate = item.amount || 0;
+    const qty = item.quantity || 1;
+    const markup = item.percentage || 0;
+    const tax = item.tax || 0;
+
+    const base = rate * qty;
+    const markupAmount = (base * markup) / 100;
+    const taxAmount = ((base + markupAmount) * tax) / 100;
+
+    return (base + markupAmount + taxAmount).toFixed(2);
   };
 
   const handleToggleItem = (item: any) => {
@@ -301,6 +378,63 @@ export default function EstimateDescription() {
       if (imageRef.current) imageRef.current.value = "";
     } catch (err: any) {
       toast.error(err?.data?.message || "Failed to create estimate");
+    }
+  };
+
+  const handleCreateMarkup = async () => {
+    try {
+      if (!markupValue.name || !markupValue.percentage) {
+        alert("Please fill all fields");
+        return;
+      }
+
+      const payload = {
+        name: markupValue.name,
+        percentage: Number(markupValue.percentage),
+      };
+
+      const res = await createMarkup(payload).unwrap();
+
+      toast.success("Markup created Successfully");
+
+      setMarkupValue({
+        name: "",
+        percentage: "",
+      });
+
+      setOpenCreateMarkupModal(false);
+
+      setAddMarkUp(true);
+      refetch();
+    } catch (error) {
+      console.error("Create markup failed:", error);
+    }
+  };
+
+  const handleCreateTax = async () => {
+    try {
+      const payload = {
+        name: taxValue.name,
+        percentage: Number(taxValue.percentage),
+      };
+
+      await createTax(payload).unwrap();
+
+      toast.success("Tax created successfully");
+
+      setTaxValue({
+        name: "",
+        percentage: "",
+      });
+
+      setTaxModalOpen(false);
+
+      await refetchTaxes();
+
+      setAddTax(true); // reopen list modal
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to create tax");
     }
   };
 
@@ -582,39 +716,29 @@ export default function EstimateDescription() {
                           {item.itemName}
                         </td>
 
+                        {/* RATE */}
                         <td className="p-2 border text-center">
                           <input
                             type="number"
                             value={item.amount ?? 0}
-                            placeholder="$"
                             onChange={(e) => {
-                              const value = e.target.value;
-
-                              setLineItemTables((prev) =>
-                                prev.map((table) => {
-                                  if (table.id !== activeTableId) return table;
-
-                                  return {
-                                    ...table,
-                                    items: table.items.map((i) =>
-                                      i.id === item.id
-                                        ? {
-                                            ...i,
-                                            amount:
-                                              value === "" ? 0 : Number(value),
-                                          }
-                                        : i,
-                                    ),
-                                  };
-                                }),
+                              setActiveTableId(table.id);
+                              updateItemField(
+                                table.id,
+                                item.id,
+                                "amount",
+                                Number(e.target.value),
                               );
                             }}
                             className="w-20 text-center border rounded px-1 py-0.5"
                           />
                         </td>
+
+                        {/* MARKUP */}
                         <td
                           className="p-2 border text-center cursor-pointer hover:bg-gray-50"
                           onClick={() => {
+                            setActiveTableId(table.id);
                             setActiveMarkupItem(item);
                             setAddMarkUp(true);
                           }}
@@ -622,12 +746,40 @@ export default function EstimateDescription() {
                           {item?.percentage || 0}%
                         </td>
 
-                        <td className="p-2 border text-center">1</td>
-
-                        <td className="p-2 border text-center">0</td>
-
+                        {/* QUANTITY */}
                         <td className="p-2 border text-center">
-                          {(item?.amount || 0) * 1}
+                          <input
+                            type="number"
+                            value={item.quantity ?? 1}
+                            min={1}
+                            onChange={(e) => {
+                              setActiveTableId(table.id);
+                              updateItemField(
+                                table.id,
+                                item.id,
+                                "quantity",
+                                Number(e.target.value),
+                              );
+                            }}
+                            className="w-16 text-center border rounded px-1 py-0.5"
+                          />
+                        </td>
+
+                        {/* TAX */}
+                        <td
+                          className="p-2 border text-center cursor-pointer hover:bg-gray-50"
+                          onClick={() => {
+                            setActiveTableId(table.id);
+                            setActiveTaxItem(item);
+                            setAddTax(true);
+                          }}
+                        >
+                          {item?.tax || 0}%
+                        </td>
+
+                        {/* TOTAL */}
+                        <td className="p-2 border text-center">
+                          {calculateTotal(item)}
                         </td>
                       </tr>
                     ))
@@ -741,19 +893,30 @@ export default function EstimateDescription() {
           <div className="w-[356px] flex flex-col space-y-3">
             <div className="flex justify-between items-center border-b py-1">
               <span className="text-gray-700 font-medium">Subtotal</span>
-              <span className="font-semibold text-gray-900">0</span>
+              <span className="font-semibold text-gray-900">
+                ${grandSubtotal.toFixed(2)}
+              </span>
             </div>
 
             {/* Markup */}
-            <div className="flex justify-between items-center  border-b py-1">
+            <div className="flex justify-between items-center border-b py-1">
               <span className="text-gray-700 font-medium">Markup</span>
 
-              <button
-                onClick={() => handleOpenModal("markup")}
-                className="text-orange-500 hover:text-orange-600 font-semibold"
-              >
-                Add
-              </button>
+              {selectedMarkup !== null ? (
+                <span
+                  onClick={() => setAddMarkUp(true)}
+                  className="text-gray-900 font-semibold cursor-pointer"
+                >
+                  {selectedMarkup}%
+                </span>
+              ) : (
+                <button
+                  onClick={() => setAddMarkUp(true)}
+                  className="text-orange-500 hover:text-orange-600 font-semibold"
+                >
+                  Add
+                </button>
+              )}
             </div>
 
             <div className="flex justify-between items-center  border-b py-1">
@@ -894,6 +1057,26 @@ export default function EstimateDescription() {
                   <div
                     key={m.id}
                     onClick={() => {
+                      if (!activeMarkupItem || !activeTableId) return;
+
+                      setLineItemTables((prev) =>
+                        prev.map((table) => {
+                          if (table.id !== activeTableId) return table;
+
+                          return {
+                            ...table,
+                            items: table.items.map((i) =>
+                              i.id === activeMarkupItem.id
+                                ? {
+                                    ...i,
+                                    percentage: m.percentage,
+                                  }
+                                : i,
+                            ),
+                          };
+                        }),
+                      );
+
                       setAddMarkUp(false);
                     }}
                     className="p-3 border rounded-lg cursor-pointer hover:bg-orange-50"
@@ -909,7 +1092,13 @@ export default function EstimateDescription() {
               )}
             </div>
 
-            <button className="flex items-center gap-2  mt-3  py-4">
+            <button
+              onClick={() => {
+                setAddMarkUp(false);
+                setOpenCreateMarkupModal(true);
+              }}
+              className="flex items-center gap-2  mt-3  py-4"
+            >
               <GoPlus
                 size={30}
                 className="text-lg bg-primary p-1 text-white rounded-full"
@@ -930,6 +1119,210 @@ export default function EstimateDescription() {
                 className="w-full mt-3 bg-primary hover:bg-primary/90 text-white transition-colors py-2 rounded-xl "
               >
                 Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {openCreateMarkupModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white w-[420px] rounded-2xl shadow-xl p-6 space-y-5 animate-in fade-in zoom-in-95">
+            {/* HEADER */}
+            <div>
+              <h2 className="text-xl font-semibold text-gray-800">Markup</h2>
+            </div>
+
+            {/* INPUTS */}
+            <div className="space-y-4">
+              {/* NAME */}
+              <div>
+                <label className="text-sm text-gray-600 mb-1 block">
+                  Markup Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Service Charge"
+                  value={markupValue.name}
+                  onChange={(e) =>
+                    setMarkupValue((prev) => ({
+                      ...prev,
+                      name: e.target.value,
+                    }))
+                  }
+                  className="w-full border border-gray-300 focus:border-primary focus:ring-1 focus:ring-primary outline-none p-2.5 rounded-lg"
+                />
+              </div>
+
+              {/* PERCENTAGE */}
+              <div>
+                <label className="text-sm text-gray-600 mb-1 block">
+                  Percentage (%)
+                </label>
+                <input
+                  type="number"
+                  placeholder="e.g. 15"
+                  value={markupValue.percentage}
+                  onChange={(e) =>
+                    setMarkupValue((prev) => ({
+                      ...prev,
+                      percentage: e.target.value,
+                    }))
+                  }
+                  className="w-full border border-gray-300 focus:border-primary focus:ring-1 focus:ring-primary outline-none p-2.5 rounded-lg"
+                />
+              </div>
+            </div>
+
+            {/* ACTIONS */}
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setOpenCreateMarkupModal(false)}
+                className="w-full border border-gray-300 py-2.5 rounded-xl hover:bg-gray-100 transition"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={handleCreateMarkup}
+                className="w-full bg-primary hover:bg-primary/90 text-white py-2.5 rounded-xl transition"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAX LIST MODAL */}
+      {addTax && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white w-[400px] rounded-xl p-5 space-y-3">
+            {/* TITLE */}
+            <h2 className="text-lg font-semibold">Select Tax</h2>
+
+            {/* TAX LIST */}
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              {allTax?.length > 0 ? (
+                allTax.map((t: any) => (
+                  <div
+                    key={t.id}
+                    onClick={() => {
+                      if (!activeTaxItem || !activeTableId) return;
+
+                      setLineItemTables((prev) =>
+                        prev.map((table) => {
+                          if (table.id !== activeTableId) return table;
+
+                          return {
+                            ...table,
+                            items: table.items.map((i) =>
+                              i.id === activeTaxItem.id
+                                ? {
+                                    ...i,
+                                    tax: t.percentage,
+                                  }
+                                : i,
+                            ),
+                          };
+                        }),
+                      );
+
+                      setAddTax(false);
+                    }}
+                    className="p-3 border rounded-lg cursor-pointer hover:bg-orange-50"
+                  >
+                    <p className="font-semibold">{t.name}</p>
+                    <p className="text-sm text-gray-500">{t.percentage}%</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-400 text-center">
+                  No tax found
+                </p>
+              )}
+            </div>
+
+            <button
+              onClick={() => {
+                setAddTax(false);
+                setTaxModalOpen(true);
+              }}
+              className="flex items-center gap-2 mt-3 py-4"
+            >
+              <GoPlus
+                size={30}
+                className="text-lg bg-primary p-1 text-white rounded-full"
+              />
+              <span className="font-medium">Add Tax</span>
+            </button>
+
+            {/* FOOTER */}
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setAddTax(false)}
+                className="w-full mt-3 border border-primary py-2 rounded-xl hover:bg-primary hover:text-white duration-300 ease-in"
+              >
+                Close
+              </button>
+
+              <button
+                onClick={() => setAddTax(false)}
+                className="w-full mt-3 bg-primary hover:bg-primary/90 text-white transition-colors py-2 rounded-xl"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {taxModalOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white w-[400px] rounded-xl p-5 space-y-3">
+            <h2 className="text-lg font-semibold">Create Tax</h2>
+
+            {/* NAME */}
+            <input
+              type="text"
+              placeholder="Tax name"
+              value={taxValue.name}
+              onChange={(e) =>
+                setTaxValue((prev) => ({
+                  ...prev,
+                  name: e.target.value,
+                }))
+              }
+              className="w-full border p-2 rounded"
+            />
+
+            {/* PERCENTAGE */}
+            <input
+              type="number"
+              placeholder="Enter tax %"
+              value={taxValue.percentage}
+              onChange={(e) =>
+                setTaxValue((prev) => ({
+                  ...prev,
+                  percentage: e.target.value,
+                }))
+              }
+              className="w-full border p-2 rounded"
+            />
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setTaxModalOpen(false)}
+                className="w-full border py-2 rounded-xl"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={handleCreateTax}
+                className="w-full bg-primary text-white py-2 rounded-xl"
+              >
+                Save
               </button>
             </div>
           </div>
