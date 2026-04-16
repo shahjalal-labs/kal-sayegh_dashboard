@@ -7,7 +7,7 @@ import { toast } from "sonner";
 export const MarkupModalContent = ({ setSubmit }: any) => {
   const [form, setForm] = useState({
     name: "",
-    percentage: 0,
+    percentage: "",
   });
 
   const [createMarkup, { isLoading }] = useCreateMarkupMutation();
@@ -58,7 +58,7 @@ export const MarkupModalContent = ({ setSubmit }: any) => {
           onChange={(e) =>
             setForm((prev) => ({
               ...prev,
-              percentage: Number(e.target.value),
+              percentage: "",
             }))
           }
           placeholder="Retail Markup (0%)"
@@ -72,6 +72,7 @@ export const MarkupModalContent = ({ setSubmit }: any) => {
 // DISCOUNT MODAL
 export const DiscountModalContent = ({ value, setValue }: any) => {
   const [unit, setUnit] = useState<"percent" | "dollar">("percent");
+  const [inputValue, setInputValue] = useState("");
 
   return (
     <div className="space-y-4">
@@ -114,10 +115,14 @@ export const DiscountModalContent = ({ value, setValue }: any) => {
 
       <input
         type="text"
-        value={""}
-        onChange={(e) => setValue(parseFloat(e.target.value) || 0)}
+        value={inputValue}
+        onChange={(e) => {
+          const val = e.target.value;
+          setInputValue(val);
+          setValue(parseFloat(val) || 0);
+        }}
         className="w-full px-3 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-orange-400"
-        placeholder={"Discount (%)"}
+        placeholder={unit === "percent" ? "Discount (%)" : "Discount ($)"}
       />
     </div>
   );
@@ -127,6 +132,7 @@ export const DiscountModalContent = ({ value, setValue }: any) => {
 
 export const DepositModalContent = ({ value, setValue }: any) => {
   const [unit, setUnit] = useState<"percent" | "dollar">("percent");
+  const [depositInput, setDepositInput] = useState("");
 
   return (
     <div className="space-y-4">
@@ -171,8 +177,12 @@ export const DepositModalContent = ({ value, setValue }: any) => {
       {/* Input */}
       <input
         type="text"
-        value={""}
-        onChange={(e) => setValue(parseFloat(e.target.value) || 0)}
+        value={depositInput}
+        onChange={(e) => {
+          const val = e.target.value;
+          setDepositInput(val);
+          setValue(parseFloat(val) || 0);
+        }}
         className="w-full px-3 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-orange-400"
         placeholder={unit === "percent" ? "Deposit (%)" : "Deposit ($)"}
       />

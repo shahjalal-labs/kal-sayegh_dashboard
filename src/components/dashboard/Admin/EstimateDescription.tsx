@@ -32,7 +32,6 @@ interface LineItem {
   id: string;
   description: string;
   itemName: string;
-  rate: number;
   markUp: number;
   quantity: number;
   tax: number;
@@ -63,13 +62,16 @@ export default function EstimateDescription() {
   const [taxModalOpen, setTaxModalOpen] = useState(false);
   const [activeTaxItem, setActiveTaxItem] = useState<any>(null);
   const [addTax, setAddTax] = useState(false);
-  const [openCreateTaxModal, setOpenCreateTaxModal] = useState(false);
   const [activeMarkupItem, setActiveMarkupItem] = useState<any>(null);
   const [openCreateMarkupModal, setOpenCreateMarkupModal] = useState(false);
-  const [selectedMarkup, setSelectedMarkup] = useState<number | null>(null);
+
   const [selectedItemsByTable, setSelectedItemsByTable] = useState<{
-    [tableId: number]: string; // itemId
+    [tableId: number]: string;
   }>({});
+
+  const [totalMarkupModalOpen, setTotalMarkupModalOpen] = useState(false);
+  const [totalAddMarkup, setTotalAddMarkup] = useState(false);
+  const [selectedMarkup, setSelectedMarkup] = useState<any>(null);
 
   const [createMarkup] = useCreateMarkupMutation();
   const [markupValue, setMarkupValue] = useState({
@@ -141,24 +143,27 @@ export default function EstimateDescription() {
     setLineItemTables((prev) => [...prev, newTable]);
   };
 
-  const calculateTableTotal = (table: LineItemTable) => {
-    return table.items.reduce((acc, item) => {
-      const rate = item.amount || 0;
-      const qty = item.quantity || 1;
-      const markup = item.percentage || 0;
-      const tax = item.tax || 0;
-
-      const base = rate * qty;
-      const markupAmount = (base * markup) / 100;
-      const taxAmount = ((base + markupAmount) * tax) / 100;
-
-      return acc + base + markupAmount + taxAmount;
-    }, 0);
-  };
-
   const grandSubtotal = lineItemTables.reduce((acc, table) => {
-    return acc + calculateTableTotal(table);
+    return (
+      acc +
+      table.items.reduce((tAcc, item) => {
+        const qty = Number(item.quantity) || 1;
+        const base = (Number(item.amount) || 0) * qty;
+
+        const markup = Number(item.percentage) || 0;
+        const tax = Number(item.tax) || 0;
+
+        const afterMarkup = base + (base * markup) / 100;
+        const final = afterMarkup + (afterMarkup * tax) / 100;
+
+        return tAcc + final;
+      }, 0)
+    );
   }, 0);
+
+  const currentMarkup = lineItemTables
+    .flatMap((t) => t.items)
+    .find((i) => i.percentage !== undefined)?.percentage;
 
   const updateItemField = (
     tableId: number,
@@ -180,17 +185,36 @@ export default function EstimateDescription() {
     );
   };
 
+  const calculateFinalTotal = () => {
+    let total = grandSubtotal;
+
+    if (selectedMarkup?.percentage) {
+      total += (total * selectedMarkup.percentage) / 100;
+    }
+
+    if (discount) {
+      total -= (total * discount) / 100;
+    }
+
+    if (deposit) {
+      total -= (total * deposit) / 100;
+    }
+
+    return total;
+  };
+
   const calculateTotal = (item: any) => {
-    const rate = item.amount || 0;
     const qty = item.quantity || 1;
     const markup = item.percentage || 0;
     const tax = item.tax || 0;
 
-    const base = rate * qty;
-    const markupAmount = (base * markup) / 100;
-    const taxAmount = ((base + markupAmount) * tax) / 100;
+    const base = item.amount * qty;
 
-    return (base + markupAmount + taxAmount).toFixed(2);
+    return (
+      base +
+      (base * markup) / 100 +
+      ((base + (base * markup) / 100) * tax) / 100
+    ).toFixed(2);
   };
 
   const handleToggleItem = (item: any) => {
@@ -326,32 +350,46 @@ export default function EstimateDescription() {
 
   const handleCreateEstimate = async () => {
     try {
+      const calculateItemTotal = (item: any) => {
+        const base = (Number(item.amount) || 0) * (Number(item.quantity) || 1);
+
+        const markupAmount = (base * (Number(item.percentage) || 0)) / 100;
+
+        const afterMarkup = base + markupAmount;
+
+        const taxAmount = (afterMarkup * (Number(item.tax) || 0)) / 100;
+
+        return afterMarkup + taxAmount;
+      };
+
       const bodyData = {
         estimateName: estimateForm.estimateName,
         clientId: selectedClient?.id,
         date: estimateForm.date,
         endDate: estimateForm.endDate,
 
-        items: selectedLineItems.map((item) => ({
-          id: item.id,
-          quantity: item.quantity || 1,
-          subTotal: (item?.markUp?.amount || 0) * (item.quantity || 1),
-        })),
+        items: lineItemTables.flatMap((table) =>
+          table.items.map((item) => ({
+            id: item.id,
+            quantity: Number(item.quantity) || 1,
 
-        additionalMarkUp: Number(markup || 0),
-        discountAmount: Number(discount || 0),
-        depositAmount: Number(deposit || 0),
-
-        grandTotal: selectedLineItems.reduce(
-          (acc, item) => acc + (item?.markUp?.amount || 0),
-          0,
+            // ✅ FIX HERE
+            subTotal: Math.round(calculateItemTotal(item)),
+          })),
         ),
+
+        additionalMarkUp: selectedMarkup?.percentage || 0,
+        discountAmount: discount || 0,
+        depositAmount: deposit || 0,
+
+        grandTotal: Math.round(calculateFinalTotal()),
       };
 
-      const res = await createEstimate(bodyData).unwrap();
+      await createEstimate(bodyData).unwrap();
 
       toast.success("Estimate created successfully");
 
+      // ✅ RESET EVERYTHING PROPERLY
       setEstimateForm({
         estimateName: "",
         clientId: "",
@@ -365,7 +403,13 @@ export default function EstimateDescription() {
         depositAmount: 0,
       });
 
+      setLineItemTables([]); // ✅ IMPORTANT (you missed this)
+
       setSelectedLineItems([]);
+      setSelectedItemsByTable({});
+
+      setSelectedMarkup(null);
+
       setMarkup(null);
       setDiscount(null);
       setDeposit(null);
@@ -902,16 +946,16 @@ export default function EstimateDescription() {
             <div className="flex justify-between items-center border-b py-1">
               <span className="text-gray-700 font-medium">Markup</span>
 
-              {selectedMarkup !== null ? (
+              {selectedMarkup ? (
                 <span
-                  onClick={() => setAddMarkUp(true)}
-                  className="text-gray-900 font-semibold cursor-pointer"
+                  onClick={() => setTotalAddMarkup(true)}
+                  className="font-semibold text-gray-900 cursor-pointer"
                 >
-                  {selectedMarkup}%
+                  ${selectedMarkup.percentage}
                 </span>
               ) : (
                 <button
-                  onClick={() => setAddMarkUp(true)}
+                  onClick={() => setTotalAddMarkup(true)}
                   className="text-orange-500 hover:text-orange-600 font-semibold"
                 >
                   Add
@@ -927,7 +971,7 @@ export default function EstimateDescription() {
                   className="font-semibold text-gray-900 cursor-pointer"
                   onClick={() => handleOpenModal("discount")}
                 >
-                  {discount}%
+                  ${discount}
                 </span>
               ) : (
                 <button
@@ -965,7 +1009,9 @@ export default function EstimateDescription() {
               <span className="text-gray-900 font-bold text-lg">
                 Total(USD)
               </span>
-              <span className="text-orange-500 font-bold text-lg">0</span>
+              <span className="text-orange-500 font-bold text-lg">
+                ${calculateFinalTotal().toFixed(2)}
+              </span>
             </div>
           </div>
         </div>
@@ -1437,6 +1483,135 @@ export default function EstimateDescription() {
                 className="px-8 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors"
               >
                 Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {totalMarkupModalOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white w-[420px] rounded-2xl shadow-xl p-6 space-y-5 animate-in fade-in zoom-in-95">
+            {/* HEADER */}
+            <div>
+              <h2 className="text-xl font-semibold text-gray-800">Markup</h2>
+            </div>
+
+            {/* INPUTS */}
+            <div className="space-y-4">
+              {/* NAME */}
+              <div>
+                <label className="text-sm text-gray-600 mb-1 block">
+                  Markup Name
+                </label>
+                <input
+                  type="text"
+                  value={markupValue.name}
+                  onChange={(e) =>
+                    setMarkupValue((prev) => ({
+                      ...prev,
+                      name: e.target.value,
+                    }))
+                  }
+                  className="w-full border border-gray-300 p-2.5 rounded-lg"
+                />
+              </div>
+
+              {/* PERCENTAGE */}
+              <div>
+                <label className="text-sm text-gray-600 mb-1 block">
+                  Percentage (%)
+                </label>
+                <input
+                  type="number"
+                  value={markupValue.percentage}
+                  onChange={(e) =>
+                    setMarkupValue((prev) => ({
+                      ...prev,
+                      percentage: e.target.value,
+                    }))
+                  }
+                  className="w-full border border-gray-300 p-2.5 rounded-lg"
+                />
+              </div>
+            </div>
+
+            {/* ACTIONS */}
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setTotalMarkupModalOpen(false)}
+                className="w-full border border-gray-300 py-2.5 rounded-xl"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={handleCreateMarkup}
+                className="w-full bg-primary text-white py-2.5 rounded-xl"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {totalAddMarkup && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white w-[400px] rounded-xl p-5 space-y-3">
+            <h2 className="text-lg font-semibold">Select Markup</h2>
+
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              {markups?.length > 0 ? (
+                markups.map((m: any) => (
+                  <div
+                    key={m.id}
+                    onClick={() => {
+                      setSelectedMarkup(m);
+                      setTotalAddMarkup(false);
+                    }}
+                    className="p-3 border rounded-lg cursor-pointer hover:bg-orange-50"
+                  >
+                    <p className="font-semibold">{m.name}</p>
+                    <p className="text-sm text-gray-500">{m.percentage}%</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-400 text-center">
+                  No markup found
+                </p>
+              )}
+            </div>
+
+            {/* ADD NEW MARKUP */}
+            <button
+              onClick={() => {
+                setTotalAddMarkup(false);
+                setTotalMarkupModalOpen(true);
+              }}
+              className="flex items-center gap-2 mt-3 py-4"
+            >
+              <GoPlus
+                size={30}
+                className="text-lg bg-primary p-1 text-white rounded-full"
+              />
+              <span className="font-medium">Add Markup</span>
+            </button>
+
+            {/* FOOTER */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setTotalAddMarkup(false)}
+                className="w-full border py-2 rounded-xl"
+              >
+                Close
+              </button>
+
+              <button
+                onClick={() => setTotalAddMarkup(false)}
+                className="w-full bg-primary text-white py-2 rounded-xl"
+              >
+                Done
               </button>
             </div>
           </div>
