@@ -22,6 +22,7 @@ import {
   useGetMyClientsQuery,
 } from "@/redux/api/admin/estimateApi";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { GoPlus } from "react-icons/go";
 import { LuMapPin } from "react-icons/lu";
@@ -47,6 +48,7 @@ interface LineItemTable {
 }
 
 export default function EstimateDescription() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [activeTableId, setActiveTableId] = useState<number | null>(null);
   const [itemModalOpen, setItemModalOpen] = useState(false);
@@ -116,7 +118,7 @@ export default function EstimateDescription() {
   >(null);
   const [tempValue, setTempValue] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [lineItems, setLineItems] = useState<number[]>([]);
+
   const [lineItemTables, setLineItemTables] = useState<LineItemTable[]>([]);
   const [addMarkUp, setAddMarkUp] = useState(false);
 
@@ -367,13 +369,12 @@ export default function EstimateDescription() {
         clientId: selectedClient?.id,
         date: estimateForm.date,
         endDate: estimateForm.endDate,
+        poNumber: estimateForm.poNumber,
 
         items: lineItemTables.flatMap((table) =>
           table.items.map((item) => ({
             id: item.id,
             quantity: Number(item.quantity) || 1,
-
-            // ✅ FIX HERE
             subTotal: Math.round(calculateItemTotal(item)),
           })),
         ),
@@ -385,11 +386,22 @@ export default function EstimateDescription() {
         grandTotal: Math.round(calculateFinalTotal()),
       };
 
-      await createEstimate(bodyData).unwrap();
+      const formData = new FormData();
+      formData.append("bodyData", JSON.stringify(bodyData));
+
+      const allFiles = [];
+      if (sideMap) allFiles.push(sideMap);
+      images.forEach((file) => allFiles.push(file));
+
+      allFiles.forEach((file) => {
+        formData.append("urls", file);
+      });
+
+      const res = await createEstimate(formData).unwrap();
+      const estimateId = res?.result?.id;
 
       toast.success("Estimate created successfully");
 
-      // ✅ RESET EVERYTHING PROPERLY
       setEstimateForm({
         estimateName: "",
         clientId: "",
@@ -403,7 +415,7 @@ export default function EstimateDescription() {
         depositAmount: 0,
       });
 
-      setLineItemTables([]); // ✅ IMPORTANT (you missed this)
+      setLineItemTables([]);
 
       setSelectedLineItems([]);
       setSelectedItemsByTable({});
@@ -420,6 +432,8 @@ export default function EstimateDescription() {
 
       if (sideMapRef.current) sideMapRef.current.value = "";
       if (imageRef.current) imageRef.current.value = "";
+
+      router.push(`/admin/estimate/${estimateId}`);
     } catch (err: any) {
       toast.error(err?.data?.message || "Failed to create estimate");
     }
@@ -702,134 +716,256 @@ export default function EstimateDescription() {
 
         <div>
           {lineItemTables.map((table) => (
-            <div
-              key={table.id}
-              className="mt-3 w-full border rounded-xl overflow-x-auto relative"
-            >
-              {/* CLOSE */}
-              <button
-                onClick={() => {
-                  setLineItemTables((prev) =>
-                    prev.filter((t) => t.id !== table.id),
-                  );
+            <div key={table.id} className="mt-3 w-full">
+              <div className="flex justify-end mb-2">
+                <button
+                  onClick={() => {
+                    setLineItemTables((prev) =>
+                      prev.filter((t) => t.id !== table.id),
+                    );
 
-                  // reset active table if deleted
-                  setActiveTableId((prev) => (prev === table.id ? null : prev));
-                }}
-                className="absolute right-2 top-2 text-red-500 font-bold"
-              >
-                ✕
-              </button>
+                    // reset active table if deleted
+                    setActiveTableId((prev) =>
+                      prev === table.id ? null : prev,
+                    );
+                  }}
+                  className="text-red-500 font-bold rounded-full border border-red-200 px-3 py-1 hover:bg-red-50"
+                >
+                  ✕
+                </button>
+              </div>
 
-              <table className="w-full border border-gray-200">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="p-2 border">Description</th>
+              <div className="border rounded-xl overflow-hidden">
+                <div className="hidden md:block w-full overflow-x-auto">
+                  <table className="w-full border border-gray-200">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="p-2 border">Description</th>
 
-                    <th
-                      className="p-2 border cursor-pointer"
+                        <th
+                          className="p-2 border cursor-pointer"
+                          onClick={() => {
+                            setActiveTableId(table.id);
+                            setItemModalOpen(true);
+                          }}
+                        >
+                          Item List
+                        </th>
+
+                        <th className="p-2 border">Rate</th>
+                        <th className="p-2 border">Markup</th>
+                        <th className="p-2 border">Quantity</th>
+                        <th className="p-2 border">Tax</th>
+                        <th className="p-2 border">Total</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {(table.items ?? []).length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={7}
+                            className="text-center text-gray-400 p-3"
+                          >
+                            No items selected
+                          </td>
+                        </tr>
+                      ) : (
+                        (table.items ?? []).map((item) => (
+                          <tr key={item.id}>
+                            <td className="p-2 border">{item.description}</td>
+
+                            <td className="p-2 border text-center">
+                              {item.itemName}
+                            </td>
+
+                            {/* RATE */}
+                            <td className="p-2 border text-center">
+                              <input
+                                type="number"
+                                value={item.amount}
+                                onChange={(e) => {
+                                  setActiveTableId(table.id);
+                                  updateItemField(
+                                    table.id,
+                                    item.id,
+                                    "amount",
+                                    Number(e.target.value),
+                                  );
+                                }}
+                                className="w-20 text-center border rounded px-1 py-0.5"
+                              />
+                            </td>
+
+                            {/* MARKUP */}
+                            <td
+                              className="p-2 border text-center cursor-pointer hover:bg-gray-50"
+                              onClick={() => {
+                                setActiveTableId(table.id);
+                                setActiveMarkupItem(item);
+                                setAddMarkUp(true);
+                              }}
+                            >
+                              {item?.percentage || 0}%
+                            </td>
+
+                            {/* QUANTITY */}
+                            <td className="p-2 border text-center">
+                              <input
+                                type="number"
+                                value={item.quantity ?? 1}
+                                min={1}
+                                onChange={(e) => {
+                                  setActiveTableId(table.id);
+                                  updateItemField(
+                                    table.id,
+                                    item.id,
+                                    "quantity",
+                                    Number(e.target.value),
+                                  );
+                                }}
+                                className="w-16 text-center border rounded px-1 py-0.5"
+                              />
+                            </td>
+
+                            {/* TAX */}
+                            <td
+                              className="p-2 border text-center cursor-pointer hover:bg-gray-50"
+                              onClick={() => {
+                                setActiveTableId(table.id);
+                                setActiveTaxItem(item);
+                                setAddTax(true);
+                              }}
+                            >
+                              {item?.tax || 0}%
+                            </td>
+
+                            {/* TOTAL */}
+                            <td className="p-2 border text-center">
+                              {calculateTotal(item)}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="block md:hidden">
+                  <div className="flex items-center justify-between bg-gray-100 p-3 rounded-t-xl">
+                    <span className="font-medium text-gray-700">Items</span>
+                    <button
                       onClick={() => {
                         setActiveTableId(table.id);
                         setItemModalOpen(true);
                       }}
+                      className="text-sm font-medium text-primary"
                     >
                       Item List
-                    </th>
+                    </button>
+                  </div>
 
-                    <th className="p-2 border">Rate</th>
-                    <th className="p-2 border">Markup</th>
-                    <th className="p-2 border">Quantity</th>
-                    <th className="p-2 border">Tax</th>
-                    <th className="p-2 border">Total</th>
-                  </tr>
-                </thead>
-
-                <tbody>
                   {(table.items ?? []).length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="text-center text-gray-400 p-3">
-                        No items selected
-                      </td>
-                    </tr>
+                    <div className="border border-gray-200 rounded-b-xl p-4 text-center text-gray-400">
+                      No items selected
+                    </div>
                   ) : (
                     (table.items ?? []).map((item) => (
-                      <tr key={item.id}>
-                        <td className="p-2 border">{item.description}</td>
+                      <div
+                        key={item.id}
+                        className="border border-gray-200 rounded-xl p-4 mb-3 bg-white"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-gray-800 truncate">
+                              {item.description || "Untitled Item"}
+                            </p>
+                            <p className="text-sm text-gray-500 mt-1 truncate">
+                              {item.itemName}
+                            </p>
+                          </div>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {calculateTotal(item)}
+                          </p>
+                        </div>
 
-                        <td className="p-2 border text-center">
-                          {item.itemName}
-                        </td>
+                        <div className="mt-4 space-y-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-sm text-gray-500">Rate</span>
+                            <input
+                              type="number"
+                              value={item.amount}
+                              onChange={(e) => {
+                                setActiveTableId(table.id);
+                                updateItemField(
+                                  table.id,
+                                  item.id,
+                                  "amount",
+                                  Number(e.target.value),
+                                );
+                              }}
+                              className="w-24 text-center border rounded px-1 py-0.5"
+                            />
+                          </div>
 
-                        {/* RATE */}
-                        <td className="p-2 border text-center">
-                          <input
-                            type="number"
-                            value={item.amount ?? 0}
-                            onChange={(e) => {
-                              setActiveTableId(table.id);
-                              updateItemField(
-                                table.id,
-                                item.id,
-                                "amount",
-                                Number(e.target.value),
-                              );
-                            }}
-                            className="w-20 text-center border rounded px-1 py-0.5"
-                          />
-                        </td>
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-sm text-gray-500">
+                              Markup
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveTableId(table.id);
+                                setActiveMarkupItem(item);
+                                setAddMarkUp(true);
+                              }}
+                              className="text-sm font-medium text-primary"
+                            >
+                              {item?.percentage || 0}%
+                            </button>
+                          </div>
 
-                        {/* MARKUP */}
-                        <td
-                          className="p-2 border text-center cursor-pointer hover:bg-gray-50"
-                          onClick={() => {
-                            setActiveTableId(table.id);
-                            setActiveMarkupItem(item);
-                            setAddMarkUp(true);
-                          }}
-                        >
-                          {item?.percentage || 0}%
-                        </td>
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-sm text-gray-500">
+                              Quantity
+                            </span>
+                            <input
+                              type="number"
+                              value={item.quantity ?? 1}
+                              min={1}
+                              onChange={(e) => {
+                                setActiveTableId(table.id);
+                                updateItemField(
+                                  table.id,
+                                  item.id,
+                                  "quantity",
+                                  Number(e.target.value),
+                                );
+                              }}
+                              className="w-20 text-center border rounded px-1 py-0.5"
+                            />
+                          </div>
 
-                        {/* QUANTITY */}
-                        <td className="p-2 border text-center">
-                          <input
-                            type="number"
-                            value={item.quantity ?? 1}
-                            min={1}
-                            onChange={(e) => {
-                              setActiveTableId(table.id);
-                              updateItemField(
-                                table.id,
-                                item.id,
-                                "quantity",
-                                Number(e.target.value),
-                              );
-                            }}
-                            className="w-16 text-center border rounded px-1 py-0.5"
-                          />
-                        </td>
-
-                        {/* TAX */}
-                        <td
-                          className="p-2 border text-center cursor-pointer hover:bg-gray-50"
-                          onClick={() => {
-                            setActiveTableId(table.id);
-                            setActiveTaxItem(item);
-                            setAddTax(true);
-                          }}
-                        >
-                          {item?.tax || 0}%
-                        </td>
-
-                        {/* TOTAL */}
-                        <td className="p-2 border text-center">
-                          {calculateTotal(item)}
-                        </td>
-                      </tr>
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-sm text-gray-500">Tax</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveTableId(table.id);
+                                setActiveTaxItem(item);
+                                setAddTax(true);
+                              }}
+                              className="text-sm font-medium text-primary"
+                            >
+                              {item?.tax || 0}%
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     ))
                   )}
-                </tbody>
-              </table>
+                </div>
+              </div>
             </div>
           ))}
         </div>

@@ -1,47 +1,31 @@
 "use client";
 
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/Pagination";
+import { useGetAllEstimatesQuery } from "@/redux/api/admin/estimateApi";
 import { Check, Plus, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { HiOutlineMailOpen } from "react-icons/hi";
 import { toast } from "sonner";
 import { CustomModal } from "../../modal/CustomModal";
-
-const estimates = [
-  {
-    id: 1,
-    name: "John Martinez #1",
-    date: "February 28th 2026",
-    address: "6391 Elgin St. Celina, Delaware 10299",
-    phone: "+123 456 789",
-    amount: "$14.11",
-    status: "pending",
-  },
-  {
-    id: 2,
-    name: "Arlene McCoy #2",
-    date: "February 28th 2026",
-    address: "2715 Ash Dr. San Jose, South Dakota 83475",
-    phone: "+123 456 789",
-    amount: "$14.11",
-    status: "approved",
-  },
-  {
-    id: 3,
-    name: "Jerome Bell #3",
-    date: "February 28th 2026",
-    address: "1901 Thornridge Cir. Shiloh, Hawaii 81063",
-    phone: "+123 456 789",
-    amount: "$14.11",
-    status: "declined",
-  },
-];
 
 export default function Estimate() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("pending");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 6;
+  const { data } = useGetAllEstimatesQuery({});
+  const estimates = data?.result?.data || [];
 
   const options = [
     { id: "description", label: "Description" },
@@ -49,9 +33,111 @@ export default function Estimate() {
     { id: "upload", label: "Upload Picture ,PDF , Document" },
   ];
 
-  const filteredEstimates = estimates.filter(
-    (item) => item.status === activeTab,
+  // FIXED: Case-insensitive filtering and search
+  const filteredEstimates = estimates.filter((item: any) => {
+    const itemStatus = item.status?.toLowerCase() || "";
+    const matchesStatus = itemStatus === activeTab;
+    if (!matchesStatus) return false;
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    if (!normalizedSearch) return true;
+
+    const itemText = [
+      item.estimateName,
+      item.status,
+      item.date,
+      item.createdAt,
+      item.client?.address,
+      item.client?.city,
+      item.client?.state,
+      item.client?.zip,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    return itemText.includes(normalizedSearch);
+  });
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredEstimates.length / pageSize),
   );
+  const paginatedEstimates = filteredEstimates.slice(
+    (page - 1) * pageSize,
+    page * pageSize,
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [activeTab, searchTerm]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
+  const parseDate = (dateString?: string) => {
+    if (!dateString) return null;
+    const date = new Date(dateString);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+  const formatMonthYear = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  const getMonthKey = (item: any) => {
+    const dateString = item.createdAt || item.date;
+    const date = parseDate(dateString);
+    return date
+      ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
+      : "Unknown";
+  };
+
+  const grouped = paginatedEstimates.reduce((acc: any, item: any) => {
+    const dateString = item.createdAt || item.date;
+    const key = getMonthKey(item);
+    const label = dateString ? formatMonthYear(dateString) : "Unknown";
+
+    if (!acc[key]) acc[key] = { label, items: [] };
+    acc[key].items.push(item);
+    return acc;
+  }, {});
+
+  const groupedEntries = Object.entries(grouped).sort(([a], [b]) =>
+    b.localeCompare(a),
+  );
+
+  const getStatusLabel = (status: string) => {
+    const s = status?.toLowerCase();
+
+    if (s === "pending") return "ISSUED";
+    if (s === "approved") return "INVOICED";
+
+    return status?.toUpperCase() || "UNKNOWN";
+  };
+
+  // Calculate total for a group
+  const calculateTotal = (estimates: any[]) => {
+    return estimates.reduce(
+      (sum, estimate) => sum + (estimate.grandTotal || 0),
+      0,
+    );
+  };
 
   return (
     <div className="md:bg-secondary bg-secondary-none p-0 md:p-6 rounded-2xl">
@@ -72,7 +158,9 @@ export default function Estimate() {
               </span>
               <input
                 type="text"
-                placeholder="Search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search estimates"
                 className="w-full pl-10 pr-4 h-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
               />
             </div>
@@ -94,7 +182,9 @@ export default function Estimate() {
           </span>
           <input
             type="text"
-            placeholder="Search"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search estimates"
             className="w-full pl-10 pr-4 h-12 border border-gray-300 rounded-2xl focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
           />
         </div>
@@ -113,84 +203,168 @@ export default function Estimate() {
             </button>
           ))}
         </div>
-        <span className="mt-4 md:hidden block text-lg">February </span>
       </div>
 
       {/* LIST */}
       <div className="md:mt-10 md:space-y-6 ">
-        <div className="flex justify-between font-semibold text-lg border-0 md:border-b pb-2 ">
-          <span className=" hidden md:block">February 2026</span>
-          <span className="hidden md:block">Total: $14.11</span>
-        </div>
+        {groupedEntries.length === 0 ? (
+          <p className="text-center text-gray-400">
+            No {activeTab} estimates found
+          </p>
+        ) : (
+          groupedEntries.map(([_, group]: any) => {
+            const month = group.label;
+            const items = group.items;
+            return (
+              <div key={month}>
+                {/* MONTH HEADER */}
+                <div className="flex justify-between border-b pb-2 mb-4">
+                  <span className="font-semibold">{month}</span>
+                  <span className="text-gray-500 hidden md:block">
+                    Total: $
+                    {items
+                      .reduce(
+                        (sum: number, i: any) => sum + (i.grandTotal || 0),
+                        0,
+                      )
+                      .toFixed(2)}
+                  </span>
+                </div>
 
-        {filteredEstimates.map((item) => (
-          <div
-            key={item.id}
-            className="flex flex-col md:flex-row md:items-center justify-between gap-4  pb-6"
-          >
-            <div className="">
-              <div className="flex items-center  justify-between gap-2">
-                <span className="font-semibold text-gray-800 lg:border-b lg:border-[#52C41A]">
-                  {item.name}
-                </span>
-                <span className="block md:hidden font-medium text-gray-600">
-                  Total: {item.amount}
-                </span>
+                {items.map((item: any) => (
+                  <div
+                    key={item.id}
+                    className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b md:border-0 mb-4"
+                  >
+                    <div className="flex-1 md:flex-none md:w-[30%]">
+                      <div className="flex items-center justify-between gap-2 w-full">
+                        <span className="font-semibold text-gray-800 lg:border-b lg:border-[#52C41A]">
+                          {item.estimateName || "Untitled Estimate"}
+                        </span>
+                        <span className="block md:hidden font-medium text-gray-600">
+                          ${item.grandTotal?.toFixed(2) || "0.00"}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-4 mt-1 text-gray-800 p-2 w-full">
+                        <p className="text-sm text-gray-400">
+                          {item.createdAt
+                            ? formatDate(item.createdAt)
+                            : item.date || "-"}
+                        </p>
+                        <span
+                          className={`px-3 py-1 text-xs rounded-full md:hidden block ${
+                            item.status?.toLowerCase() === "pending"
+                              ? "bg-[#2196F333] text-[#2196F3]"
+                              : item.status?.toLowerCase() === "approved"
+                                ? "bg-green-100 text-green-600"
+                                : "bg-red-100 text-red-600"
+                          }`}
+                        >
+                          <span className="text-sm font-medium">
+                            {item.status?.toLowerCase() === "pending"
+                              ? "ISSUED"
+                              : item.status?.toLowerCase() === "approved"
+                                ? "Invoiced"
+                                : item.status || "UNKNOWN"}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="md:block hidden">
+                      <span
+                        className={`px-3 py-1 text-xs rounded-full ${
+                          item.status?.toLowerCase() === "pending"
+                            ? "bg-[#2196F333] text-[#2196F3]"
+                            : item.status?.toLowerCase() === "approved"
+                              ? "bg-green-100 text-green-600"
+                              : "bg-red-100 text-red-600"
+                        }`}
+                      >
+                        <span className="text-sm font-medium">
+                          {item.status?.toLowerCase() === "pending"
+                            ? "ISSUED"
+                            : item.status?.toLowerCase() === "approved"
+                              ? "Invoiced"
+                              : item.status || "UNKNOWN"}
+                        </span>
+                      </span>
+                    </div>
+
+                    <div className="text-sm text-gray-500 max-w-xs hidden md:block md:w-[20%]">
+                      <p>{item?.client?.address}</p>
+                      <p>{item?.client?.city}</p>
+                      <p>{item?.client?.state}</p>
+                      <p>{item?.client?.zip}</p>
+                    </div>
+
+                    <div className="text-left hidden md:block md:w-[15%]">
+                      <p className="font-semibold">
+                        ${item.grandTotal?.toFixed(2) || "0.00"}
+                      </p>
+                      <p className="text-base flex items-center gap-2">
+                        <HiOutlineMailOpen /> Email Sent
+                      </p>
+                    </div>
+
+                    <div className="hidden md:flex md:gap-2 md:w-[15%] md:justify-end">
+                      <button className="px-4 py-2 border border-primary text-primary rounded-lg whitespace-nowrap">
+                        Open
+                      </button>
+                      <button className="px-4 py-2 bg-primary text-secondary rounded-lg whitespace-nowrap">
+                        Edit
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="flex items-center justify-between gap-4 mt-1 text-gray-800 border-b md:border-0  space-y-4 p-2">
-                <p className="text-sm text-gray-400">{item.date}</p>
-
-                <span
-                  className={`px-3 py-1 text-xs rounded-full md:hidden block  ${
-                    item.status === "pending"
-                      ? "bg-yellow-100 text-yellow-600"
-                      : item.status === "approved"
-                        ? "bg-green-100 text-green-600"
-                        : "bg-red-100 text-red-600"
-                  }`}
-                >
-                  {item.status.toUpperCase()}
-                </span>
-              </div>
-            </div>
-
-            <div className="md:block hidden ">
-              <span
-                className={`px-3 py-1 text-xs rounded-full ${
-                  item.status === "pending"
-                    ? "bg-yellow-100 text-yellow-600"
-                    : item.status === "approved"
-                      ? "bg-green-100 text-green-600"
-                      : "bg-red-100 text-red-600"
-                }`}
-              >
-                {item.status.toUpperCase()}
-              </span>
-            </div>
-
-            <div className="text-sm text-gray-500 max-w-xs hidden md:block">
-              <p>{item.address}</p>
-              <p>{item.phone}</p>
-            </div>
-
-            <div className="text-left hidden md:block">
-              <p className="font-semibold">{item.amount}</p>
-              <p className="text-base flex items-center gap-2">
-                <HiOutlineMailOpen /> Email Sent
-              </p>
-            </div>
-
-            <div className="hidden md:flex md:gap-2">
-              <button className="px-4 py-2 border border-primary text-primary rounded-lg">
-                Open
-              </button>
-              <button className="px-4 py-2 bg-primary text-secondary rounded-lg">
-                Edit
-              </button>
-            </div>
-          </div>
-        ))}
+            );
+          })
+        )}
       </div>
+
+      {totalPages > 1 && (
+        <div className="mt-6 flex flex-col items-center justify-between gap-3 rounded-b-2xl bg-white p-3 md:flex-row md:px-4 md:py-3">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    if (page > 1) setPage(page - 1);
+                  }}
+                />
+              </PaginationItem>
+              {Array.from({ length: totalPages }, (_, idx) => idx + 1).map(
+                (pageNumber) => (
+                  <PaginationItem key={pageNumber}>
+                    <PaginationLink
+                      href="#"
+                      isActive={pageNumber === page}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        setPage(pageNumber);
+                      }}
+                    >
+                      {pageNumber}
+                    </PaginationLink>
+                  </PaginationItem>
+                ),
+              )}
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    if (page < totalPages) setPage(page + 1);
+                  }}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
 
       {/* MODAL */}
       <CustomModal

@@ -4,7 +4,6 @@ import settingIcon from "@/assets/dashboard/account-setting-01.png";
 import chat from "@/assets/dashboard/bubble-chat.png";
 
 import calender from "@/assets/dashboard/calendar.png";
-import checklist2 from "@/assets/dashboard/check-list (1).png";
 
 import checklist from "@/assets/dashboard/check-list.png";
 import estimate from "@/assets/dashboard/estimate.png";
@@ -129,7 +128,7 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
       },
       {
         href: "/admin/items",
-        icon: checklist2,
+        icon: checklist,
         label: "Items",
         isImage: true,
       },

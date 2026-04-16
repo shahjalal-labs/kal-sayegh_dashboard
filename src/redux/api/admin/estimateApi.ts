@@ -74,6 +74,18 @@ const estimateApi = baseApi.injectEndpoints({
         method: "GET",
       }),
     }),
+
+    getEstimateById: builder.query({
+      query: (estimateId: string) => ({
+        url: `/estimate/estimate/${estimateId}`,
+        method: "GET",
+      }),
+    }),
+
+    getAllEstimates: builder.query({
+      query: ({ limit, page, searchTerm }) => "/estimate/all-estimates",
+      providesTags: ["estimate"],
+    }),
   }),
 });
 
@@ -87,4 +99,6 @@ export const {
   useGetAllTaxesQuery,
   useCreateMarkupMutation,
   useGetAllMarkupsQuery,
+  useGetEstimateByIdQuery,
+  useGetAllEstimatesQuery,
 } = estimateApi;
