@@ -3,7 +3,7 @@
 import settingIcon from "@/assets/dashboard/account-setting-01.png";
 import chat from "@/assets/dashboard/bubble-chat.png";
 
-import calender from "../../../assets/dashboard/calendar.png";
+// import calender from "@/assets/dashboard/calendar.png";
 
 import checklist from "@/assets/dashboard/check-list.png";
 import estimate from "@/assets/dashboard/estimate.png";
@@ -22,6 +22,7 @@ import { LayoutDashboard, LogOut, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { FiCalendar } from "react-icons/fi";
 
 interface SidebarProps {
   onCloseClick?: () => void;
@@ -119,9 +120,9 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
       },
       {
         href: "/calendar",
-        icon: calender,
+        icon: FiCalendar,
         label: "Calendar",
-        isImage: true,
+        isImage: false,
       },
       {
         href: "/admin/message",
