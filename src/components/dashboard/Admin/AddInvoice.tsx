@@ -140,9 +140,12 @@ export default function AddInvoice() {
           </div>
 
           <div className="hidden md:flex md:justify-end md:gap-3 md:mb-6">
-            <button className="px-8 py-2 rounded-xl border-primary border text-primary hover:bg-primary hover:text-white duration-300 ease-in">
+            <Link
+              href={"/admin/invoice"}
+              className="px-8 py-2 rounded-xl border-primary border text-primary hover:bg-primary hover:text-white duration-300 ease-in"
+            >
               Cancel
-            </button>
+            </Link>
             <button
               onClick={handleSubmit}
               disabled={isLoading}

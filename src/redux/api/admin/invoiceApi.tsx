@@ -9,7 +9,20 @@ const invoiceApi = baseApi.injectEndpoints({
         body: formData,
       }),
     }),
+
+    getAllInvoice: builder.query({
+      query: ({ limit, page, searchTerm }) => ({
+        url: "/invoice/all-invoices",
+        method: "GET",
+        params: {
+          limit,
+          page,
+          searchTerm,
+        },
+      }),
+      providesTags: ["estimate"],
+    }),
   }),
 });
 
-export const { useCreateInvoiceMutation } = invoiceApi;
+export const { useCreateInvoiceMutation, useGetAllInvoiceQuery } = invoiceApi;

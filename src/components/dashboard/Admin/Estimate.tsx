@@ -122,23 +122,6 @@ export default function Estimate() {
     b.localeCompare(a),
   );
 
-  const getStatusLabel = (status: string) => {
-    const s = status?.toLowerCase();
-
-    if (s === "pending") return "ISSUED";
-    if (s === "approved") return "INVOICED";
-
-    return status?.toUpperCase() || "UNKNOWN";
-  };
-
-  // Calculate total for a group
-  const calculateTotal = (estimates: any[]) => {
-    return estimates.reduce(
-      (sum, estimate) => sum + (estimate.grandTotal || 0),
-      0,
-    );
-  };
-
   return (
     <div className="md:bg-secondary bg-secondary-none p-0 md:p-6 rounded-2xl">
       {/* HEADER */}

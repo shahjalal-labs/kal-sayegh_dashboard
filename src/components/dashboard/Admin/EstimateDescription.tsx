@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
 import Link from "next/link";
 import { AiOutlineUserAdd } from "react-icons/ai";
 
@@ -40,6 +40,7 @@ interface LineItem {
   originalItem?: any;
   percentage: number;
   amount: number;
+  rate: number; // Added rate field
 }
 
 interface LineItemTable {
@@ -66,6 +67,21 @@ export default function EstimateDescription() {
   const [addTax, setAddTax] = useState(false);
   const [activeMarkupItem, setActiveMarkupItem] = useState<any>(null);
   const [openCreateMarkupModal, setOpenCreateMarkupModal] = useState(false);
+
+  const openItemModal = (tableId: number) => {
+    setActiveTableId(tableId);
+    setItemModalOpen(true);
+  };
+
+  const openMarkupPicker = (tableId: number, itemId: string) => {
+    setActiveMarkupItem({ id: itemId, tableId });
+    setAddMarkUp(true);
+  };
+
+  const openTaxPicker = (tableId: number, itemId: string) => {
+    setActiveTaxItem({ id: itemId, tableId });
+    setAddTax(true);
+  };
 
   const [selectedItemsByTable, setSelectedItemsByTable] = useState<{
     [tableId: number]: string;
@@ -109,7 +125,6 @@ export default function EstimateDescription() {
     discountAmount: 0,
     depositAmount: 0,
   });
-
   const [markup, setMarkup] = useState<number | null>(null);
   const [discount, setDiscount] = useState<number | null>(null);
   const [deposit, setDeposit] = useState<number | null>(null);
@@ -137,54 +152,43 @@ export default function EstimateDescription() {
   const { data: taxData, refetch: refetchTaxes } = useGetAllTaxesQuery({});
   const allTax = taxData?.result;
 
-  const handleAddLineItem = () => {
-    const newTable = {
-      id: Date.now(),
-      items: [],
-    };
-    setLineItemTables((prev) => [...prev, newTable]);
-  };
-
   const grandSubtotal = lineItemTables.reduce((acc, table) => {
     return (
       acc +
       table.items.reduce((tAcc, item) => {
+        const rate = Number(item.rate) || 0;
         const qty = Number(item.quantity) || 1;
-        const base = (Number(item.amount) || 0) * qty;
-
-        const markup = Number(item.percentage) || 0;
-        const tax = Number(item.tax) || 0;
-
-        const afterMarkup = base + (base * markup) / 100;
-        const final = afterMarkup + (afterMarkup * tax) / 100;
-
-        return tAcc + final;
+        const base = rate * qty;
+        const markupAmount = (base * (Number(item.percentage) || 0)) / 100;
+        const afterMarkup = base + markupAmount;
+        const taxAmount = (afterMarkup * (Number(item.tax) || 0)) / 100;
+        const total = afterMarkup + taxAmount;
+        return tAcc + total;
       }, 0)
     );
   }, 0);
 
-  const currentMarkup = lineItemTables
-    .flatMap((t) => t.items)
-    .find((i) => i.percentage !== undefined)?.percentage;
-
-  const updateItemField = (
-    tableId: number,
-    itemId: string,
-    field: string,
-    value: number,
-  ) => {
-    setLineItemTables((prev) =>
-      prev.map((table) => {
-        if (table.id !== tableId) return table;
-
-        return {
-          ...table,
-          items: table.items.map((i) =>
-            i.id === itemId ? { ...i, [field]: value } : i,
-          ),
-        };
-      }),
-    );
+  const addLine = () => {
+    setLineItemTables((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        items: [
+          {
+            id: Date.now().toString(),
+            description: "",
+            itemName: "",
+            markUp: 0,
+            quantity: 1,
+            tax: 0,
+            total: 0,
+            percentage: 0,
+            amount: 0,
+            rate: 0,
+          },
+        ],
+      },
+    ]);
   };
 
   const calculateFinalTotal = () => {
@@ -205,20 +209,6 @@ export default function EstimateDescription() {
     return total;
   };
 
-  const calculateTotal = (item: any) => {
-    const qty = item.quantity || 1;
-    const markup = item.percentage || 0;
-    const tax = item.tax || 0;
-
-    const base = item.amount * qty;
-
-    return (
-      base +
-      (base * markup) / 100 +
-      ((base + (base * markup) / 100) * tax) / 100
-    ).toFixed(2);
-  };
-
   const handleToggleItem = (item: any) => {
     if (!activeTableId) return;
 
@@ -229,10 +219,16 @@ export default function EstimateDescription() {
         const isSelected = selectedItemsByTable[table.id] === item.id;
 
         const newItem = {
-          ...item,
+          id: Date.now().toString(),
           description: item.description ?? "",
+          itemName: item.itemName,
           amount: item?.markUp?.amount ?? 0,
           percentage: item?.markUp?.percentage ?? 0,
+          quantity: 0,
+          tax: 0,
+          rate: item?.markUp?.amount ?? 0,
+          markUp: item?.markUp?.amount ?? 0,
+          total: 0,
         };
 
         const updatedItems = isSelected ? [] : [newItem];
@@ -353,14 +349,10 @@ export default function EstimateDescription() {
   const handleCreateEstimate = async () => {
     try {
       const calculateItemTotal = (item: any) => {
-        const base = (Number(item.amount) || 0) * (Number(item.quantity) || 1);
-
+        const base = (Number(item.rate) || 0) * (Number(item.quantity) || 1);
         const markupAmount = (base * (Number(item.percentage) || 0)) / 100;
-
         const afterMarkup = base + markupAmount;
-
         const taxAmount = (afterMarkup * (Number(item.tax) || 0)) / 100;
-
         return afterMarkup + taxAmount;
       };
 
@@ -373,9 +365,13 @@ export default function EstimateDescription() {
 
         items: lineItemTables.flatMap((table) =>
           table.items.map((item) => ({
-            id: item.id,
+            id: item.originalItem?.id,
             quantity: Number(item.quantity) || 1,
             subTotal: Math.round(calculateItemTotal(item)),
+
+            rate: Number(item.rate) || 0,
+            markup: Number(item.percentage) || 0,
+            tax: Number(item.tax) || 0,
           })),
         ),
 
@@ -402,6 +398,7 @@ export default function EstimateDescription() {
 
       toast.success("Estimate created successfully");
 
+      // Reset form...
       setEstimateForm({
         estimateName: "",
         clientId: "",
@@ -416,17 +413,13 @@ export default function EstimateDescription() {
       });
 
       setLineItemTables([]);
-
       setSelectedLineItems([]);
       setSelectedItemsByTable({});
-
       setSelectedMarkup(null);
-
       setMarkup(null);
       setDiscount(null);
       setDeposit(null);
       setSelectedClient(null);
-
       setSideMap(null);
       setImages([]);
 
@@ -435,6 +428,7 @@ export default function EstimateDescription() {
 
       router.push(`/admin/estimate/${estimateId}`);
     } catch (err: any) {
+      console.error("Estimate creation error:", err);
       toast.error(err?.data?.message || "Failed to create estimate");
     }
   };
@@ -494,6 +488,17 @@ export default function EstimateDescription() {
       console.error(error);
       toast.error("Failed to create tax");
     }
+  };
+
+  // Helper function to calculate line item total (includes markup and tax)
+  const calculateLineTotal = (item: any) => {
+    const rate = Number(item.rate) || 0;
+    const quantity = Number(item.quantity) || 1;
+    const base = rate * quantity;
+    const markupAmount = (base * (Number(item.percentage) || 0)) / 100;
+    const afterMarkup = base + markupAmount;
+    const taxAmount = (afterMarkup * (Number(item.tax) || 0)) / 100;
+    return afterMarkup + taxAmount;
   };
 
   return (
@@ -561,7 +566,7 @@ export default function EstimateDescription() {
 
                 {/* Body */}
                 <div className="p-4 overflow-y-auto space-y-3">
-                  {myClients.length > 0 ? (
+                  {myClients?.length > 0 ? (
                     myClients.map((client: any) => (
                       <div
                         key={client.id}
@@ -594,7 +599,6 @@ export default function EstimateDescription() {
                   )}
                 </div>
 
-                {/* Footer */}
                 <div className="p-4 border-t text-right">
                   <button
                     onClick={() => setOpen(false)}
@@ -715,267 +719,181 @@ export default function EstimateDescription() {
         </div>
 
         <div>
-          {lineItemTables.map((table) => (
+          {lineItemTables.map((table, index) => (
             <div key={table.id} className="mt-3 w-full">
-              <div className="flex justify-end mb-2">
-                <button
-                  onClick={() => {
-                    setLineItemTables((prev) =>
-                      prev.filter((t) => t.id !== table.id),
-                    );
-
-                    // reset active table if deleted
-                    setActiveTableId((prev) =>
-                      prev === table.id ? null : prev,
-                    );
-                  }}
-                  className="text-red-500 font-bold rounded-full border border-red-200 px-3 py-1 hover:bg-red-50"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="border rounded-xl overflow-hidden">
-                <div className="hidden md:block w-full overflow-x-auto">
-                  <table className="w-full border border-gray-200">
-                    <thead className="bg-gray-100">
-                      <tr>
-                        <th className="p-2 border">Description</th>
-
-                        <th
-                          className="p-2 border cursor-pointer"
-                          onClick={() => {
-                            setActiveTableId(table.id);
-                            setItemModalOpen(true);
-                          }}
-                        >
-                          Item List
-                        </th>
-
-                        <th className="p-2 border">Rate</th>
-                        <th className="p-2 border">Markup</th>
-                        <th className="p-2 border">Quantity</th>
-                        <th className="p-2 border">Tax</th>
-                        <th className="p-2 border">Total</th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {(table.items ?? []).length === 0 ? (
-                        <tr>
-                          <td
-                            colSpan={7}
-                            className="text-center text-gray-400 p-3"
-                          >
-                            No items selected
-                          </td>
-                        </tr>
-                      ) : (
-                        (table.items ?? []).map((item) => (
-                          <tr key={item.id}>
-                            <td className="p-2 border">{item.description}</td>
-
-                            <td className="p-2 border text-center">
-                              {item.itemName}
-                            </td>
-
-                            {/* RATE */}
-                            <td className="p-2 border text-center">
-                              <input
-                                type="number"
-                                value={item.amount}
-                                onChange={(e) => {
-                                  setActiveTableId(table.id);
-                                  updateItemField(
-                                    table.id,
-                                    item.id,
-                                    "amount",
-                                    Number(e.target.value),
-                                  );
-                                }}
-                                className="w-20 text-center border rounded px-1 py-0.5"
-                              />
-                            </td>
-
-                            {/* MARKUP */}
-                            <td
-                              className="p-2 border text-center cursor-pointer hover:bg-gray-50"
-                              onClick={() => {
-                                setActiveTableId(table.id);
-                                setActiveMarkupItem(item);
-                                setAddMarkUp(true);
-                              }}
-                            >
-                              {item?.percentage || 0}%
-                            </td>
-
-                            {/* QUANTITY */}
-                            <td className="p-2 border text-center">
-                              <input
-                                type="number"
-                                value={item.quantity ?? 1}
-                                min={1}
-                                onChange={(e) => {
-                                  setActiveTableId(table.id);
-                                  updateItemField(
-                                    table.id,
-                                    item.id,
-                                    "quantity",
-                                    Number(e.target.value),
-                                  );
-                                }}
-                                className="w-16 text-center border rounded px-1 py-0.5"
-                              />
-                            </td>
-
-                            {/* TAX */}
-                            <td
-                              className="p-2 border text-center cursor-pointer hover:bg-gray-50"
-                              onClick={() => {
-                                setActiveTableId(table.id);
-                                setActiveTaxItem(item);
-                                setAddTax(true);
-                              }}
-                            >
-                              {item?.tax || 0}%
-                            </td>
-
-                            {/* TOTAL */}
-                            <td className="p-2 border text-center">
-                              {calculateTotal(item)}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="block md:hidden">
-                  <div className="flex items-center justify-between bg-gray-100 p-3 rounded-t-xl">
-                    <span className="font-medium text-gray-700">Items</span>
-                    <button
-                      onClick={() => {
-                        setActiveTableId(table.id);
-                        setItemModalOpen(true);
-                      }}
-                      className="text-sm font-medium text-primary"
-                    >
-                      Item List
-                    </button>
+              <div className="mt-8">
+                {index === 0 && (
+                  <div className="hidden md:grid md:grid-cols-6 text-base font-semibold border-b pb-2">
+                    <p>Description</p>
+                    <p>Rate</p>
+                    <p>Markup</p>
+                    <p>Quantity</p>
+                    <p>Tax</p>
+                    <p>Total</p>
                   </div>
+                )}
 
-                  {(table.items ?? []).length === 0 ? (
-                    <div className="border border-gray-200 rounded-b-xl p-4 text-center text-gray-400">
-                      No items selected
-                    </div>
-                  ) : (
-                    (table.items ?? []).map((item) => (
-                      <div
-                        key={item.id}
-                        className="border border-gray-200 rounded-xl p-4 mb-3 bg-white"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="font-semibold text-gray-800 truncate">
-                              {item.description || "Untitled Item"}
-                            </p>
-                            <p className="text-sm text-gray-500 mt-1 truncate">
-                              {item.itemName}
-                            </p>
+                {table.items.map((item: any) => {
+                  const rate = item.rate || 0;
+                  const quantity = item.quantity || 1;
+                  const total = calculateLineTotal(item);
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="mt-3 border rounded-xl overflow-hidden"
+                    >
+                      {/* Row */}
+                      <div className="grid grid-cols-1 md:grid-cols-6 border">
+                        <div className="col-span-1 md:col-span-1 border-r md:border-r p-2 text-sm text-gray-500">
+                          <label className="block md:hidden font-medium mb-1">
+                            Description
+                          </label>
+                          <div className="flex items-center justify-between border-b md:border-b-0 p-2 md:p-0">
+                            <span className="hidden md:inline">
+                              Description
+                            </span>
+                            <span
+                              onClick={() => openItemModal(table.id)}
+                              className="text-orange-500 text-base cursor-pointer mt-3 md:mt-0"
+                            >
+                              Item List
+                            </span>
                           </div>
-                          <p className="text-sm font-semibold text-gray-900">
-                            {calculateTotal(item)}
-                          </p>
                         </div>
 
-                        <div className="mt-4 space-y-3">
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="text-sm text-gray-500">Rate</span>
-                            <input
-                              type="number"
-                              value={item.amount}
-                              onChange={(e) => {
-                                setActiveTableId(table.id);
-                                updateItemField(
-                                  table.id,
-                                  item.id,
-                                  "amount",
-                                  Number(e.target.value),
-                                );
-                              }}
-                              className="w-24 text-center border rounded px-1 py-0.5"
-                            />
-                          </div>
+                        {/* Rate */}
+                        <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0 md:p-0">
+                          <label className="block md:hidden text-sm font-medium mb-1">
+                            Rate
+                          </label>
+                          <input
+                            className="cell w-full focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition p-2"
+                            placeholder="$0.00"
+                            value={rate || ""}
+                            onChange={(e) => {
+                              const newRate = parseFloat(e.target.value) || 0;
+                              setLineItemTables((prev) =>
+                                prev.map((t) =>
+                                  t.id === table.id
+                                    ? {
+                                        ...t,
+                                        items: t.items.map((i) =>
+                                          i.id === item.id
+                                            ? { ...i, rate: newRate }
+                                            : i,
+                                        ),
+                                      }
+                                    : t,
+                                ),
+                              );
+                            }}
+                          />
+                        </div>
 
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="text-sm text-gray-500">
-                              Markup
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveTableId(table.id);
-                                setActiveMarkupItem(item);
-                                setAddMarkUp(true);
-                              }}
-                              className="text-sm font-medium text-primary"
-                            >
-                              {item?.percentage || 0}%
-                            </button>
-                          </div>
+                        {/* Markup */}
+                        <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0 md:p-0">
+                          <label className="block md:hidden text-sm font-medium mb-1">
+                            Markup
+                          </label>
+                          <input
+                            className="cell cursor-pointer bg-white/90 w-full p-2"
+                            placeholder="Markup"
+                            value={item.percentage ? `${item.percentage}%` : ""}
+                            readOnly
+                            onClick={() => openMarkupPicker(table.id, item.id)}
+                          />
+                        </div>
 
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="text-sm text-gray-500">
-                              Quantity
-                            </span>
-                            <input
-                              type="number"
-                              value={item.quantity ?? 1}
-                              min={1}
-                              onChange={(e) => {
-                                setActiveTableId(table.id);
-                                updateItemField(
-                                  table.id,
-                                  item.id,
-                                  "quantity",
-                                  Number(e.target.value),
-                                );
-                              }}
-                              className="w-20 text-center border rounded px-1 py-0.5"
-                            />
-                          </div>
+                        {/* Quantity */}
+                        <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0 md:p-0">
+                          <label className="block md:hidden text-sm font-medium mb-1">
+                            Quantity
+                          </label>
+                          <input
+                            className="cell w-full focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition p-2"
+                            placeholder="1"
+                            value={quantity}
+                            onChange={(e) => {
+                              const newQuantity =
+                                parseFloat(e.target.value) || 1;
+                              setLineItemTables((prev) =>
+                                prev.map((t) =>
+                                  t.id === table.id
+                                    ? {
+                                        ...t,
+                                        items: t.items.map((i) =>
+                                          i.id === item.id
+                                            ? { ...i, quantity: newQuantity }
+                                            : i,
+                                        ),
+                                      }
+                                    : t,
+                                ),
+                              );
+                            }}
+                          />
+                        </div>
 
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="text-sm text-gray-500">Tax</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveTableId(table.id);
-                                setActiveTaxItem(item);
-                                setAddTax(true);
-                              }}
-                              className="text-sm font-medium text-primary"
-                            >
-                              {item?.tax || 0}%
-                            </button>
-                          </div>
+                        {/* Tax */}
+                        <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0 md:p-0">
+                          <label className="block md:hidden text-sm font-medium mb-1">
+                            Tax
+                          </label>
+                          <input
+                            className="cell w-full p-2"
+                            placeholder="Tax"
+                            value={item.tax ? `${item.tax}%` : ""}
+                            readOnly
+                            onClick={() => openTaxPicker(table.id, item.id)}
+                          />
+                        </div>
+
+                        {/* Total */}
+                        <div className="md:col-span-1 p-2">
+                          <label className="block md:hidden text-sm font-medium mb-1">
+                            Total
+                          </label>
+                          <input
+                            className="cell w-full p-2"
+                            value={`$${total.toFixed(2)}`}
+                            readOnly
+                          />
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
+
+                      {/* Notes */}
+                      <div className="border-t p-2">
+                        {!item.itemName ? (
+                          <textarea
+                            placeholder="Notes"
+                            className="w-full p-2 text-sm outline-none"
+                          />
+                        ) : (
+                          <div className="mt-2">
+                            <p className="text-sm font-semibold">
+                              {item.itemName}
+                            </p>
+
+                            {item.description && (
+                              <p className="text-xs text-gray-500">
+                                {item.description}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ))}
-        </div>
-
-        <div className="w-full">
           <button
-            onClick={handleAddLineItem}
-            className="w-full border border-primary text-primary rounded-xl py-2 px-3 flex flex-wrap gap-2 items-center justify-center md:justify-start"
+            onClick={addLine}
+            className="mt-4 w-full border border-orange-400 text-orange-500 rounded-lg py-2 flex items-center justify-center md:justify-start p-4 gap-2"
           >
-            <span>+ Add Line Item</span>
+            <Plus size={16} /> Add Line Item
           </button>
         </div>
 
@@ -1087,7 +1005,7 @@ export default function EstimateDescription() {
                   onClick={() => setTotalAddMarkup(true)}
                   className="font-semibold text-gray-900 cursor-pointer"
                 >
-                  ${selectedMarkup.percentage}
+                  {selectedMarkup.percentage}%
                 </span>
               ) : (
                 <button
@@ -1107,7 +1025,7 @@ export default function EstimateDescription() {
                   className="font-semibold text-gray-900 cursor-pointer"
                   onClick={() => handleOpenModal("discount")}
                 >
-                  ${discount}
+                  {discount}%
                 </span>
               ) : (
                 <button
@@ -1192,7 +1110,8 @@ export default function EstimateDescription() {
           <div className="space-y-3">
             {items.map((item: any) => {
               const isSelected =
-                selectedItemsByTable[activeTableId as number] === item.id;
+                activeTableId &&
+                selectedItemsByTable[activeTableId] === item.id;
 
               return (
                 <div
@@ -1239,11 +1158,12 @@ export default function EstimateDescription() {
                   <div
                     key={m.id}
                     onClick={() => {
-                      if (!activeMarkupItem || !activeTableId) return;
+                      if (!activeMarkupItem) return;
 
                       setLineItemTables((prev) =>
                         prev.map((table) => {
-                          if (table.id !== activeTableId) return table;
+                          if (table.id !== activeMarkupItem.tableId)
+                            return table;
 
                           return {
                             ...table,
@@ -1390,11 +1310,11 @@ export default function EstimateDescription() {
                   <div
                     key={t.id}
                     onClick={() => {
-                      if (!activeTaxItem || !activeTableId) return;
+                      if (!activeTaxItem) return;
 
                       setLineItemTables((prev) =>
                         prev.map((table) => {
-                          if (table.id !== activeTableId) return table;
+                          if (table.id !== activeTaxItem.tableId) return table;
 
                           return {
                             ...table,
