@@ -36,7 +36,7 @@ export default function EstimateDetails({
       jsPDF: {
         unit: "in",
         format: "a4",
-        orientation: "portrait",
+        orientation: "portrait" as const,
       },
     };
 

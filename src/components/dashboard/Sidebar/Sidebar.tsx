@@ -61,7 +61,7 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
       return pathname.includes("/estimator-management");
     }
     if (href.includes("/invoice")) {
-      return pathname.includes("/invoice");
+      return pathname.includes("/invoice") || pathname.includes("/add-invoice");
     }
     if (href.includes("/office-administration")) {
       return pathname.includes("/office-administration");
@@ -74,6 +74,9 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
     }
     if (href.includes("/settings")) {
       return pathname.includes("/settings");
+    }
+    if (href.includes("/admin/add-invoice")) {
+      return pathname.includes("/add-invoice");
     }
 
     return pathname === href;

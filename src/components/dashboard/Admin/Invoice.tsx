@@ -1,4 +1,5 @@
 import { Search } from "lucide-react";
+import Link from "next/link";
 
 const invoices = [
   {
@@ -45,9 +46,12 @@ export default function Invoice() {
             />
           </div>
 
-          <button className="px-6 py-3 bg-primary text-secondary rounded-xl">
+          <Link
+            href={"/admin/add-invoice"}
+            className="px-6 py-3 bg-primary text-secondary rounded-xl"
+          >
             + New Invoice
-          </button>
+          </Link>
         </div>
       </div>
 
