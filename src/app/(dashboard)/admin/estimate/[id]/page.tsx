@@ -5,15 +5,14 @@ import { useGetEstimateByIdQuery } from "@/redux/api/admin/estimateApi";
 import html2pdf from "html2pdf.js";
 import Image from "next/image";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { FiArrowLeft, FiDownload, FiPrinter } from "react-icons/fi";
 import { ColorRing } from "react-loader-spinner";
 
-export default function EstimateDetails({
-  params,
-}: {
-  params: { id: string };
-}) {
-  const { data, isLoading, error } = useGetEstimateByIdQuery(params.id);
+export default function EstimateDetails() {
+  const { id } = useParams();
+
+  const { data, isLoading, error } = useGetEstimateByIdQuery(id as string);
 
   const estimate = data?.result;
 
