@@ -86,6 +86,30 @@ const estimateApi = baseApi.injectEndpoints({
       query: ({ limit, page, searchTerm }) => "/estimate/all-estimates",
       providesTags: ["estimate"],
     }),
+
+    getAllEstimators: builder.query({
+      query: ({ page = 1, limit = 20, searchTerm = "" }) => ({
+        url: "/admin/estimator/all",
+        method: "GET",
+        params: {
+          page,
+          limit,
+          searchTerm,
+        },
+      }),
+    }),
+
+    getAllOfficeAdministrator: builder.query({
+      query: ({ page = 1, limit = 20, searchTerm = "" }) => ({
+        url: "/admin/office-admin/all",
+        method: "GET",
+        params: {
+          page,
+          limit,
+          searchTerm,
+        },
+      }),
+    }),
   }),
 });
 
@@ -101,4 +125,6 @@ export const {
   useGetAllMarkupsQuery,
   useGetEstimateByIdQuery,
   useGetAllEstimatesQuery,
+  useGetAllEstimatorsQuery,
+  useGetAllOfficeAdministratorQuery,
 } = estimateApi;

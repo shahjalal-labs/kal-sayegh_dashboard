@@ -61,19 +61,20 @@ const ReusableTable: React.FC<ReusableTableProps> = ({
     return <p className="text-center py-4">No data available</p>;
 
   const getStatusBadge = (status: string) => {
+    const normalized = status?.toLowerCase?.() || "";
     const base = "px-4 py-2 rounded-lg text-sm font-normal";
 
-    if (status === "active")
+    if (normalized === "active")
       return (
-        <span className={`${base} bg-green-100 text-green-700`}>Active</span>
+        <span className={`${base} bg-[#52C41A1A] text-[#2A7A16]`}>Active</span>
       );
 
-    if (status === "inactive")
+    if (normalized === "inactive")
       return (
-        <span className={`${base} bg-red-100 text-red-700`}>Inactive</span>
+        <span className={`${base} bg-[#FFEDED] text-[#C40F0F]`}>Inactive</span>
       );
 
-    if (status === "pending")
+    if (normalized === "pending")
       return (
         <span className={`${base} bg-yellow-100 text-yellow-700`}>Pending</span>
       );

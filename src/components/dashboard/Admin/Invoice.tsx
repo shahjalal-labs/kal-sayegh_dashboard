@@ -36,13 +36,17 @@ export default function Estimate() {
 
     const itemText = [
       item.invoiceName,
+      item.estimateName,
       item.status,
       item.date,
       item.createdAt,
+      item.client?.clientName,
+      item.client?.email,
       item.client?.address,
       item.client?.city,
       item.client?.state,
       item.client?.zip,
+      item.id,
     ]
       .filter(Boolean)
       .join(" ")

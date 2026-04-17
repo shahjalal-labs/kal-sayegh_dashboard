@@ -1,60 +1,41 @@
 "use client";
 
+import { useGetAllEstimatorsQuery } from "@/redux/api/admin/estimateApi";
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import ReusableTable from "./ReusableTable";
 
 interface Estimator {
-  id: number;
-  name: string;
+  id: string;
+  fullName: string;
   email: string;
-  profession: string;
-  status: "Active" | "Inactive" | "Pending";
+  role: string;
+  status: string;
 }
 
-const estimatorData: Estimator[] = [
-  {
-    id: 1,
-    name: "Rahim Ahmed",
-    email: "rahim@gmail.com",
-    profession: "Civil Engineer",
-    status: "Active",
-  },
-  {
-    id: 2,
-    name: "Karim Hasan",
-    email: "karim@gmail.com",
-    profession: "Architect",
-    status: "Inactive",
-  },
-  {
-    id: 3,
-    name: "Nusrat Jahan",
-    email: "nusrat@gmail.com",
-    profession: "Interior Designer",
-    status: "Pending",
-  },
-];
-
 export default function EstimatorManagement() {
-  const [data, setData] = useState<Estimator[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const { data, isLoading, error } = useGetAllEstimatorsQuery({
+    page,
+    limit: 20,
+    searchTerm,
+  });
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm]);
 
   const columns = [
-    { key: "name", label: "Estimator Name" },
+    { key: "fullName", label: "Estimator Name" },
     { key: "email", label: "Email Address" },
-    { key: "profession", label: "Profession" },
+    { key: "role", label: "Role" },
     { key: "status", label: "Status" },
     { key: "action", label: "Action" },
   ];
 
-  useEffect(() => {
-    // simulate API call
-    setTimeout(() => {
-      setData(estimatorData);
-      setLoading(false);
-    }, 1000);
-  }, []);
+  const estimators: Estimator[] = data?.result?.data ?? [];
 
   return (
     <div className=" space-y-7 bg-secondary p-6 rounded-2xl">
@@ -72,13 +53,23 @@ export default function EstimatorManagement() {
 
           <input
             type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search..."
             className="w-full pl-10 pr-4 h-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
           />
         </div>
       </div>
       <div className="border-t">
-        <ReusableTable columns={columns} data={data} isLoading={loading} />
+        <ReusableTable
+          columns={columns}
+          data={estimators}
+          isLoading={isLoading}
+          error={error?.toString?.()}
+          page={page}
+          totalPages={data?.result?.meta?.totalPages ?? 1}
+          onPageChange={setPage}
+        />
       </div>
     </div>
   );

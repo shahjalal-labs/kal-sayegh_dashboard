@@ -3,12 +3,14 @@
 import { CustomModal } from "@/components/modal/CustomModal";
 import {
   useCreateItemMutation,
+  useCreateMarkupMutation,
   useCreateTaxMutation,
   useGetAllItemsQuery,
   useGetAllTaxesQuery,
 } from "@/redux/api/admin/estimateApi";
 import { useState } from "react";
 import { GoPlus } from "react-icons/go";
+import { ColorRing } from "react-loader-spinner";
 import { toast } from "sonner";
 
 export default function Items() {
@@ -27,11 +29,20 @@ export default function Items() {
 
   const [createTax] = useCreateTaxMutation();
 
+  const [createMarkup] = useCreateMarkupMutation();
+
   const [taxOpen, setTaxOpen] = useState(false);
 
   const [taxForm, setTaxForm] = useState({
     name: "",
     percentage: "",
+  });
+
+  const [markupOpen, setMarkupOpen] = useState(false);
+
+  const [markupForm, setMarkupForm] = useState({
+    name: "",
+    amount: "",
   });
 
   const [form, setForm] = useState({
@@ -75,6 +86,26 @@ export default function Items() {
     }
   };
 
+  const handleCreateMarkup = async () => {
+    try {
+      const payload = {
+        name: markupForm.name,
+        amount: Number(markupForm.amount),
+      };
+
+      await createMarkup(payload).unwrap();
+
+      setMarkupOpen(false);
+      setMarkupForm({
+        name: "",
+        amount: "",
+      });
+      toast.success("Markup Created Successfully");
+    } catch (error) {
+      toast.error("Markup Create Failed");
+    }
+  };
+
   const handleAddItem = async () => {
     try {
       const finalPayload: any = {
@@ -114,7 +145,17 @@ export default function Items() {
     item.itemName.toLowerCase().includes(search.toLowerCase()),
   );
 
-  if (isLoading) return <p>Loading...</p>;
+  if (isLoading)
+    return (
+      <div className="flex items-center justify-center h-64">
+        <ColorRing
+          visible={true}
+          height="70"
+          width="70"
+          colors={["#e15b64", "#f47e60", "#f8b26a", "#abbd81", "#849b87"]}
+        />
+      </div>
+    );
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -142,7 +183,7 @@ export default function Items() {
       </div>
 
       {/* ITEM LIST */}
-      <div className="bg-white rounded-xl  divide-y">
+      <div className="bg-white rounded-xl  divide-y p-5">
         {filteredItems.length > 0 ? (
           filteredItems.map((item: any) => (
             <div
@@ -292,7 +333,13 @@ export default function Items() {
             </div>
 
             <div className="flex justify-between border-b p-4">
-              <p>Markup</p> <button className="text-primary">Add</button>
+              <p>Markup</p>{" "}
+              <button
+                onClick={() => setMarkupOpen(true)}
+                className="text-primary"
+              >
+                Add
+              </button>
             </div>
           </div>
         </div>
@@ -333,6 +380,48 @@ export default function Items() {
             value={taxForm.percentage}
             onChange={(e) =>
               setTaxForm({ ...taxForm, percentage: e.target.value })
+            }
+          />
+        </div>
+      </CustomModal>
+
+      <CustomModal
+        open={markupOpen}
+        onClose={() => setMarkupOpen(false)}
+        title="New Markup"
+        maxWidth="md"
+        actions={[
+          {
+            label: "Cancel",
+            variant: "secondary",
+            onClick: () => setMarkupOpen(false),
+          },
+          {
+            label: "Add",
+            variant: "primary",
+            onClick: handleCreateMarkup,
+          },
+        ]}
+      >
+        <div className="space-y-4">
+          <input
+            name="name"
+            placeholder="Markup Name"
+            className="border p-2 w-full rounded-xl focus:outline-none focus:ring-1 focus:ring-orange-500"
+            value={markupForm.name}
+            onChange={(e) =>
+              setMarkupForm({ ...markupForm, name: e.target.value })
+            }
+          />
+
+          <input
+            name="amount"
+            type="number"
+            placeholder="Markup Amount"
+            className="border p-2 w-full rounded-xl focus:outline-none focus:ring-1 focus:ring-orange-500"
+            value={markupForm.amount}
+            onChange={(e) =>
+              setMarkupForm({ ...markupForm, amount: e.target.value })
             }
           />
         </div>

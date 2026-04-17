@@ -229,6 +229,7 @@ export default function EstimateDescription() {
           rate: item?.markUp?.amount ?? 0,
           markUp: item?.markUp?.amount ?? 0,
           total: 0,
+          originalItem: item,
         };
 
         const updatedItems = isSelected ? [] : [newItem];
@@ -356,6 +357,18 @@ export default function EstimateDescription() {
         return afterMarkup + taxAmount;
       };
 
+      const markupAmount = selectedMarkup
+        ? (grandSubtotal * selectedMarkup.percentage) / 100
+        : 0;
+      const subtotalAfterMarkup = grandSubtotal + markupAmount;
+      const discountAmountCalc = discount
+        ? (subtotalAfterMarkup * discount) / 100
+        : 0;
+      const subtotalAfterDiscount = subtotalAfterMarkup - discountAmountCalc;
+      const depositAmountCalc = deposit
+        ? (subtotalAfterDiscount * deposit) / 100
+        : 0;
+
       const bodyData = {
         estimateName: estimateForm.estimateName,
         clientId: selectedClient?.id,
@@ -365,19 +378,15 @@ export default function EstimateDescription() {
 
         items: lineItemTables.flatMap((table) =>
           table.items.map((item) => ({
-            id: item.originalItem?.id,
+            id: item.originalItem?._id || item.originalItem?.id,
             quantity: Number(item.quantity) || 1,
             subTotal: Math.round(calculateItemTotal(item)),
-
-            rate: Number(item.rate) || 0,
-            markup: Number(item.percentage) || 0,
-            tax: Number(item.tax) || 0,
           })),
         ),
 
-        additionalMarkUp: selectedMarkup?.percentage || 0,
-        discountAmount: discount || 0,
-        depositAmount: deposit || 0,
+        additionalMarkUp: Math.round(markupAmount),
+        discountAmount: Math.round(discountAmountCalc),
+        depositAmount: Math.round(depositAmountCalc),
 
         grandTotal: Math.round(calculateFinalTotal()),
       };

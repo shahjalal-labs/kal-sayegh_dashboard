@@ -12,7 +12,6 @@ import { toast } from "sonner";
 import Account from "./Account";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import Notes from "./Notes";
 
 function ProfileInfo() {
   const { data } = useMyProfileQuery(undefined);
@@ -216,16 +215,6 @@ export default function Settings() {
             key: "basic",
             label: "Basic",
             component: <ProfileInfo />,
-          },
-        ]
-      : []),
-
-    ...(role === "Admin"
-      ? [
-          {
-            key: "notes",
-            label: "Notes",
-            component: <Notes />,
           },
         ]
       : []),
