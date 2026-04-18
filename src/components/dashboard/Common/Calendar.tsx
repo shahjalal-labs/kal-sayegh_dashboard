@@ -607,17 +607,17 @@ export default function Calendar() {
       </div>
 
       <div className="bg-white rounded-2xl shadow-xl overflow-hidden border-2 border-gray-100">
-        <div className="grid grid-cols-7 gap-px bg-gray-200 text-[8px] md:text-base">
+        <div className="grid grid-cols-7 gap-px bg-gray-200 text-[8px] md:text-base ">
           {weekDays.map((day) => (
-            <div key={day} className="bg-gray-50 p-4">
-              <span className="font-semibold text-base tracking-wide">
+            <div key={day} className="bg-gray-50 p-2 md:p-4">
+              <span className="font-semibold  tracking-wide text-xs md:text-base">
                 {day}
               </span>
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-7 md:gap-px bg-gray-200 border-2 p-[0.5px]">
+        <div className="grid grid-cols-7 md:gap-px bg-gray-200 border-2 p-[0.5px] ">
           {monthData.map((day, idx) => {
             const isCurrentMonth = day.month === currentMonth;
             const appointments = getAppointmentsForDay(
@@ -698,6 +698,9 @@ export default function Calendar() {
                         handleEditClick(e, day, apt);
                       }}
                     >
+                      <div className="flex flex-col md:flex-row md:gap-2 text-[8px] text-wrap md:text-sm">
+                        <p>Time: {apt.startTime} </p> - <p>{apt.endTime}</p>
+                      </div>
                       <div className="font-medium">
                         {apt.title.length > 15
                           ? apt.title.substring(0, 13) + "..."
