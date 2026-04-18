@@ -42,8 +42,6 @@ function ProfileInfo() {
 
   useEffect(() => {
     if (data?.result) {
-      console.log("PROFILE DATA:", data.result);
-
       setForm({
         fullName: data?.result?.fullName || "",
         email: data?.result?.email || "",

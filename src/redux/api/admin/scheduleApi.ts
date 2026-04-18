@@ -8,8 +8,44 @@ const scheduleApi = baseApi.injectEndpoints({
         method: "POST",
         body: data,
       }),
+      invalidatesTags: ["schedule"],
+    }),
+
+    getAllSchedules: builder.query({
+      query: ({ month, year, search }) => ({
+        url: "/schedule/all-schedules",
+        method: "GET",
+        params: {
+          month,
+          year,
+          search,
+        },
+      }),
+      providesTags: ["schedule"],
+    }),
+
+    updateSchedule: builder.mutation({
+      query: ({ id, ...data }) => ({
+        url: `/schedule/${id}`,
+        method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: ["schedule"],
+    }),
+
+    deleteSchedule: builder.mutation({
+      query: (id) => ({
+        url: `/schedule/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["schedule"],
     }),
   }),
 });
 
-export const { useCreateScheduleMutation } = scheduleApi;
+export const {
+  useCreateScheduleMutation,
+  useGetAllSchedulesQuery,
+  useUpdateScheduleMutation,
+  useDeleteScheduleMutation,
+} = scheduleApi;

@@ -145,24 +145,6 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
     ];
   }
 
-  if (user?.role === "OFFICE_ADMINISTRATOR") {
-    allMenuItems = [
-      {
-        href: "/settings",
-        icon: settingIcon,
-        label: "Settings",
-        isImage: true,
-      },
-
-      {
-        href: "administration/to-do",
-        icon: checklist,
-        label: "Office To Do List",
-        isImage: true,
-      },
-    ];
-  }
-
   const handleLogout = () => {
     Cookies.remove("token");
     Cookies.remove("role");

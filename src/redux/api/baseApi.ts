@@ -27,6 +27,7 @@ export const baseApi = createApi({
     "invoice",
     "messages",
     "notifications",
+    "schedule",
   ],
 });
 
