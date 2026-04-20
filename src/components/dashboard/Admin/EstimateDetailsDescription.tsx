@@ -75,122 +75,225 @@ export default function EstimateDetailsDescription() {
       : [];
 
   const fileUrls = Array.isArray(estimate?.fileUrls) ? estimate.fileUrls : [];
+  const estimateItems = Array.isArray(estimate?.items) ? estimate.items : [];
+
+  const subtotal = estimateItems.reduce((sum: number, item: any) => {
+    return sum + (Number(item?.subTotal) || 0);
+  }, 0);
+
+  const isVideoUrl = (url: string) =>
+    /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(url);
 
   return (
-    <div>
+    <div className="pb-10">
       <Link
         href="/admin/estimate"
-        className="flex items-center gap-2 hover:underline"
+        className="flex items-center gap-2 hover:underline text-gray-500"
       >
         <FiArrowLeft />
         Back To Estimate List Page
       </Link>
 
-      <div id="invoice" className="bg-secondary rounded-2xl p-6 px-8 mt-4">
-        <h1 className="text-center font-normal text-2xl text-gray-500">
+      <div
+        id="invoice"
+        className="mt-4  bg-secondary  rounded-2xl p-4 md:p-6 py-9"
+      >
+        <h1 className="text-center font-semibold tracking-[0.16em] text-xl text-gray-400 uppercase">
           Estimate
         </h1>
 
-        <div className="flex justify-between mt-6">
+        <div className="flex justify-between items-start mt-5">
           <Image
             src={logo}
             alt="Logo"
             width={150}
             height={80}
-            className="h-auto w-[120px]"
+            className="h-auto w-[150px] md:w-[200px]"
           />
-          <div className="text-right space-y-3">
-            <p className="text-lg font-semibold">Prepared For</p>
-            <p>{estimate?.client?.clientName}</p>
-            <p>{estimate?.client?.address}</p>
-            <p>{estimate?.client?.city}</p>
-            <p>{estimate?.client?.state}</p>
+
+          <div className="text-right text-[10px] leading-5 text-gray-700 space-y-3 text-base">
+            <p className=" font-semibold text-black text-xl">Prepared For</p>
+            <p>{estimate?.client?.clientName || "-"}</p>
+            <p>{estimate?.client?.address || "-"}</p>
+            <p>{estimate?.client?.city || "-"}</p>
+            <p>{estimate?.client?.zip || "-"}</p>
+            <p>{estimate?.client?.phoneNumber || "-"}</p>
           </div>
         </div>
 
-        <div className="flex justify-between mt-9">
-          <div className="space-y-3">
-            <h2 className="text-lg font-semibold">
+        <div className="mt-7 grid grid-cols-1 md:grid-cols-2 gap-6 text-[10px] leading-5 text-gray-700">
+          <div className="text-base space-y-3">
+            <h2 className="text-xl font-semibold text-black">
               Geo Paving and Sealcoating
             </h2>
-            <p className="font-medium">{estimate?.client?.address}</p>
+            <p>9530 Juniper Crest Ct, Ste 1012 Rancho</p>
+            <p>Cucamonga, CA 91730</p>
+            <p>Phone: (626) 447-0525</p>
             <p>
-              <span className="font-semibold">Phone:</span>{" "}
-              {estimate?.client?.phoneNumber}
+              Email: <span className="text-black">info@geopaving.com</span>
             </p>
             <p>
-              <span className="font-semibold">Email:</span>{" "}
-              {estimate?.client?.email}
-            </p>
-            <p>
-              <span className="font-semibold">Web:</span> www.geopaving.com
+              Web: <span className="text-black">www.geopaving.com</span>
             </p>
           </div>
 
-          <div className="text-right space-y-3">
+          <div className="space-y-3 md:justify-self-end text-left md:text-right text-base">
             <p>
-              <span className="font-semibold">Estimate:</span>{" "}
-              {estimate?.estimateName}
+              <span className="font-semibold text-black">Estimate</span>
+              <span className="inline-block w-6 text-center">:</span>#
+              {estimate?.id?.slice(-4) || "-"}
             </p>
             <p>
-              <span className="font-semibold">Date:</span> {estimate?.date}
+              <span className="font-semibold text-black">Date</span>
+              <span className="inline-block w-6 text-center">:</span>
+              {estimate?.date || "-"}
+            </p>
+            <p>
+              <span className="font-semibold text-black">Business / Tax #</span>
+              <span className="inline-block w-6 text-center">:</span>
+              {estimate?.client?.zip || "-"}
+            </p>
+            <p>
+              <span className="font-semibold text-black">License #</span>
+              <span className="inline-block w-6 text-center">:</span>1049285
             </p>
           </div>
         </div>
 
-        <div className="mt-9">
-          <div className="flex justify-between border-b py-4">
-            <h2 className="font-semibold text-lg">Description</h2>
-            <p className="font-semibold text-lg">Total</p>
+        <div className="mt-7">
+          <div className="flex justify-between border-b border-[#cfcfcf] pb-2 text-xl font-semibold text-black">
+            <h2>Description</h2>
+            <p>Total</p>
           </div>
 
-          <div className="flex justify-between border-b py-4">
-            <p>{estimate?.items?.[0]?.description || "-"}</p>
-            <p>${estimate?.grandTotal ?? 0}</p>
+          {estimateItems.length > 0 ? (
+            estimateItems.map((item: any, index: number) => (
+              <div
+                key={item?.id || index}
+                className="flex justify-between gap-4 border-b border-[#e1e1e1] py-3 text-base space-y-3 leading-5 text-gray-700"
+              >
+                <div className="space-y-3">
+                  <p className="font-semibold text-black">
+                    ASPHALT PATCHING AND REPAIRS.
+                  </p>
+                  <p>Item #{index + 1}</p>
+                  <p>Quantity: {Number(item?.quantity) || 0}</p>
+                </div>
+                <p className="font-semibold text-black whitespace-nowrap">
+                  ${(Number(item?.subTotal) || 0).toFixed(2)}
+                </p>
+              </div>
+            ))
+          ) : (
+            <div className="flex justify-between border-b border-[#e1e1e1] py-3 text-[10px] text-gray-700">
+              <p>No items</p>
+              <p>$0.00</p>
+            </div>
+          )}
+
+          <div className="mt-2 flex justify-end">
+            <div className="w-full max-w-[250px] space-y-2 text-base">
+              <div className="flex items-center justify-between border-b border-[#e1e1e1] pb-1">
+                <p className="font-semibold">Subtotal</p>
+                <p className="font-semibold">${subtotal.toFixed(2)}</p>
+              </div>
+              <div className="flex items-center justify-between border-b border-[#e1e1e1] pb-1">
+                <p className="font-semibold">Total</p>
+                <p className="font-semibold">
+                  ${(Number(estimate?.grandTotal) || 0).toFixed(2)}
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="mt-9 space-y-4">
-            <div className="">
-              {sideMapUrls.length > 0 && (
-                <div className="grid grid-cols-1  gap-3 ">
-                  {sideMapUrls.map((url: string, index: number) => (
-                    <Image
-                      key={`side-map-${index}`}
-                      src={url}
-                      alt={`Side Map ${index + 1}`}
-                      width={400}
-                      height={300}
-                      className="rounded-lg object-contain "
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {sideMapUrls.length > 0 && fileUrls.length > 0 && (
-              <div className="w-full border-t border-orange-300 my-2" />
+            {sideMapUrls.length > 0 && (
+              <div className="grid grid-cols-1 gap-3">
+                {sideMapUrls.map((url: string, index: number) => (
+                  <div
+                    key={`side-map-${index}`}
+                    className="border border-[#dfdfdf] bg-white p-2"
+                  >
+                    {isVideoUrl(url) ? (
+                      <video controls className="w-full h-auto rounded-sm">
+                        <source src={url} />
+                      </video>
+                    ) : (
+                      <Image
+                        src={url}
+                        alt={`Side Map ${index + 1}`}
+                        width={900}
+                        height={520}
+                        className="w-full h-auto object-contain"
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
 
-            <div className="">
-              {fileUrls.length > 0 && (
-                <div className="grid grid-cols-1 gap-3 pt-2">
-                  {fileUrls.map((url: string, index: number) => (
-                    <Image
-                      key={`file-${index}`}
-                      src={url}
-                      alt={`File ${index + 1}`}
-                      width={300}
-                      height={200}
-                      className="rounded-lg object-contain"
-                    />
-                  ))}
+            {sideMapUrls.length > 0 && fileUrls.length > 0 && (
+              <div className="py-3">
+                <div className="w-full border-t-2 border-orange-300" />
+              </div>
+            )}
+
+            {fileUrls.length > 0 && (
+              <div className="grid grid-cols-1 gap-3">
+                {fileUrls.map((url: string, index: number) => (
+                  <div
+                    key={`file-${index}`}
+                    className="border border-[#dfdfdf] bg-white p-2"
+                  >
+                    {isVideoUrl(url) ? (
+                      <video controls className="w-full h-auto rounded-sm">
+                        <source src={url} />
+                      </video>
+                    ) : (
+                      <Image
+                        src={url}
+                        alt={`File ${index + 1}`}
+                        width={900}
+                        height={520}
+                        className="w-full h-[700px] object-contain"
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-4 border border-[#d7d7d7] bg-white">
+              <div className="grid grid-cols-1 md:grid-cols-3 text-base text-gray-700">
+                <div className="p-3 border-b md:border-b-0 md:border-r border-[#e1e1e1]">
+                  <Image
+                    src={logo}
+                    alt="Logo"
+                    width={100}
+                    height={52}
+                    className="h-auto w-[76px] md:w-[200px] mb-2"
+                  />
+                  <p>GeoPaving, CA 91730</p>
+                  <p>(626) 447-0525</p>
+                  <p>www.geopaving.com</p>
                 </div>
-              )}
+                <div className="p-3 border-b md:border-b-0 md:border-r border-[#e1e1e1]">
+                  <p>Name: {estimate?.client?.clientName || "-"}</p>
+                  <p>{estimate?.client?.address || "-"}</p>
+                  <p>{estimate?.client?.city || "-"}</p>
+                </div>
+                <div className="p-3">
+                  <p>Project: Asphalt</p>
+                  <p>Repairing in route</p>
+                  <p>Cracking, sealing</p>
+                  <p>Striping and sweeping</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="flex gap-3 mt-6 justify-end ">
+        <div className="flex gap-3 mt-6 justify-end">
           <button
             onClick={() => window.print()}
             className="flex items-center gap-2 px-4 py-2 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary"

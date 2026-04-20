@@ -129,6 +129,15 @@ const estimateApi = baseApi.injectEndpoints({
         };
       },
     }),
+
+    editEstimate: builder.mutation({
+      query: ({ id, data }: { id: string; data: any }) => ({
+        url: `/estimate/edit-estimate/${id}`,
+        method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: ["estimate"],
+    }),
   }),
 });
 
@@ -147,4 +156,5 @@ export const {
   useGetAllEstimatorsQuery,
   useGetAllOfficeAdministratorQuery,
   useSendEstimateMailMutation,
+  useEditEstimateMutation,
 } = estimateApi;

@@ -166,6 +166,13 @@ export default function EstimateDetilasTableFormat() {
       ? (estimate?.grandTotal || 0) / normalizedItems.length
       : estimate?.grandTotal || 0;
 
+  const editEstimateId =
+    typeof id === "string"
+      ? id
+      : Array.isArray(id)
+        ? id[0]
+        : estimate?.id || "";
+
   return (
     <div>
       <Link
@@ -176,12 +183,24 @@ export default function EstimateDetilasTableFormat() {
         Back To Estimate List Page
       </Link>
 
-      <div className="flex justify-between mt-7">
+      <div className="flex flex-col md:flex-row md:justify-between mt-7">
         <div className="flex items-center  gap-3 mt-4">
-          <button className="flex items-center gap-2 px-4 py-2 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary">
+          <Link
+            href={
+              editEstimateId
+                ? `/admin/edit-estimate?id=${editEstimateId}&format=table`
+                : "/admin/estimate"
+            }
+            onClick={() => {
+              if (typeof window !== "undefined" && editEstimateId) {
+                localStorage.setItem("editingEstimateId", editEstimateId);
+              }
+            }}
+            className="flex items-center gap-2 px-4 py-2 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary"
+          >
             <Edit size={16} />
             Edit
-          </button>
+          </Link>
 
           <button
             onClick={handleSendEstimateEmail}
@@ -220,10 +239,10 @@ export default function EstimateDetilasTableFormat() {
             alt="Logo"
             width={200}
             height={150}
-            className="h-auto w-[200px]"
+            className="h-auto w-[150px] md:w-[200px]"
           />
 
-          <div className="text-right text-xs md:text-sm space-y-2 text-gray-700">
+          <div className="text-right text-base space-y-2 text-gray-700">
             <p className="text-black font-semibold text-base">Prepared For</p>
             <p>{estimate?.client?.clientName || "-"}</p>
             <p>{estimate?.client?.address || "-"}</p>
@@ -231,7 +250,7 @@ export default function EstimateDetilasTableFormat() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 text-xs md:text-sm text-gray-700">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 text-base text-gray-700">
           <div className="space-y-2">
             <h2 className="text-lg font-semibold text-black">
               Geo Paving and Sealcoating
