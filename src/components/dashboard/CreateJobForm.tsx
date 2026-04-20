@@ -128,7 +128,7 @@ export default function CreateJobForm({
           value={form.title}
           placeholder="Title"
           onChange={(e) => handleChange("title", e.target.value)}
-          className="w-full mt-1 border px-4 py-3 rounded-xl"
+          className="w-full mt-1 border px-4 py-3 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
         />
       </div>
 
@@ -137,7 +137,7 @@ export default function CreateJobForm({
         <select
           value={form.office}
           onChange={(e) => handleChange("office", e.target.value)}
-          className="w-full mt-1 border px-4 py-3 rounded-xl"
+          className="w-full mt-1 border px-4 py-3 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
         >
           <option value="">Select Office</option>
 
@@ -155,7 +155,7 @@ export default function CreateJobForm({
           type="date"
           value={form.date}
           onChange={(e) => handleChange("date", e.target.value)}
-          className="w-full mt-1 border px-4 py-3 rounded-xl"
+          className="w-full mt-1 border px-4 py-3 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
         />
       </div>
 
@@ -165,7 +165,7 @@ export default function CreateJobForm({
           type="text"
           value={form.location}
           onChange={(e) => handleChange("location", e.target.value)}
-          className="w-full mt-1 border px-4 py-3 rounded-xl"
+          className="w-full mt-1 border px-4 py-3 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
         />
       </div>
 
@@ -175,7 +175,7 @@ export default function CreateJobForm({
           type="tel"
           value={form.phone}
           onChange={(e) => handleChange("phone", e.target.value)}
-          className="w-full mt-1 border px-4 py-3 rounded-xl"
+          className="w-full mt-1 border px-4 py-3 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
         />
       </div>
 
@@ -185,7 +185,7 @@ export default function CreateJobForm({
           type="email"
           value={form.email}
           onChange={(e) => handleChange("email", e.target.value)}
-          className="w-full mt-1 border px-4 py-3 rounded-xl"
+          className="w-full mt-1 border px-4 py-3 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
         />
       </div>
 
@@ -195,7 +195,7 @@ export default function CreateJobForm({
           type="text"
           value={form.address}
           onChange={(e) => handleChange("address", e.target.value)}
-          className="w-full mt-1 border px-4 py-3 rounded-xl"
+          className="w-full mt-1 border px-4 py-3 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
         />
       </div>
 
@@ -205,7 +205,7 @@ export default function CreateJobForm({
           rows={5}
           value={form.note}
           onChange={(e) => handleChange("note", e.target.value)}
-          className="w-full mt-1 border px-4 py-3 rounded-xl resize-none"
+          className="w-full mt-1 border px-4 py-3 rounded-xl resize-none focus:ring-2 focus:ring-primary focus:outline-none"
         />
       </div>
 
@@ -245,7 +245,7 @@ export default function CreateJobForm({
                 alt="preview"
                 width={120}
                 height={120}
-                className="rounded-lg object-cover"
+                className="rounded-lg object-contain h-32 w-32 bg-gray-200"
               />
 
               <button
@@ -261,13 +261,13 @@ export default function CreateJobForm({
         <div className="flex justify-end gap-5 ">
           <button
             onClick={onClose}
-            className="border-primary border-2 text-primary px-4 py-2 rounded-xl"
+            className="border-primary border-2 text-primary px-8 py-2 rounded-xl hover:bg-primary hover:text-white transition-colors duration-300 ease-in"
           >
             Close
           </button>
           <button
             onClick={handleSubmit}
-            className="bg-primary text-white px-4 py-2 rounded-xl"
+            className="bg-primary text-white px-8 py-2 rounded-xl hover:bg-primary/90 transition-all"
           >
             Submit
           </button>

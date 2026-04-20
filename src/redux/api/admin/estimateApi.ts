@@ -110,6 +110,25 @@ const estimateApi = baseApi.injectEndpoints({
         },
       }),
     }),
+
+    sendEstimateMail: builder.mutation({
+      query: (
+        payload: string | { estimateId: string; recipientEmail?: string },
+      ) => {
+        const estimateId =
+          typeof payload === "string" ? payload : payload.estimateId;
+        const recipientEmail =
+          typeof payload === "string" ? undefined : payload.recipientEmail;
+
+        return {
+          url: `/estimate/send-mail/${estimateId}`,
+          method: "POST",
+          body: recipientEmail
+            ? { email: recipientEmail, recipientEmail }
+            : undefined,
+        };
+      },
+    }),
   }),
 });
 
@@ -127,4 +146,5 @@ export const {
   useGetAllEstimatesQuery,
   useGetAllEstimatorsQuery,
   useGetAllOfficeAdministratorQuery,
+  useSendEstimateMailMutation,
 } = estimateApi;

@@ -15,7 +15,14 @@ import { CustomModal } from "../modal/CustomModal";
 import { EmployeeSchedule } from "./EmployeeSchedule";
 import ReusableTable from "./ReusableTable";
 
-export default function EmployeeManagement() {
+interface EmployeeManagementProps {
+  searchTerm?: string;
+}
+
+export default function EmployeeManagement({
+  searchTerm = "",
+}: EmployeeManagementProps) {
+  const normalizedSearchTerm = searchTerm.trim().toLowerCase();
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<"view" | "edit" | "add" | null>(
     null,
@@ -37,7 +44,8 @@ export default function EmployeeManagement() {
 
   const { data: employeesList, isLoading } = useGetEmployeesQuery({
     page,
-    limit: 20,
+    limit: normalizedSearchTerm ? 200 : 20,
+    searchTerm: normalizedSearchTerm,
   });
 
   const { data: singleEmployee } = useGetSingleUserQuery(selectedRow?.id);
@@ -69,6 +77,17 @@ export default function EmployeeManagement() {
       createdAt: emp.createdAt,
     })) || [];
 
+  const filteredEmployees = normalizedSearchTerm
+    ? employees.filter((emp: any) => {
+        const searchableText = [emp.name, emp.email, emp.profession, emp.status]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        return searchableText.includes(normalizedSearchTerm);
+      })
+    : employees;
+
   const columns = [
     { key: "name", label: "Employee Name" },
     { key: "email", label: "Email Address" },
@@ -94,6 +113,10 @@ export default function EmployeeManagement() {
       });
     }
   }, [modalType, selectedRow]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [normalizedSearchTerm]);
 
   const handleDelete = async (row: any) => {
     const result = await Swal.fire({
@@ -135,7 +158,7 @@ export default function EmployeeManagement() {
         userId: selectedRow?.id,
         data: {
           fullName: formData.fullName,
-          email: formData.email,
+
           profession: formData.profession,
         },
       }).unwrap();
@@ -147,16 +170,17 @@ export default function EmployeeManagement() {
     }
   };
 
-  const totalPages =
-    employeesList?.result?.meta?.totalPages ||
-    Math.ceil((employeesList?.result?.meta?.total || 0) / 20) ||
-    1;
+  const totalPages = normalizedSearchTerm
+    ? 1
+    : employeesList?.result?.meta?.totalPages ||
+      Math.ceil((employeesList?.result?.meta?.total || 0) / 20) ||
+      1;
 
   return (
     <div className="border-t">
       <ReusableTable
         columns={columns}
-        data={employees}
+        data={filteredEmployees}
         isLoading={isLoading}
         page={page}
         totalPages={totalPages}
@@ -334,6 +358,7 @@ export default function EmployeeManagement() {
               value={formData.email}
               onChange={handleChange}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+              readOnly
             />
           </div>
 

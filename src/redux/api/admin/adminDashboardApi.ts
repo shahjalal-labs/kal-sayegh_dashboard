@@ -3,10 +3,16 @@ import baseApi from "../baseApi";
 const adminDashboardApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getEmployees: builder.query({
-      query: ({ page, limit, search }) => ({
+      query: ({ page = 1, limit = 20, searchTerm = "" }) => ({
         url: "/admin/employees",
         method: "GET",
-        params: { page, limit, search },
+        params: {
+          page,
+          limit,
+          searchTerm,
+          // Keep legacy key for backward compatibility if backend still reads `search`.
+          search: searchTerm,
+        },
       }),
       providesTags: ["user"],
     }),
@@ -42,6 +48,14 @@ const adminDashboardApi = baseApi.injectEndpoints({
         method: "GET",
       }),
     }),
+
+    getHoursTrend: builder.query({
+      query: (period = "daily") => ({
+        url: "/admin/hours-trend",
+        method: "GET",
+        params: { period },
+      }),
+    }),
   }),
 });
 
@@ -51,4 +65,5 @@ export const {
   useDeleteUserMutation,
   useGetSingleUserQuery,
   useUpdateUserMutation,
+  useGetHoursTrendQuery,
 } = adminDashboardApi;

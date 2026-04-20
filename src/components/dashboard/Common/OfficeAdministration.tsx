@@ -4,9 +4,11 @@ import {
   useGetAllJobRequestsQuery,
   useGetJobRequestDetailsQuery,
   useGetOfficesQuery,
+  useUpdateJobRequestMutation,
 } from "@/redux/api/jobApi";
 import { Calendar, Mail, MapPin, Phone } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LiaEditSolid } from "react-icons/lia";
 import { RiFolderDownloadLine } from "react-icons/ri";
@@ -45,6 +47,7 @@ function CreateNewJobForm({ form, setForm, jobRequestId }: any) {
     skip: !jobRequestId,
   });
   const jobDetails = data?.result;
+  const jobImages = Array.isArray(jobDetails?.images) ? jobDetails.images : [];
 
   const handleFiles = (files: FileList | null) => {
     if (!files) return;
@@ -100,14 +103,23 @@ function CreateNewJobForm({ form, setForm, jobRequestId }: any) {
           </div>
         ))}
 
-        <div>
-          <Image
-            src={jobDetails?.images}
-            alt="Job Image"
-            width={100}
-            height={100}
-            className="bg-gray-200"
-          />
+        <div className="space-y-3">
+          {jobImages.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {jobImages.map((imageUrl: string, index: number) => (
+                <Image
+                  key={`${imageUrl}-${index}`}
+                  src={imageUrl}
+                  alt={`Job image ${index + 1}`}
+                  width={180}
+                  height={140}
+                  className="w-full h-28 md:h-32 object-cover rounded-lg bg-gray-200"
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">No images available.</p>
+          )}
 
           <p>{jobDetails?.note}</p>
         </div>
@@ -117,15 +129,18 @@ function CreateNewJobForm({ form, setForm, jobRequestId }: any) {
 }
 
 export default function OfficeAdministration() {
+  const router = useRouter();
   const [openModal, setOpenModal] = useState(false);
   const [openEditModal, setOpenEditModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [updateJobRequest] = useUpdateJobRequestMutation();
 
   const { data } = useGetOfficesQuery({});
   const offices = data?.result || [];
 
-  const { data: allJobsData } = useGetAllJobRequestsQuery({});
+  const { data: allJobsData, refetch: refetchAllJobs } =
+    useGetAllJobRequestsQuery({});
 
   const allJobs =
     allJobsData?.result?.flatMap((office: any) =>
@@ -150,12 +165,36 @@ export default function OfficeAdministration() {
   });
 
   const handleNewJob = () => {
-    console.log("new");
+    setIsOpen(false);
+    router.push("/admin/estimate");
   };
 
   const handleJobClick = (job: JobItem) => {
     if (job.status === "NEW") {
+      setSelectedJob(job);
       setIsOpen(true);
+    }
+  };
+
+  const handleMarkAsReviewed = async () => {
+    if (!selectedJob?.id || selectedJob?.status !== "NEW") return;
+
+    try {
+      const formData = new FormData();
+      formData.append("bodyData", JSON.stringify({ status: "REVIEWED" }));
+
+      await updateJobRequest({
+        jobRequestId: selectedJob.id,
+        data: formData,
+      }).unwrap();
+
+      setSelectedJob((prev: any) =>
+        prev ? { ...prev, status: "REVIEWED" } : prev,
+      );
+      setIsOpen(false);
+      await refetchAllJobs();
+    } catch (error) {
+      console.error("Failed to mark job as reviewed", error);
     }
   };
 
@@ -208,9 +247,7 @@ export default function OfficeAdministration() {
             {
               label: "Mark as Reviewed",
               variant: "primary",
-              onClick: () => {
-                console.log("Marked as reviewed:", form);
-              },
+              onClick: handleMarkAsReviewed,
             },
           ]}
         >

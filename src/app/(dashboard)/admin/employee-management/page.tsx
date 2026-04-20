@@ -57,9 +57,9 @@ export default function EmployeeManagementPage() {
       {/* Table Section */}
       <div className="mt-6">
         {activeTab === "employee" ? (
-          <EmployeeManagement />
+          <EmployeeManagement searchTerm={search} />
         ) : (
-          <AdministorManagement />
+          <AdministorManagement searchTerm={search} />
         )}
       </div>
     </div>

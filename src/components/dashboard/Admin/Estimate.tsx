@@ -30,7 +30,7 @@ export default function Estimate() {
   const options = [
     { id: "description", label: "Description" },
     { id: "table", label: "Table Format" },
-    { id: "upload", label: "Upload Picture ,PDF , Document" },
+    // { id: "upload", label: "Upload Picture ,PDF , Document" },
   ];
 
   // FIXED: Case-insensitive filtering and search
@@ -365,11 +365,11 @@ export default function Estimate() {
             variant: "primary",
             onClick: () => {
               if (selected === "description") {
+                localStorage.setItem("estimateDetailsFormat", "description");
                 router.push("/admin/estimate/estimate-description");
               } else if (selected === "table") {
+                localStorage.setItem("estimateDetailsFormat", "table");
                 router.push("/admin/estimate/estimate-description");
-              } else if (selected === "upload") {
-                router.push("/admin/estimate/upload");
               } else {
                 toast.error("Please select an option first!");
               }

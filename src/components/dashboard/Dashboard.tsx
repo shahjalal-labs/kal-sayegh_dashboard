@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
 import { useState } from "react";
+import type { TooltipProps } from "recharts";
 import {
   Bar,
   BarChart,
@@ -23,40 +24,54 @@ import cardBg3 from "@/assets/dashboard/cardBg3.png";
 import d1 from "@/assets/dashboard/d1.png";
 import d2 from "@/assets/dashboard/d2.png";
 import d3 from "@/assets/dashboard/d3.png";
-import { useGetAdminOverviewQuery } from "@/redux/api/admin/adminDashboardApi";
+import {
+  useGetAdminOverviewQuery,
+  useGetHoursTrendQuery,
+} from "@/redux/api/admin/adminDashboardApi";
 import Link from "next/link";
 import { ColorRing } from "react-loader-spinner";
 import EmployeeManagement from "../table/EmployeeManagement";
 
-const result = {
-  summary: {
-    newQuotes: 24,
-    totalEmploys: 32.5,
-    pendingPayments: 8,
-    referralDiscounts: 15,
-  },
-  revenueChart: {
-    chartData: [
-      { label: "Jan", totalRevenue: 12000 },
-      { label: "Feb", totalRevenue: 15000 },
-      { label: "Mar", totalRevenue: 18000 },
-      { label: "Apr", totalRevenue: 22000 },
-      { label: "May", totalRevenue: 25000 },
-      { label: "Jun", totalRevenue: 30000 },
-    ],
-  },
-  ringChartData: {
-    pending: 12,
-    inRoute: 18,
-    delivered: 45,
-    cancelled: 6,
-  },
+type TrendPeriod = "daily" | "weekly" | "monthly";
+
+interface ChartPoint {
+  label: string;
+  totalRevenue: number;
+}
+
+interface RawTrendItem {
+  label: string;
+  value: number | string;
+}
+
+type TooltipPayloadItem = {
+  value: number;
+};
+
+const HoursTooltip = ({
+  active,
+  payload,
+  label,
+}: TooltipProps<number, string>) => {
+  if (!active || !payload || payload.length === 0) return null;
+
+  const item = payload[0] as TooltipPayloadItem;
+
+  return (
+    <div className="bg-white px-4 py-3 rounded-xl shadow-md border border-gray-100">
+      <p className="text-xs text-gray-500">{label}</p>
+      <p className="text-xl font-semibold text-gray-900 leading-tight">
+        {item.value}
+      </p>
+    </div>
+  );
 };
 
 export default function Dashboard() {
-  const [selected, setSelected] = useState("monthly");
+  const [selected, setSelected] = useState<TrendPeriod>("monthly");
   const [open, setOpen] = useState(false);
   const { data, isLoading, isError } = useGetAdminOverviewQuery({});
+  const { data: hoursTrendData } = useGetHoursTrendQuery(selected);
 
   const overviewData = data?.result;
 
@@ -146,29 +161,143 @@ export default function Dashboard() {
     December: "Dec",
   };
 
+  const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  const dayMap: Record<string, string> = {
+    sun: "Sun",
+    sunday: "Sun",
+    mon: "Mon",
+    monday: "Mon",
+    tue: "Tue",
+    tues: "Tue",
+    tuesday: "Tue",
+    wed: "Wed",
+    wednesday: "Wed",
+    thu: "Thu",
+    thur: "Thu",
+    thurs: "Thu",
+    thursday: "Thu",
+    fri: "Fri",
+    friday: "Fri",
+    sat: "Sat",
+    saturday: "Sat",
+  };
+
+  const normalizeDayLabel = (value: string) => {
+    const trimmed = String(value || "").trim();
+    const lower = trimmed.toLowerCase();
+
+    if (dayMap[lower]) return dayMap[lower];
+
+    const parsedDate = new Date(trimmed);
+    if (!Number.isNaN(parsedDate.getTime())) {
+      return weekDays[parsedDate.getDay()];
+    }
+
+    return trimmed;
+  };
+
+  const normalizeMonthLabel = (value: string) => {
+    const trimmed = String(value || "").trim();
+    const monthToken = trimmed.split(" ")[0] || trimmed;
+    const normalizedMonth = monthMap[monthToken.toLowerCase()];
+
+    return normalizedMonth ? shortMonths[normalizedMonth] : monthToken;
+  };
+
+  const normalizeWeekLabel = (value: string) => {
+    const match = String(value || "").match(/week\s*(\d+)/i);
+
+    return match ? `Week ${match[1]}` : String(value || "").trim();
+  };
+
+  const trendResult = hoursTrendData?.result;
+  const trendItems: RawTrendItem[] = Array.isArray(trendResult)
+    ? trendResult.map((item: any) => ({
+        label: String(
+          item?.label ?? item?.month ?? item?.day ?? item?.name ?? "",
+        ),
+        value:
+          item?.totalRevenue ??
+          item?.totalHours ??
+          item?.hours ??
+          item?.value ??
+          0,
+      }))
+    : Array.isArray(trendResult?.chartData)
+      ? trendResult.chartData.map((item: any) => ({
+          label: String(
+            item?.label ?? item?.month ?? item?.day ?? item?.name ?? "",
+          ),
+          value:
+            item?.totalRevenue ??
+            item?.totalHours ??
+            item?.hours ??
+            item?.value ??
+            0,
+        }))
+      : trendResult && typeof trendResult === "object"
+        ? Object.entries(trendResult).map(([label, value]) => ({
+            label,
+            value: Number(value) || 0,
+          }))
+        : [];
+
+  const normalizedTrendData: ChartPoint[] = trendItems.map(
+    (item: RawTrendItem) => {
+      const rawLabel = item.label;
+
+      return {
+        label:
+          selected === "monthly"
+            ? normalizeMonthLabel(rawLabel)
+            : selected === "weekly"
+              ? normalizeWeekLabel(rawLabel)
+              : normalizeDayLabel(rawLabel),
+        totalRevenue: Number(item.value) || 0,
+      };
+    },
+  );
+
   // Prepare chart data
-  const chartData = months.map((month) => {
-    const item = result?.revenueChart?.chartData?.find(
-      (d: any) => monthMap[d.label.toLowerCase()] === month,
-    );
+  const chartData: ChartPoint[] =
+    selected === "daily"
+      ? weekDays.map((day) => {
+          const item = normalizedTrendData.find(
+            (d: ChartPoint) => d.label === day,
+          );
 
-    return {
-      label: shortMonths[month],
-      totalRevenue: item ? item.totalRevenue : 0,
-    };
-  });
+          return {
+            label: day,
+            totalRevenue: item ? item.totalRevenue : 0,
+          };
+        })
+      : selected === "weekly"
+        ? [...normalizedTrendData].sort((a: ChartPoint, b: ChartPoint) => {
+            const weekA = Number(a.label.match(/week\s*(\d+)/i)?.[1] || 0);
+            const weekB = Number(b.label.match(/week\s*(\d+)/i)?.[1] || 0);
 
-  const maxRevenue = Math.max(...chartData.map((d) => d.totalRevenue), 1);
+            return weekA - weekB;
+          })
+        : normalizedTrendData;
+
+  const maxRevenue = Math.max(
+    ...chartData.map((d: ChartPoint) => d.totalRevenue),
+    1,
+  );
+  const yAxisUpperBound = Math.ceil(maxRevenue / 100) * 100;
+
+  const employStatus = overviewData?.employStatus;
 
   const serviceData = [
     {
       name: "Active (Clock In)",
-      value: 18,
+      value: Number(employStatus?.active ?? 0),
       color: "#6140E6",
     },
     {
       name: "Inactive (Clock Out)",
-      value: 6,
+      value: Number(employStatus?.inactive ?? 0),
       color: "#FF0000",
     },
   ];
@@ -262,7 +391,7 @@ export default function Dashboard() {
                     <button
                       key={option.value}
                       onClick={() => {
-                        setSelected(option.value);
+                        setSelected(option.value as TrendPeriod);
                         setOpen(false);
                       }}
                       className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100"
@@ -281,23 +410,35 @@ export default function Dashboard() {
                 <BarChart
                   data={chartData}
                   margin={{ top: 20, right: 20, left: 0, bottom: 20 }}
+                  barCategoryGap={28}
                 >
-                  <CartesianGrid vertical={false} />
-                  <XAxis dataKey="label" axisLine={false} tickLine={false} />
+                  <CartesianGrid
+                    vertical={false}
+                    stroke="#E5E7EB"
+                    strokeDasharray="4 4"
+                  />
+                  <XAxis
+                    dataKey="label"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#6B7280", fontSize: 12 }}
+                  />
                   <YAxis
                     axisLine={false}
                     tickLine={false}
                     allowDecimals={false}
-                    domain={[0, maxRevenue * 2]}
+                    domain={[0, yAxisUpperBound]}
+                    tickCount={6}
+                    tick={{ fill: "#6B7280", fontSize: 12 }}
                   />
-                  <Tooltip cursor={false} contentStyle={customTooltipStyle} />
+                  <Tooltip cursor={false} content={<HoursTooltip />} />
                   <Bar
                     barSize={40}
                     dataKey="totalRevenue"
                     radius={[8, 8, 0, 0]}
                     minPointSize={5}
                   >
-                    {chartData.map((entry, index) => (
+                    {chartData.map((entry: ChartPoint, index: number) => (
                       <Cell
                         key={index}
                         fill={

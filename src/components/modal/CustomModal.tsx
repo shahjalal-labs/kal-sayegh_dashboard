@@ -65,12 +65,12 @@ export const CustomModal: React.FC<CustomModalProps> = ({
         <div className="p-6 overflow-y-auto flex-1">{children}</div>
 
         {actions.length > 0 && (
-          <div className="flex justify-end gap-3 p-6 pt-4 ">
+          <div className="flex flex-col sm:flex-row sm:justify-end gap-3 p-4 sm:p-6 pt-2 sm:pt-4">
             {actions.map((btn, i) => (
               <button
                 key={i}
                 onClick={() => btn.onClick()}
-                className={`px-8 py-3 font-medium transition-colors rounded-2xl ${
+                className={`w-full sm:w-auto px-4 sm:px-8 py-2.5 sm:py-3 text-sm sm:text-base font-medium transition-colors rounded-2xl ${
                   btn.variant === "primary"
                     ? "bg-primary text-white hover:bg-primary/90 transition-all"
                     : "border border-primary text-primary hover:bg-primary transition-colors duration-300 ease-in hover:text-secondary"

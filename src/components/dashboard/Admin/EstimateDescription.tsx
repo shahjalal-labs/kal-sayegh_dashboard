@@ -1,10 +1,9 @@
 "use client";
 
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Upload } from "lucide-react";
 import Link from "next/link";
 import { AiOutlineUserAdd } from "react-icons/ai";
 
-import cloud from "@/assets/dashboard/cloud-upload.png";
 import { CustomModal } from "@/components/modal/CustomModal";
 import {
   DepositModalContent,
@@ -54,7 +53,7 @@ export default function EstimateDescription() {
   const [activeTableId, setActiveTableId] = useState<number | null>(null);
   const [itemModalOpen, setItemModalOpen] = useState(false);
   const [selectedLineItems, setSelectedLineItems] = useState<any[]>([]);
-  const [sideMap, setSideMap] = useState<File | null>(null);
+  const [sideMaps, setSideMaps] = useState<File[]>([]);
   const [images, setImages] = useState<File[]>([]);
   const [submitMarkup, setSubmitMarkup] = useState<() => void>(() => () => {});
   const [openClientModal, setOpenClientModal] = useState(false);
@@ -156,8 +155,8 @@ export default function EstimateDescription() {
     return (
       acc +
       table.items.reduce((tAcc, item) => {
-        const rate = Number(item.rate) || 0;
-        const qty = Number(item.quantity) || 1;
+        const rate = Number(item.rate ?? item.amount ?? item.markUp ?? 0) || 0;
+        const qty = Number(item.quantity) || 0;
         const base = rate * qty;
         const markupAmount = (base * (Number(item.percentage) || 0)) / 100;
         const afterMarkup = base + markupAmount;
@@ -179,7 +178,7 @@ export default function EstimateDescription() {
             description: "",
             itemName: "",
             markUp: 0,
-            quantity: 1,
+            quantity: 0,
             tax: 0,
             total: 0,
             percentage: 0,
@@ -212,11 +211,15 @@ export default function EstimateDescription() {
   const handleToggleItem = (item: any) => {
     if (!activeTableId) return;
 
+    const currentSelectedItemId = selectedItemsByTable[activeTableId];
+    const isSelectingSameItem = currentSelectedItemId === item.id;
+
     setLineItemTables((prev) =>
       prev.map((table) => {
         if (table.id !== activeTableId) return table;
 
-        const isSelected = selectedItemsByTable[table.id] === item.id;
+        const selectedRate =
+          Number(item?.rate ?? item?.markUp?.amount ?? item?.amount ?? 0) || 0;
 
         const newItem = {
           id: Date.now().toString(),
@@ -224,15 +227,15 @@ export default function EstimateDescription() {
           itemName: item.itemName,
           amount: item?.markUp?.amount ?? 0,
           percentage: item?.markUp?.percentage ?? 0,
-          quantity: 0,
+          quantity: 1,
           tax: 0,
-          rate: item?.markUp?.amount ?? 0,
+          rate: selectedRate,
           markUp: item?.markUp?.amount ?? 0,
           total: 0,
           originalItem: item,
         };
 
-        const updatedItems = isSelected ? [] : [newItem];
+        const updatedItems = isSelectingSameItem ? [] : [newItem];
 
         return {
           ...table,
@@ -241,10 +244,18 @@ export default function EstimateDescription() {
       }),
     );
 
-    setSelectedItemsByTable((prev) => ({
-      ...prev,
-      [activeTableId]: item.id,
-    }));
+    setSelectedItemsByTable((prev) => {
+      if (isSelectingSameItem) {
+        const next = { ...prev };
+        delete next[activeTableId];
+        return next;
+      }
+
+      return {
+        ...prev,
+        [activeTableId]: item.id,
+      };
+    });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -252,6 +263,24 @@ export default function EstimateDescription() {
       ...formData,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const handleSideMapFiles = (fileList: FileList | null) => {
+    if (!fileList?.length) return;
+    setSideMaps((prev) => [...prev, ...Array.from(fileList)]);
+  };
+
+  const removeSideMap = (index: number) => {
+    setSideMaps((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleImageFiles = (fileList: FileList | null) => {
+    if (!fileList?.length) return;
+    setImages((prev) => [...prev, ...Array.from(fileList)]);
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleOpenModal = (type: "markup" | "discount" | "deposit") => {
@@ -350,7 +379,8 @@ export default function EstimateDescription() {
   const handleCreateEstimate = async () => {
     try {
       const calculateItemTotal = (item: any) => {
-        const base = (Number(item.rate) || 0) * (Number(item.quantity) || 1);
+        const rate = Number(item.rate ?? item.amount ?? item.markUp ?? 0) || 0;
+        const base = rate * (Number(item.quantity) || 0);
         const markupAmount = (base * (Number(item.percentage) || 0)) / 100;
         const afterMarkup = base + markupAmount;
         const taxAmount = (afterMarkup * (Number(item.tax) || 0)) / 100;
@@ -379,7 +409,7 @@ export default function EstimateDescription() {
         items: lineItemTables.flatMap((table) =>
           table.items.map((item) => ({
             id: item.originalItem?._id || item.originalItem?.id,
-            quantity: Number(item.quantity) || 1,
+            quantity: Number(item.quantity) || 0,
             subTotal: Math.round(calculateItemTotal(item)),
           })),
         ),
@@ -394,9 +424,7 @@ export default function EstimateDescription() {
       const formData = new FormData();
       formData.append("bodyData", JSON.stringify(bodyData));
 
-      const allFiles = [];
-      if (sideMap) allFiles.push(sideMap);
-      images.forEach((file) => allFiles.push(file));
+      const allFiles = [...sideMaps, ...images];
 
       allFiles.forEach((file) => {
         formData.append("urls", file);
@@ -429,13 +457,23 @@ export default function EstimateDescription() {
       setDiscount(null);
       setDeposit(null);
       setSelectedClient(null);
-      setSideMap(null);
+      setSideMaps([]);
       setImages([]);
 
       if (sideMapRef.current) sideMapRef.current.value = "";
       if (imageRef.current) imageRef.current.value = "";
 
-      router.push(`/admin/estimate/${estimateId}`);
+      const storedFormat =
+        typeof window !== "undefined"
+          ? localStorage.getItem("estimateDetailsFormat")
+          : null;
+      const format = storedFormat === "table" ? "table" : "description";
+
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("estimateDetailsFormat");
+      }
+
+      router.push(`/admin/estimate/${estimateId}?format=${format}`);
     } catch (err: any) {
       console.error("Estimate creation error:", err);
       toast.error(err?.data?.message || "Failed to create estimate");
@@ -492,7 +530,7 @@ export default function EstimateDescription() {
 
       await refetchTaxes();
 
-      setAddTax(true); // reopen list modal
+      setAddTax(true);
     } catch (error) {
       console.error(error);
       toast.error("Failed to create tax");
@@ -501,8 +539,8 @@ export default function EstimateDescription() {
 
   // Helper function to calculate line item total (includes markup and tax)
   const calculateLineTotal = (item: any) => {
-    const rate = Number(item.rate) || 0;
-    const quantity = Number(item.quantity) || 1;
+    const rate = Number(item.rate ?? item.amount ?? item.markUp ?? 0) || 0;
+    const quantity = Number(item.quantity) || 0;
     const base = rate * quantity;
     const markupAmount = (base * (Number(item.percentage) || 0)) / 100;
     const afterMarkup = base + markupAmount;
@@ -677,7 +715,7 @@ export default function EstimateDescription() {
                   estimateName: e.target.value,
                 }))
               }
-              className="w-full mt-1 border rounded-lg p-3"
+              className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
             />
           </div>
 
@@ -692,7 +730,7 @@ export default function EstimateDescription() {
                   date: e.target.value,
                 }))
               }
-              className="w-full mt-1 border rounded-lg p-3"
+              className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
             />
           </div>
 
@@ -707,7 +745,7 @@ export default function EstimateDescription() {
                   endDate: e.target.value,
                 }))
               }
-              className="w-full mt-1 border rounded-lg p-3"
+              className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
             />
           </div>
 
@@ -722,7 +760,7 @@ export default function EstimateDescription() {
                   poNumber: e.target.value,
                 }))
               }
-              className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-orange-400"
+              className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
         </div>
@@ -732,7 +770,7 @@ export default function EstimateDescription() {
             <div key={table.id} className="mt-3 w-full">
               <div className="mt-8">
                 {index === 0 && (
-                  <div className="hidden md:grid md:grid-cols-6 text-base font-semibold border-b pb-2">
+                  <div className="hidden md:grid md:grid-cols-6 text-base text-center font-semibold border-b pb-2 ml-8">
                     <p>Description</p>
                     <p>Rate</p>
                     <p>Markup</p>
@@ -744,153 +782,184 @@ export default function EstimateDescription() {
 
                 {table.items.map((item: any) => {
                   const rate = item.rate || 0;
-                  const quantity = item.quantity || 1;
+                  const quantity = Number(item.quantity) || 0;
                   const total = calculateLineTotal(item);
 
+                  const handleRemoveLineItem = () => {
+                    setLineItemTables((prev) =>
+                      prev
+                        .map((t) =>
+                          t.id === table.id
+                            ? {
+                                ...t,
+                                items: t.items.filter((i) => i.id !== item.id),
+                              }
+                            : t,
+                        )
+                        .filter((t) => t.items.length > 0),
+                    );
+                  };
+
                   return (
-                    <div
-                      key={item.id}
-                      className="mt-3 border rounded-xl overflow-hidden"
-                    >
-                      {/* Row */}
-                      <div className="grid grid-cols-1 md:grid-cols-6 border">
-                        <div className="col-span-1 md:col-span-1 border-r md:border-r p-2 text-sm text-gray-500">
-                          <label className="block md:hidden font-medium mb-1">
-                            Description
-                          </label>
-                          <div className="flex items-center justify-between border-b md:border-b-0 p-2 md:p-0">
-                            <span className="hidden md:inline">
+                    <div key={item.id} className="relative mt-3 pl-8 md:pl-10">
+                      <button
+                        type="button"
+                        onClick={handleRemoveLineItem}
+                        className="absolute left-0 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-[#E45C38] text-white flex items-center justify-center hover:bg-[#cf4f2f] transition-colors"
+                        aria-label="Remove line item"
+                      >
+                        <Minus size={14} strokeWidth={3} />
+                      </button>
+
+                      <div className="border rounded-xl overflow-hidden">
+                        {/* Row */}
+                        <div className="grid grid-cols-1 md:grid-cols-6 border">
+                          <div className="col-span-1 md:col-span-1 border-r md:border-r p-2 text-sm text-gray-500 text-left">
+                            <label className="block md:hidden font-medium mb-1">
                               Description
-                            </span>
-                            <span
-                              onClick={() => openItemModal(table.id)}
-                              className="text-orange-500 text-base cursor-pointer mt-3 md:mt-0"
-                            >
-                              Item List
-                            </span>
+                            </label>
+                            <div className="flex items-center justify-between border-b md:border-b-0 p-2 md:p-0">
+                              <span className="hidden md:inline">
+                                {item.itemName || "Description"}
+                              </span>
+                              <span
+                                onClick={() => openItemModal(table.id)}
+                                className="text-orange-500 text-base cursor-pointer mt-3 md:mt-0"
+                              >
+                                Item List
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Rate */}
+                          <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0 md:p-0 text-center">
+                            <label className="block md:hidden text-sm font-medium mb-1 ">
+                              Rate
+                            </label>
+                            <input
+                              className="cell w-full text-center focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition p-2 "
+                              placeholder="$0.00"
+                              value={rate || ""}
+                              onChange={(e) => {
+                                const newRate = parseFloat(e.target.value) || 0;
+                                setLineItemTables((prev) =>
+                                  prev.map((t) =>
+                                    t.id === table.id
+                                      ? {
+                                          ...t,
+                                          items: t.items.map((i) =>
+                                            i.id === item.id
+                                              ? { ...i, rate: newRate }
+                                              : i,
+                                          ),
+                                        }
+                                      : t,
+                                  ),
+                                );
+                              }}
+                            />
+                          </div>
+
+                          {/* Markup */}
+                          <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0 md:p-0 text-center">
+                            <label className="block md:hidden text-sm font-medium mb-1">
+                              Markup
+                            </label>
+                            <input
+                              className="cell cursor-pointer bg-white/90 w-full text-center p-2 focus:outline-none"
+                              placeholder="Markup"
+                              value={
+                                item.percentage ? `${item.percentage}%` : ""
+                              }
+                              readOnly
+                              onClick={() =>
+                                openMarkupPicker(table.id, item.id)
+                              }
+                            />
+                          </div>
+
+                          {/* Quantity */}
+                          <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0 md:p-0 text-center">
+                            <label className="block md:hidden text-sm font-medium mb-1">
+                              Quantity
+                            </label>
+                            <input
+                              className="cell w-full text-center focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition p-2"
+                              placeholder="0"
+                              value={quantity}
+                              onChange={(e) => {
+                                const parsedQuantity = parseFloat(
+                                  e.target.value,
+                                );
+                                const newQuantity = Number.isNaN(parsedQuantity)
+                                  ? 0
+                                  : parsedQuantity;
+                                setLineItemTables((prev) =>
+                                  prev.map((t) =>
+                                    t.id === table.id
+                                      ? {
+                                          ...t,
+                                          items: t.items.map((i) =>
+                                            i.id === item.id
+                                              ? { ...i, quantity: newQuantity }
+                                              : i,
+                                          ),
+                                        }
+                                      : t,
+                                  ),
+                                );
+                              }}
+                            />
+                          </div>
+
+                          {/* Tax */}
+                          <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0 md:p-0 text-center">
+                            <label className="block md:hidden text-sm font-medium mb-1">
+                              Tax
+                            </label>
+                            <input
+                              className="cell w-full text-center p-2 focus:outline-none cursor-pointer focus:ring-1 focus:ring-primary focus:border-primary transition"
+                              placeholder="Tax"
+                              value={item.tax ? `${item.tax}%` : ""}
+                              readOnly
+                              onClick={() => openTaxPicker(table.id, item.id)}
+                            />
+                          </div>
+
+                          {/* Total */}
+                          <div className="md:col-span-1 p-2 text-center">
+                            <label className="block md:hidden text-sm font-medium mb-1">
+                              Total
+                            </label>
+                            <input
+                              className="cell w-full text-center p-2 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition  "
+                              value={`$${total.toFixed(2)}`}
+                              readOnly
+                            />
                           </div>
                         </div>
 
-                        {/* Rate */}
-                        <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0 md:p-0">
-                          <label className="block md:hidden text-sm font-medium mb-1">
-                            Rate
-                          </label>
-                          <input
-                            className="cell w-full focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition p-2"
-                            placeholder="$0.00"
-                            value={rate || ""}
-                            onChange={(e) => {
-                              const newRate = parseFloat(e.target.value) || 0;
-                              setLineItemTables((prev) =>
-                                prev.map((t) =>
-                                  t.id === table.id
-                                    ? {
-                                        ...t,
-                                        items: t.items.map((i) =>
-                                          i.id === item.id
-                                            ? { ...i, rate: newRate }
-                                            : i,
-                                        ),
-                                      }
-                                    : t,
-                                ),
-                              );
-                            }}
-                          />
+                        {/* Notes */}
+                        <div className="border-t p-2">
+                          {!item.itemName ? (
+                            <textarea
+                              placeholder="Notes"
+                              className="w-full p-2 text-sm outline-none"
+                            />
+                          ) : (
+                            <div className="mt-2">
+                              {/* <p className="text-sm font-semibold">
+                                {item.itemName}
+                              </p> */}
+
+                              {item.description && (
+                                <p className="text-xs text-gray-500">
+                                  {item.description}
+                                </p>
+                              )}
+                            </div>
+                          )}
                         </div>
-
-                        {/* Markup */}
-                        <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0 md:p-0">
-                          <label className="block md:hidden text-sm font-medium mb-1">
-                            Markup
-                          </label>
-                          <input
-                            className="cell cursor-pointer bg-white/90 w-full p-2"
-                            placeholder="Markup"
-                            value={item.percentage ? `${item.percentage}%` : ""}
-                            readOnly
-                            onClick={() => openMarkupPicker(table.id, item.id)}
-                          />
-                        </div>
-
-                        {/* Quantity */}
-                        <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0 md:p-0">
-                          <label className="block md:hidden text-sm font-medium mb-1">
-                            Quantity
-                          </label>
-                          <input
-                            className="cell w-full focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition p-2"
-                            placeholder="1"
-                            value={quantity}
-                            onChange={(e) => {
-                              const newQuantity =
-                                parseFloat(e.target.value) || 1;
-                              setLineItemTables((prev) =>
-                                prev.map((t) =>
-                                  t.id === table.id
-                                    ? {
-                                        ...t,
-                                        items: t.items.map((i) =>
-                                          i.id === item.id
-                                            ? { ...i, quantity: newQuantity }
-                                            : i,
-                                        ),
-                                      }
-                                    : t,
-                                ),
-                              );
-                            }}
-                          />
-                        </div>
-
-                        {/* Tax */}
-                        <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0 md:p-0">
-                          <label className="block md:hidden text-sm font-medium mb-1">
-                            Tax
-                          </label>
-                          <input
-                            className="cell w-full p-2"
-                            placeholder="Tax"
-                            value={item.tax ? `${item.tax}%` : ""}
-                            readOnly
-                            onClick={() => openTaxPicker(table.id, item.id)}
-                          />
-                        </div>
-
-                        {/* Total */}
-                        <div className="md:col-span-1 p-2">
-                          <label className="block md:hidden text-sm font-medium mb-1">
-                            Total
-                          </label>
-                          <input
-                            className="cell w-full p-2"
-                            value={`$${total.toFixed(2)}`}
-                            readOnly
-                          />
-                        </div>
-                      </div>
-
-                      {/* Notes */}
-                      <div className="border-t p-2">
-                        {!item.itemName ? (
-                          <textarea
-                            placeholder="Notes"
-                            className="w-full p-2 text-sm outline-none"
-                          />
-                        ) : (
-                          <div className="mt-2">
-                            <p className="text-sm font-semibold">
-                              {item.itemName}
-                            </p>
-
-                            {item.description && (
-                              <p className="text-xs text-gray-500">
-                                {item.description}
-                              </p>
-                            )}
-                          </div>
-                        )}
                       </div>
                     </div>
                   );
@@ -907,93 +976,109 @@ export default function EstimateDescription() {
         </div>
 
         <div>
-          <label className="text-base font-normal">Side Map</label>
-
-          <div
-            onClick={() => document.getElementById("sideMapInput")?.click()}
-            className="mt-2 border border-dashed border-orange-300 rounded-xl p-6 flex flex-col items-center justify-center text-orange-500 cursor-pointer hover:bg-orange-100/60 bg-orange-50 duration-300"
-          >
-            {sideMap ? (
-              <Image
-                alt="side map"
-                width={400}
-                height={300}
-                src={URL.createObjectURL(sideMap)}
-                className="w-full h-40 object-contain rounded-lg"
-              />
-            ) : (
-              <>
-                <Image
-                  src={cloud}
-                  alt="cloud"
-                  width={40}
-                  height={40}
-                  className="mb-2"
-                />
-                Upload Side Map
-              </>
-            )}
-          </div>
+          <label className="text-lg text-gray-600">Side Map</label>
 
           <input
             ref={sideMapRef}
             id="sideMapInput"
             type="file"
+            accept="image/*"
+            multiple
             className="hidden"
-            onChange={(e) => {
-              if (e.target.files?.[0]) {
-                setSideMap(e.target.files[0]);
-              }
-            }}
+            onChange={(e) => handleSideMapFiles(e.target.files)}
           />
+
+          <label
+            htmlFor="sideMapInput"
+            onDrop={(e) => {
+              e.preventDefault();
+              handleSideMapFiles(e.dataTransfer.files);
+            }}
+            onDragOver={(e) => e.preventDefault()}
+            className="mt-2 border border-dashed border-primary rounded-xl p-12 flex flex-col items-center justify-center cursor-pointer bg-orange-50"
+          >
+            <Upload className="text-gray-400 mb-2" size={24} />
+            <p className="text-lg text-gray-600 ">
+              <span className="text-primary font-medium">Click to upload</span>{" "}
+              or drag & drop
+            </p>
+          </label>
+
+          {sideMaps.length > 0 && (
+            <div className="flex gap-3 mt-4 flex-wrap">
+              {sideMaps.map((file, idx) => (
+                <div key={idx} className="relative">
+                  <Image
+                    src={URL.createObjectURL(file)}
+                    alt="side map preview"
+                    width={120}
+                    height={120}
+                    className="rounded-lg object-cover w-[120px] h-[120px]"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => removeSideMap(idx)}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2"
+                  >
+                    x
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div>
-          <label className="text-base font-normal">Upload Image</label>
-
-          <div
-            onClick={() => document.getElementById("imageInput")?.click()}
-            className="mt-2 border border-dashed border-orange-300 rounded-xl p-6 flex flex-col items-center justify-center text-orange-500 cursor-pointer hover:bg-orange-100/60 bg-orange-50 duration-300"
-          >
-            {images.length > 0 ? (
-              <div className=" w-full">
-                {images.map((file, idx) => (
-                  <Image
-                    alt="upload images"
-                    width={400}
-                    height={400}
-                    key={idx}
-                    src={URL.createObjectURL(file)}
-                    className="w-full h-40 object-contain rounded-lg"
-                  />
-                ))}
-              </div>
-            ) : (
-              <>
-                <Image
-                  src={cloud}
-                  alt="cloud"
-                  width={40}
-                  height={40}
-                  className="mb-2"
-                />
-                Upload Image
-              </>
-            )}
-          </div>
+          <label className="text-lg text-gray-600">Upload Images</label>
 
           <input
             ref={imageRef}
             id="imageInput"
             type="file"
             multiple
+            accept="image/*"
             className="hidden"
-            onChange={(e) => {
-              if (e.target.files) {
-                setImages(Array.from(e.target.files));
-              }
-            }}
+            onChange={(e) => handleImageFiles(e.target.files)}
           />
+
+          <label
+            htmlFor="imageInput"
+            onDrop={(e) => {
+              e.preventDefault();
+              handleImageFiles(e.dataTransfer.files);
+            }}
+            onDragOver={(e) => e.preventDefault()}
+            className="mt-2 border-2 border-dashed border-primary rounded-xl  flex flex-col items-center justify-center cursor-pointer bg-orange-50 p-12"
+          >
+            <Upload className="text-gray-400 mb-2" size={24} />
+            <p className="text-lg text-gray-600 ">
+              <span className="text-primary font-medium">Click to upload</span>{" "}
+              or drag & drop
+            </p>
+          </label>
+
+          <div className="flex gap-3 mt-4 flex-wrap">
+            {images.map((file, idx) => (
+              <div key={idx} className="relative">
+                <Image
+                  src={URL.createObjectURL(file)}
+                  alt="preview"
+                  width={120}
+                  height={120}
+                  className="rounded-lg object-cover w-[120px] h-[120px]"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => removeImage(idx)}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2"
+                >
+                  x
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="mt-6 flex justify-end">
@@ -1157,7 +1242,7 @@ export default function EstimateDescription() {
       </div>
 
       {addMarkUp && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white w-[400px] rounded-xl p-5 space-y-3">
             <h2 className="text-lg font-semibold">Select Markup</h2>
 
@@ -1237,7 +1322,7 @@ export default function EstimateDescription() {
       )}
 
       {openCreateMarkupModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white w-[420px] rounded-2xl shadow-xl p-6 space-y-5 animate-in fade-in zoom-in-95">
             {/* HEADER */}
             <div>
@@ -1307,7 +1392,7 @@ export default function EstimateDescription() {
 
       {/* TAX LIST MODAL */}
       {addTax && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white w-[400px] rounded-xl p-5 space-y-3">
             {/* TITLE */}
             <h2 className="text-lg font-semibold">Select Tax</h2>
@@ -1389,7 +1474,10 @@ export default function EstimateDescription() {
       )}
 
       {taxModalOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50
+        p-4"
+        >
           <div className="bg-white w-[400px] rounded-xl p-5 space-y-3">
             <h2 className="text-lg font-semibold">Create Tax</h2>
 
@@ -1404,7 +1492,7 @@ export default function EstimateDescription() {
                   name: e.target.value,
                 }))
               }
-              className="w-full border p-2 rounded"
+              className="w-full border p-2 rounded focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
             />
 
             {/* PERCENTAGE */}
@@ -1418,7 +1506,7 @@ export default function EstimateDescription() {
                   percentage: e.target.value,
                 }))
               }
-              className="w-full border p-2 rounded"
+              className="w-full border p-2 rounded focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
             />
 
             <div className="flex gap-3">
@@ -1441,7 +1529,7 @@ export default function EstimateDescription() {
       )}
 
       {openClientModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white w-[90%] md:w-[700px] p-6 rounded-xl shadow-lg space-y-4">
             <h2 className="text-lg font-semibold mb-4">Add Client</h2>
             <p className="text-base font-normal">Basic Information</p>
@@ -1555,7 +1643,7 @@ export default function EstimateDescription() {
       )}
 
       {totalMarkupModalOpen && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white w-[420px] rounded-2xl shadow-xl p-6 space-y-5 animate-in fade-in zoom-in-95">
             {/* HEADER */}
             <div>
@@ -1578,7 +1666,7 @@ export default function EstimateDescription() {
                       name: e.target.value,
                     }))
                   }
-                  className="w-full border border-gray-300 p-2.5 rounded-lg"
+                  className="w-full border border-gray-300 p-2.5 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
                 />
               </div>
 
@@ -1596,7 +1684,7 @@ export default function EstimateDescription() {
                       percentage: e.target.value,
                     }))
                   }
-                  className="w-full border border-gray-300 p-2.5 rounded-lg"
+                  className="w-full border border-gray-300 p-2.5 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
                 />
               </div>
             </div>
@@ -1622,7 +1710,7 @@ export default function EstimateDescription() {
       )}
 
       {totalAddMarkup && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white w-[400px] rounded-xl p-5 space-y-3">
             <h2 className="text-lg font-semibold">Select Markup</h2>
 
