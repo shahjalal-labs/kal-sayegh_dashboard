@@ -1,4 +1,4 @@
-import EstimateTable from "@/components/dashboard/Admin/EstimateTable";
+import EstimateTable from "@/components/dashboard/Admin/Estimate/EstimateTable";
 
 export default function EstimateTablePage() {
   return (

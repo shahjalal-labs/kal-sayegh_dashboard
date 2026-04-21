@@ -1,4 +1,4 @@
-import EditEstimate from "@/components/dashboard/Admin/EditEstimate";
+import EditEstimate from "@/components/dashboard/Admin/Estimate/EditEstimate";
 
 export default function EditEstimatePage() {
   return (

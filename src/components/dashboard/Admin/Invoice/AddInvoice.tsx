@@ -6,12 +6,16 @@ import {
   useGetMyClientsQuery,
 } from "@/redux/api/admin/estimateApi";
 import { useCreateInvoiceMutation } from "@/redux/api/admin/invoiceApi";
-import { ArrowLeft, MapPin } from "lucide-react";
+import { ArrowLeft, MapPin, Upload } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
 import { AiOutlineUserAdd } from "react-icons/ai";
+import { toast } from "sonner";
 
 export default function AddInvoice() {
+  const router = useRouter();
   const [createInvoice, { isLoading }] = useCreateInvoiceMutation();
 
   const [formData, setFormData] = useState({
@@ -25,6 +29,10 @@ export default function AddInvoice() {
 
   const [tableData, setTableData] = useState<any>(null);
   const [tableKey, setTableKey] = useState(0);
+  const [sideMaps, setSideMaps] = useState<File[]>([]);
+  const [images, setImages] = useState<File[]>([]);
+  const sideMapRef = useRef<HTMLInputElement | null>(null);
+  const imageRef = useRef<HTMLInputElement | null>(null);
 
   const [open, setOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any>(null);
@@ -70,8 +78,38 @@ export default function AddInvoice() {
     }
   };
 
+  const handleSideMapFiles = (fileList: FileList | null) => {
+    if (!fileList?.length) return;
+    setSideMaps((prev) => [...prev, ...Array.from(fileList)]);
+  };
+
+  const removeSideMap = (index: number) => {
+    setSideMaps((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleImageFiles = (fileList: FileList | null) => {
+    if (!fileList?.length) return;
+    setImages((prev) => [...prev, ...Array.from(fileList)]);
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async () => {
     if (!tableData) return;
+
+    const selectedItems = tableData.items.filter(
+      (item: any) => item.selectedItem,
+    );
+    const hasInvalidQuantity = selectedItems.some(
+      (item: any) => (parseFloat(item.quantity) || 0) <= 0,
+    );
+
+    if (hasInvalidQuantity) {
+      toast.error("Quantity must be greater than 0 for all selected items.");
+      return;
+    }
 
     const bodyData = {
       additionalMarkUp: tableData.summaryMarkup?.percentage || 0,
@@ -82,17 +120,25 @@ export default function AddInvoice() {
       endDate: formData.endDate,
       grandTotal: Math.round(tableData.grandTotal),
       invoiceName: formData.invoiceName,
-      items: tableData.items
-        .filter((item: any) => item.selectedItem)
-        .map((item: any) => ({
-          id: item.selectedItem.id,
-          quantity: parseFloat(item.quantity) || 1,
-          subTotal: Math.round(item.total),
-        })),
+      items: selectedItems.map((item: any) => ({
+        id: item.selectedItem.id,
+        quantity: parseFloat(item.quantity),
+        subTotal: Math.round(item.total),
+      })),
     };
 
     try {
-      await createInvoice(bodyData).unwrap();
+      const formPayload = new FormData();
+      formPayload.append("bodyData", JSON.stringify(bodyData));
+
+      [...sideMaps, ...images].forEach((file) => {
+        formPayload.append("urls", file);
+      });
+
+      const res = await createInvoice(formPayload).unwrap();
+      const invoiceId = res?.result?.id;
+
+      toast.success("Invoice has been created successfully!");
       setFormData({
         invoiceName: "",
         date: "",
@@ -106,13 +152,32 @@ export default function AddInvoice() {
       setTableKey((prev) => prev + 1);
       setOpen(false);
       setShowAll(false);
+      setSideMaps([]);
+      setImages([]);
+
+      if (sideMapRef.current) sideMapRef.current.value = "";
+      if (imageRef.current) imageRef.current.value = "";
+
+      const storedFormat =
+        typeof window !== "undefined"
+          ? localStorage.getItem("estimateDetailsFormat")
+          : null;
+      const format = storedFormat === "table" ? "table" : "description";
+
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("estimateDetailsFormat");
+      }
+
+      router.push(`/admin/invoice/${invoiceId}?format=${format}`);
     } catch (error) {
-      console.error("Failed to create invoice:", error);
+      toast.error(
+        "Failed to create invoice." + (error as any)?.data?.message || "",
+      );
     }
   };
 
   return (
-    <div>
+    <div className="">
       <Link
         href={"/admin/invoice"}
         className="hidden md:flex items-center gap-2 p-2 rounded-lg hover:text-primary text-base font-medium"
@@ -120,7 +185,7 @@ export default function AddInvoice() {
         <ArrowLeft className="mt-[1px]" size={20} />
         <span>Back to invoices</span>
       </Link>
-      <div className="min-h-screen p-6 bg-secondary rounded-2xl shadow-sm mt-4">
+      <div className="min-h-screen p-6 bg-secondary rounded-2xl shadow-sm mt-4 md:px-12">
         <div className="">
           <div className="flex items-center justify-between mb-4  md:hidden">
             {/* Left Arrow */}
@@ -132,7 +197,7 @@ export default function AddInvoice() {
             </Link>
 
             {/* Title */}
-            <h2 className="text-xl font-semibold text-center flex-1 block">
+            <h2 className="text-2xl font-semibold text-center flex-1 block">
               Invoices
             </h2>
 
@@ -151,13 +216,13 @@ export default function AddInvoice() {
               disabled={isLoading}
               className="px-8 py-2 bg-primary hover:bg-primary/80 transition-colors text-white rounded-lg"
             >
-              {isLoading ? "Submitting..." : "Submit Invoice"}
+              Submit Invoice
             </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 ">
             {/* Left */}
-            <div className="col-span-2 hidden md:block">
+            <div className="col-span-2 hidden md:block text-lg">
               <p className="text-sm text-gray-500">United States</p>
               <p className="text-sm text-gray-500">example03@gmail.com</p>
             </div>
@@ -305,7 +370,7 @@ export default function AddInvoice() {
                 <label>Invoice</label>
                 <input
                   placeholder="Invoice#"
-                  className="input w-full"
+                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
                   value={formData.invoiceName}
                   onChange={(e) =>
                     setFormData((prev) => ({
@@ -319,7 +384,7 @@ export default function AddInvoice() {
                 <label>Date</label>
                 <input
                   type="date"
-                  className="input w-full"
+                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
                   value={formData.date}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, date: e.target.value }))
@@ -331,7 +396,7 @@ export default function AddInvoice() {
                 <label>End Date</label>
                 <input
                   type="date"
-                  className="input w-full"
+                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
                   value={formData.endDate}
                   onChange={(e) =>
                     setFormData((prev) => ({
@@ -345,7 +410,7 @@ export default function AddInvoice() {
                 <label>PO Number</label>
                 <input
                   placeholder="PO Number"
-                  className="input w-full"
+                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
                   value={formData.poNumber}
                   onChange={(e) =>
                     setFormData((prev) => ({
@@ -359,7 +424,7 @@ export default function AddInvoice() {
                 <label>Days to pay</label>
                 <input
                   placeholder="Days to pay"
-                  className="input w-full"
+                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
                   value={formData.daysToPay}
                   onChange={(e) =>
                     setFormData((prev) => ({
@@ -372,11 +437,121 @@ export default function AddInvoice() {
             </div>
           </div>
 
+          <div className="mt-7">
+            <label className="text-lg text-gray-600">Side Map</label>
+
+            <input
+              ref={sideMapRef}
+              id="sideMapInput"
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => handleSideMapFiles(e.target.files)}
+            />
+
+            <label
+              htmlFor="sideMapInput"
+              onDrop={(e) => {
+                e.preventDefault();
+                handleSideMapFiles(e.dataTransfer.files);
+              }}
+              onDragOver={(e) => e.preventDefault()}
+              className="mt-2 border border-dashed border-primary rounded-xl p-12 flex flex-col items-center justify-center cursor-pointer bg-orange-50"
+            >
+              <Upload className="text-gray-400 mb-2" size={24} />
+              <p className="text-lg text-gray-600 ">
+                <span className="text-primary font-medium">
+                  Click to upload
+                </span>{" "}
+                or drag & drop
+              </p>
+            </label>
+
+            {sideMaps.length > 0 && (
+              <div className="flex gap-3 mt-4 flex-wrap">
+                {sideMaps.map((file, idx) => (
+                  <div key={idx} className="relative">
+                    <Image
+                      src={URL.createObjectURL(file)}
+                      alt="side map preview"
+                      width={120}
+                      height={120}
+                      className="rounded-lg object-cover w-[120px] h-[120px]"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => removeSideMap(idx)}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2"
+                    >
+                      x
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-7">
+            <label className="text-lg text-gray-600">Upload Images</label>
+
+            <input
+              ref={imageRef}
+              id="imageInput"
+              type="file"
+              multiple
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => handleImageFiles(e.target.files)}
+            />
+
+            <label
+              htmlFor="imageInput"
+              onDrop={(e) => {
+                e.preventDefault();
+                handleImageFiles(e.dataTransfer.files);
+              }}
+              onDragOver={(e) => e.preventDefault()}
+              className="mt-2 border border-dashed border-primary rounded-xl  flex flex-col items-center justify-center cursor-pointer bg-orange-50 p-12"
+            >
+              <Upload className="text-gray-400 mb-2" size={24} />
+              <p className="text-lg text-gray-600 ">
+                <span className="text-primary font-medium">
+                  Click to upload
+                </span>{" "}
+                or drag & drop
+              </p>
+            </label>
+
+            <div className="flex gap-3 mt-4 flex-wrap">
+              {images.map((file, idx) => (
+                <div key={idx} className="relative">
+                  <Image
+                    src={URL.createObjectURL(file)}
+                    alt="preview"
+                    width={120}
+                    height={120}
+                    className="rounded-lg object-cover w-[120px] h-[120px]"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => removeImage(idx)}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2"
+                  >
+                    x
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <CommonEstimateTable key={tableKey} onDataChange={setTableData} />
 
           <button
             onClick={handleSubmit}
-            className="px-5 py-2 mt-7 md:hidden rounded-lg bg-primary text-white hover:bg-primary/90 w-full transition-colors"
+            className="px-5 py-2 mt-12 md:hidden rounded-lg bg-primary text-white hover:bg-primary/90 w-full transition-colors"
           >
             Submit
           </button>

@@ -25,6 +25,54 @@ export default function Login() {
   const [login] = useLoginMutation();
   const dispatch = useDispatch();
 
+  const getLoginErrorMessage = (err: unknown) => {
+    const fallbackMessage =
+      "Login failed. Please check your email and password.";
+
+    if (!err || typeof err !== "object") {
+      return fallbackMessage;
+    }
+
+    const apiError = err as {
+      status?: number;
+      data?: {
+        message?: string;
+        error?: string;
+        errors?: Array<{ message?: string } | string>;
+      };
+      message?: string;
+    };
+
+    const errors = apiError.data?.errors;
+    const arrayMessage =
+      Array.isArray(errors) && errors.length > 0
+        ? typeof errors[0] === "string"
+          ? errors[0]
+          : errors[0]?.message
+        : undefined;
+
+    const rawMessage =
+      apiError.data?.message ||
+      apiError.data?.error ||
+      arrayMessage ||
+      apiError.message ||
+      "";
+
+    const normalizedMessage = rawMessage.toLowerCase();
+    const isCredentialError =
+      apiError.status === 401 ||
+      normalizedMessage.includes("password") ||
+      normalizedMessage.includes("credential") ||
+      normalizedMessage.includes("unauthorized") ||
+      normalizedMessage.includes("invalid");
+
+    if (isCredentialError) {
+      return "Incorrect email or password.";
+    }
+
+    return rawMessage || fallbackMessage;
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -51,9 +99,9 @@ export default function Login() {
       } else {
         toast.error("Login failed");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Login error:", err);
-      toast.error(err?.data?.message || "Login failed");
+      toast.error(getLoginErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
@@ -107,7 +155,7 @@ export default function Login() {
         <div className="text-right">
           <Link
             href="/forgot-password"
-            className="text-base text-primary font-semibold transition-colors"
+            className="text-base text-primary font-semibold transition-colors hover:underline"
           >
             Forgot password?
           </Link>

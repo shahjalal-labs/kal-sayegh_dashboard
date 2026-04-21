@@ -27,7 +27,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <div className="flex-1 flex flex-col overflow-scroll">
           <Topbar onHamburgerClick={toggleSidebar} />
 
-          <main className="flex-1 p-4 md:p-7 ">{children}</main>
+          <main className="flex-1 md:p-7 ">{children}</main>
         </div>
       </div>
 

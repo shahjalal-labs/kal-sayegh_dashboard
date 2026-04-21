@@ -1,5 +1,5 @@
-import EstimateDetailsDescription from "@/components/dashboard/Admin/EstimateDetailsDescription";
-import EstimateDetilasTableFormat from "@/components/dashboard/Admin/EstimateDetilasTableFormat";
+import EstimateDetailsDescription from "@/components/dashboard/Admin/Estimate/EstimateDetailsDescription";
+import EstimateDetilasTableFormat from "@/components/dashboard/Admin/Estimate/EstimateDetilasTableFormat";
 
 type EstimateDetailsPageProps = {
   searchParams?: {

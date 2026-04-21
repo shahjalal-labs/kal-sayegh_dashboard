@@ -158,7 +158,7 @@ export default function Items() {
     );
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-4  bg-gray-50 min-h-screen">
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <h1 className="text-xl font-semibold">Item List</h1>
@@ -175,7 +175,7 @@ export default function Items() {
           {/* ADD BUTTON */}
           <button
             onClick={() => setOpen(true)}
-            className="bg-primary hover:bg-primary/80 text-white px-5 py-2 rounded-xl transition-colors"
+            className="bg-primary hover:bg-primary/80 text-white px-5 py-2 rounded-xl transition-colors text-sm md:text-lg"
           >
             + Add Item
           </button>

@@ -6,30 +6,26 @@ export interface User {
   role: string;
 }
 
-const adminRoutes = [
+const isAdminRole = (role?: string) => role?.trim().toLowerCase() === "admin";
+
+const protectedRoutes = [
+  "/dashboard",
   "/admin/dashboard",
   "/admin/employee-management",
   "/admin/estimator-management",
   "/admin/estimate",
   "/admin/invoice",
-  "/office-administration",
-  "/calendar",
-  "/message",
-  "/settings",
-];
-
-const officeAdminAllowedRoutes = [
-  "/office-administration",
-  "/administration/to-do",
-  "/calendar",
-  "/settings",
+  "/admin/office-administration",
+  "/admin/calendar",
+  "/admin/message",
+  "/admin/settings",
 ];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const loginRoute = `${request.nextUrl.origin}/login`;
-  const dashboardRoute = `${request.nextUrl.origin}/dashboard`;
+  const dashboardRoute = `${request.nextUrl.origin}/admin/dashboard`;
 
   const token = request.cookies.get("token")?.value;
 
@@ -39,21 +35,27 @@ export function middleware(request: NextRequest) {
   const matchRoute = (routes: string[]) =>
     routes.some((route) => pathname.startsWith(route));
 
-  const isAdminRoute = matchRoute(adminRoutes);
-  const isOfficeRoute = matchRoute(officeAdminAllowedRoutes);
+  const isProtectedRoute = matchRoute(protectedRoutes);
 
   // 🔴 If logged in user hits login page → redirect dashboard
   if (isLoginRoute && token) {
     try {
-      jwtDecode<User>(token);
-      return NextResponse.redirect(new URL(dashboardRoute, request.url));
+      const user = jwtDecode<User>(token);
+
+      if (isAdminRole(user.role)) {
+        return NextResponse.redirect(new URL(dashboardRoute, request.url));
+      }
+
+      const res = NextResponse.redirect(new URL(loginRoute, request.url));
+      res.cookies.delete("token");
+      return res;
     } catch {
       return NextResponse.next();
     }
   }
 
   // 🟢 Public routes (not protected)
-  if (!isAdminRoute && !isOfficeRoute) {
+  if (!isProtectedRoute) {
     return NextResponse.next();
   }
 
@@ -68,25 +70,14 @@ export function middleware(request: NextRequest) {
   try {
     const user = jwtDecode<User>(token);
 
-    // 🟣 ADMIN ACCESS (full access)
-    if (user.role === "Admin") {
+    // Admin-only access
+    if (isAdminRole(user.role)) {
       return NextResponse.next();
     }
 
-    // 🟡 OFFICE ADMIN ACCESS (limited routes)
-    if (user.role === "OfficeAdmin") {
-      if (isOfficeRoute) {
-        return NextResponse.next();
-      }
-
-      // not allowed route
-      return NextResponse.redirect(
-        new URL("/office-administration", request.url),
-      );
-    }
-
-    // ❌ unknown role
-    return NextResponse.redirect(new URL("/login", request.url));
+    const res = NextResponse.redirect(new URL(loginRoute, request.url));
+    res.cookies.delete("token");
+    return res;
   } catch {
     const res = NextResponse.redirect(new URL(loginRoute, request.url));
     res.cookies.delete("token");
@@ -97,6 +88,7 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/login",
+    "/dashboard/:path*",
     "/admin/:path*",
     "/office-administration/:path*",
     "/calendar/:path*",

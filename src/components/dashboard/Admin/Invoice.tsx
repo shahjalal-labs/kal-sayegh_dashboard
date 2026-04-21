@@ -16,7 +16,7 @@ import { useEffect, useState } from "react";
 import { HiOutlineMailOpen } from "react-icons/hi";
 import { toast } from "sonner";
 
-export default function Estimate() {
+export default function Invoice() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
@@ -56,7 +56,7 @@ export default function Estimate() {
   });
 
   const totalPages = Math.max(1, Math.ceil(filteredInvoices.length / pageSize));
-  const paginatedEstimates = filteredInvoices.slice(
+  const paginatedInvoices = filteredInvoices.slice(
     (page - 1) * pageSize,
     page * pageSize,
   );
@@ -64,7 +64,7 @@ export default function Estimate() {
   const options = [
     { id: "description", label: "Description" },
     { id: "table", label: "Table Format" },
-    { id: "upload", label: "Upload Picture ,PDF , Document" },
+    // { id: "upload", label: "Upload Picture ,PDF , Document" },
   ];
 
   useEffect(() => {
@@ -108,7 +108,7 @@ export default function Estimate() {
       : "Unknown";
   };
 
-  const grouped = paginatedEstimates.reduce((acc: any, item: any) => {
+  const grouped = paginatedInvoices.reduce((acc: any, item: any) => {
     const dateString = item.createdAt || item.date;
     const key = getMonthKey(item);
     const label = dateString ? formatMonthYear(dateString) : "Unknown";
@@ -123,7 +123,7 @@ export default function Estimate() {
   );
 
   return (
-    <div className="md:bg-secondary bg-secondary-none p-0 md:p-6 rounded-2xl">
+    <div className="md:bg-secondary bg-secondary-none p-4 md:p-6 rounded-2xl">
       {/* HEADER */}
       <div className=" md:p-2 rounded-lg mb-6">
         <div className="flex items-center justify-between md:flex-row md:items-center md:justify-between gap-4 ">
@@ -167,7 +167,7 @@ export default function Estimate() {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search estimates"
+            placeholder="Search invoice"
             className="w-full pl-10 pr-4 h-12 border border-gray-300 rounded-2xl focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
           />
         </div>
@@ -220,7 +220,7 @@ export default function Estimate() {
                     <div className="flex-1 md:flex-none md:w-[30%]">
                       <div className="flex items-center justify-between gap-2 w-full">
                         <span className="font-semibold text-gray-800 lg:border-b lg:border-[#52C41A]">
-                          {item.estimateName || "Untitled Estimate"}
+                          {item.invoiceName || "Untitled Invoice"}
                         </span>
                         <span className="block md:hidden font-medium text-gray-600">
                           ${item.grandTotal?.toFixed(2) || "0.00"}
@@ -233,19 +233,19 @@ export default function Estimate() {
                             : item.date || "-"}
                         </p>
                         <span
-                          className={`px-4 py-2 text-xs rounded-full md:hidden block ${
+                          className={`px-3 py-1 text-xs rounded-full md:hidden block ${
                             item.status?.toLowerCase() === "active"
-                              ? "bg-[#2196F333] text-[#2196F3]"
+                              ? "bg-[#FF0000]  text-white"
                               : item.status?.toLowerCase() === "paid"
-                                ? "bg-[#008000] text-white"
-                                : "bg-[#FF0000] text-white"
+                                ? "bg-green-100 text-green-600"
+                                : "bg-[#FF0000] "
                           }`}
                         >
                           <span className="text-sm font-medium">
                             {item.status?.toLowerCase() === "active"
-                              ? "OVERDUE  "
+                              ? "Overdue"
                               : item.status?.toLowerCase() === "paid"
-                                ? "PAIED"
+                                ? "Paid"
                                 : item.status || "UNKNOWN"}
                           </span>
                         </span>
@@ -254,12 +254,12 @@ export default function Estimate() {
 
                     <div className="md:block hidden">
                       <span
-                        className={`px-4 py-2 text-xs rounded-full ${
-                          item.status?.toLowerCase() === "pending"
-                            ? "bg-[#2196F333] text-[#2196F3]"
+                        className={`px-3 py-1 text-xs rounded-full ${
+                          item.status?.toLowerCase() === "active"
+                            ? "bg-[#FF0000] text-white "
                             : item.status?.toLowerCase() === "paid"
-                              ? "bg-[#008000] text-white"
-                              : "bg-[#FF0000] text-white"
+                              ? "bg-green-100 text-green-600"
+                              : "bg-[#FF0000] "
                         }`}
                       >
                         <span className="text-sm font-medium">
@@ -363,11 +363,11 @@ export default function Estimate() {
             variant: "primary",
             onClick: () => {
               if (selected === "description") {
+                localStorage.setItem("invoiceDetailsFormat", "description");
                 router.push("/admin/add-invoice");
               } else if (selected === "table") {
+                localStorage.setItem("invoiceDetailsFormat", "table");
                 router.push("/admin/add-invoice");
-              } else if (selected === "upload") {
-                router.push("/admin/estimate/upload");
               } else {
                 toast.error("Please select an option first!");
               }

@@ -258,18 +258,18 @@ export default function OfficeAdministration() {
           />
         </CustomModal>
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-2 gap-4 md:gap-8">
           {offices?.map((office: any) => (
             <div key={office.id} className="space-y-4">
               <div className="flex items-center justify-between pb-4 gap-4">
-                <h2 className="font-normal text-gray-800 bg-white shadow-md border md:pr-14 pl-3 px-2 py-1 md:py-3 text-base rounded-md md:rounded-xl ">
+                <h2 className="font-normal text-gray-800 bg-white shadow-md border md:pr-14 pl-3 px-2 py-1 md:py-3 text-sm md:text-base rounded-md md:rounded-xl ">
                   {office.name}
                 </h2>
 
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setOpenModal(true)}
-                    className="px-3 py-2 md:px-4 md:py-3 bg-primary text-secondary text-xs md:text-base font-medium rounded-md md:rounded-xl hover:bg-primary/90 transition-colors flex items-center gap-2"
+                    className="px-2 py-1 md:px-4 md:py-3 bg-primary text-secondary text-xs md:text-base font-medium rounded-md md:rounded-xl hover:bg-primary/90 transition-colors flex items-center gap-2"
                   >
                     <span>+ New Job Request</span>
                   </button>
@@ -280,15 +280,15 @@ export default function OfficeAdministration() {
                 </div>
               </div>
 
-              <div className="space-y-7">
+              <div className="space-y-7 ">
                 {allJobs.length > 0 ? (
                   allJobs.map((job: JobItem) => (
                     <div
                       key={job.id}
-                      className="flex items-center justify-between py-6 px-4 bg-[#F7F8F8] border border-orange-100 rounded-2xl hover:bg-gray-50 transition cursor-pointer"
+                      className="flex items-center justify-between p-1 md:py-6 md:px-4 bg-[#F7F8F8] border border-orange-100 rounded-2xl hover:bg-gray-50 transition cursor-pointer"
                       onClick={() => handleJobClick(job)}
                     >
-                      <div className="flex items-center gap-3 flex-1">
+                      <div className="flex flex-col md:flex-row items-start md:items-center gap-3 flex-1">
                         <div
                           className={`w-3 h-3 rounded-full ${
                             job.status === "NEW" ? "bg-red-500" : "bg-green-500"
@@ -296,16 +296,16 @@ export default function OfficeAdministration() {
                         />
 
                         <div>
-                          <p className="text-lg font-medium text-gray-900">
+                          <p className="text-sm md:text-lg font-medium text-gray-900">
                             {job.title}
                           </p>
-                          <p className="text-base text-gray-500">
+                          <p className="text-xs md:text-base text-gray-500">
                             {new Date(job.date).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex flex-col items-end gap-3">
+                      <div className="flex-col items-end gap-3 flex">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();

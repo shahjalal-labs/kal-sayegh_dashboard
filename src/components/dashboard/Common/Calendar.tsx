@@ -532,7 +532,7 @@ export default function Calendar() {
   const monthData = generateMonthData(currentYear, currentMonth);
 
   return (
-    <div className="min-h-screen bg-white rounded-2xl md:p-6 font-sans">
+    <div className="min-h-screen bg-white rounded-2xl p-4 md:p-6 font-sans">
       <div className="flex flex-col-reverse md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div className="flex gap-2">
           <select

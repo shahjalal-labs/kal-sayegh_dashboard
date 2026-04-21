@@ -34,9 +34,9 @@ export default function ResetPassword() {
       return;
     }
 
-    const forgetToken = localStorage.getItem("forgetToken");
+    const rawForgetToken = localStorage.getItem("forgetToken");
+    const forgetToken = rawForgetToken?.replace(/^"|"$/g, "").trim();
 
-    console.log("forget", forgetToken);
     if (!forgetToken) {
       toast.error("Session expired. Please try again.");
       router.push("/forgot-password");
@@ -60,7 +60,16 @@ export default function ResetPassword() {
         setError(response.message || "Failed to reset password");
       }
     } catch (err: any) {
-      toast.error(err?.data?.message || "Failed to reset password");
+      const message = err?.data?.message || "Failed to reset password";
+
+      if (err?.status === 401 || message.toLowerCase().includes("no token")) {
+        localStorage.removeItem("forgetToken");
+        toast.error("Session expired. Please verify OTP again.");
+        router.push("/forgot-password");
+        return;
+      }
+
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }

@@ -9,9 +9,8 @@ export const baseApi = createApi({
     prepareHeaders: (headers) => {
       const token = Cookies.get("token");
 
-      if (token) {
+      if (token && !headers.has("Authorization")) {
         headers.set("Authorization", `Bearer ${token}`);
-      } else {
       }
 
       return headers;

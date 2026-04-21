@@ -1,4 +1,4 @@
-import AddInvoice from "@/components/dashboard/Admin/AddInvoice";
+import AddInvoice from "@/components/dashboard/Admin/Invoice/AddInvoice";
 
 export default function AddInvoicePage() {
   return (

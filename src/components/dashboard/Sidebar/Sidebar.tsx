@@ -113,13 +113,13 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
         isImage: true,
       },
       {
-        href: "/office-administration",
+        href: "/admin/office-administration",
         icon: newOffice,
         label: "Office Administration",
         isImage: true,
       },
       {
-        href: "/calendar",
+        href: "/admin/calendar",
         icon: FiCalendar,
         label: "Calendar",
         isImage: false,
@@ -137,7 +137,7 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
         isImage: true,
       },
       {
-        href: "/settings",
+        href: "/admin/settings",
         icon: settingIcon,
         label: "Settings",
         isImage: true,

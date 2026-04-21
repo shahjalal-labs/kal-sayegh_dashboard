@@ -53,7 +53,22 @@ export default function VerifyOTP() {
       const response = await verifyOtp({ email, otp: otpValue }).unwrap();
 
       if (response?.success) {
-        localStorage.setItem("forgetToken", response?.result?.forgetToken);
+        const forgetToken =
+          response?.result?.forgetToken ||
+          response?.result?.forgotToken ||
+          response?.result?.token ||
+          response?.forgetToken ||
+          response?.forgotToken ||
+          response?.token;
+
+        if (!forgetToken) {
+          toast.error(
+            "Verification succeeded but token is missing. Please try again.",
+          );
+          return;
+        }
+
+        localStorage.setItem("forgetToken", forgetToken);
 
         toast.success("OTP verified successfully");
         router.push(`/reset-password?email=${encodeURIComponent(email)}`);

@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { HiOutlineMailOpen } from "react-icons/hi";
 import { toast } from "sonner";
-import { CustomModal } from "../../modal/CustomModal";
+import { CustomModal } from "../../../modal/CustomModal";
 
 export default function Estimate() {
   const router = useRouter();
@@ -123,7 +123,7 @@ export default function Estimate() {
   );
 
   return (
-    <div className="md:bg-secondary bg-secondary-none p-0 md:p-6 rounded-2xl">
+    <div className="md:bg-secondary bg-secondary-none p-4 md:p-6 rounded-2xl">
       {/* HEADER */}
       <div className=" md:p-2 rounded-lg mb-6">
         <div className="flex items-center justify-between md:flex-row md:items-center md:justify-between gap-4 ">

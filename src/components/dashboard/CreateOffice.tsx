@@ -35,12 +35,12 @@ export default function CreateOffice() {
   };
 
   return (
-    <div>
+    <div className="p-4">
       <div className="flex justify-end mb-10">
         <button
           type="submit"
           onClick={() => setOpenOfficeModal(true)}
-          className=" px-3 py-2 md:px-4 md:py-3 bg-primary text-secondary text-xs md:text-base font-medium rounded-md md:rounded-xl hover:bg-primary/90 "
+          className=" px-3 py-2 md:px-4 md:py-3 mt-6 md:mt-0 bg-primary text-secondary text-xs md:text-base font-medium rounded-md md:rounded-xl hover:bg-primary/90 "
         >
           + Create New Office
         </button>

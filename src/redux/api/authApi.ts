@@ -44,7 +44,12 @@ const authApi = baseApi.injectEndpoints({
       query: (data: { newPassword: string; forgetToken: string }) => ({
         url: "/auth/reset-password",
         method: "PATCH",
-        body: data,
+        headers: {
+          Authorization: `Bearer ${data.forgetToken}`,
+        },
+        body: {
+          newPassword: data.newPassword,
+        },
       }),
     }),
 
