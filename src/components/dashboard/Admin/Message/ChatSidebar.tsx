@@ -11,10 +11,19 @@ import { toast } from "sonner";
 
 type MemberConversation = {
   roomId: string;
+  roomName?: string;
+  roomPhoto?: string;
+  roomType?: string;
+  members?: Array<{
+    id: string;
+    fullName: string;
+    profileImage?: string | null;
+    isActive?: boolean;
+  }>;
   partner?: {
     id: string;
     fullName: string;
-    profileImage?: string;
+    profileImage?: string | null;
     isActive?: boolean;
   };
   lastMessage?: {
@@ -24,19 +33,13 @@ type MemberConversation = {
   unreadCount: number;
 };
 
-type UserType = {
-  id: string;
-  fullName: string;
-  profileImage?: string | null;
-};
-
 type Props = {
-  socket: WebSocket | null;
   searchInput: string;
   setSearchInput: (value: string) => void;
   setSelectedChat: (value: MemberConversation) => void;
   memberConversations: MemberConversation[];
-  users: UserType[];
+  selectedRoomId: string | null;
+  currentUserId?: string;
   isConnected: boolean;
 };
 
@@ -50,21 +53,23 @@ function isValidUrl(url: string) {
 }
 
 export default function ChatSidebar({
-  socket,
   searchInput,
   setSearchInput,
   setSelectedChat,
   memberConversations,
-  users,
+  selectedRoomId,
+  currentUserId,
   isConnected,
 }: Props) {
-  const filteredConversations = (memberConversations || []).filter((conv) =>
-    conv.partner?.fullName?.toLowerCase().includes(searchInput.toLowerCase()),
-  );
-
-  const filteredUsers = (users || []).filter((user) =>
-    user.fullName.toLowerCase().includes(searchInput.toLowerCase()),
-  );
+  const filteredConversations = (memberConversations || []).filter((conv) => {
+    const searchValue = searchInput.toLowerCase();
+    const roomTitle =
+      conv.roomName ||
+      conv.partner?.fullName ||
+      conv.members?.find((member) => member.id !== currentUserId)?.fullName ||
+      "";
+    return roomTitle.toLowerCase().includes(searchValue);
+  });
 
   const [groupPhoto, setGroupPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -114,6 +119,40 @@ export default function ChatSidebar({
     }
   };
 
+  const getConversationAvatar = (conv: MemberConversation) => {
+    const isGroup = (conv.roomType || "").toLowerCase() === "group";
+
+    if (isGroup && conv.roomPhoto && isValidUrl(conv.roomPhoto)) {
+      return conv.roomPhoto;
+    }
+
+    if (conv.partner?.profileImage && isValidUrl(conv.partner.profileImage)) {
+      return conv.partner.profileImage;
+    }
+
+    const otherMember = conv.members?.find(
+      (member) => member.id !== currentUserId,
+    );
+    if (otherMember?.profileImage && isValidUrl(otherMember.profileImage)) {
+      return otherMember.profileImage;
+    }
+
+    return null;
+  };
+
+  const getConversationTitle = (conv: MemberConversation) => {
+    const isGroup = (conv.roomType || "").toLowerCase() === "group";
+    if (isGroup) {
+      return conv.roomName || "Group";
+    }
+
+    return (
+      conv.partner?.fullName ||
+      conv.members?.find((member) => member.id !== currentUserId)?.fullName ||
+      "Unknown"
+    );
+  };
+
   return (
     <div className="w-80 flex flex-col gap-4">
       <div className="p-4 bg-white">
@@ -140,60 +179,6 @@ export default function ChatSidebar({
       </div>
 
       <div className="flex-1 overflow-y-auto bg-white">
-        {/* Always show Users section */}
-        <h2 className="px-4 pt-4 pb-2 text-sm font-semibold text-[#817F9B] uppercase">
-          All Users
-        </h2>
-        {filteredUsers.length > 0 ? (
-          filteredUsers.map((user) => (
-            <div
-              key={user.id}
-              onClick={() => {
-                if (!isConnected) {
-                  toast.error("Connection lost. Please try again later.");
-                  return;
-                }
-                const newConversation: MemberConversation = {
-                  roomId: `new-${user.id}`,
-                  partner: {
-                    id: user.id,
-                    fullName: user.fullName,
-                    profileImage: user.profileImage || undefined,
-                  },
-                  lastMessage: undefined,
-                  unreadCount: 0,
-                };
-                setSelectedChat(newConversation);
-              }}
-              className={`flex items-center gap-3 px-4 py-4 hover:bg-orange-50 cursor-pointer ${
-                !isConnected ? "opacity-50 cursor-not-allowed" : ""
-              }`}
-            >
-              <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-200">
-                {user.profileImage && isValidUrl(user.profileImage) && (
-                  <Image
-                    src={user.profileImage}
-                    alt="avatar"
-                    fill
-                    className="object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-sm truncate">
-                  {user.fullName}
-                </h3>
-              </div>
-            </div>
-          ))
-        ) : (
-          <p className="px-4 py-2 text-sm text-[#817F9B]">No users found</p>
-        )}
-
-        {/* Always show Conversations section */}
         <h2 className="px-4 pt-4 pb-2 text-sm font-semibold text-[#817F9B] uppercase">
           Conversations
         </h2>
@@ -207,40 +192,29 @@ export default function ChatSidebar({
                   return;
                 }
                 setSelectedChat(conv);
-                if (
-                  socket &&
-                  socket.readyState === WebSocket.OPEN &&
-                  conv.partner?.id
-                ) {
-                  socket.send(
-                    JSON.stringify({
-                      type: "member-subscribe",
-                      receiverId: conv.partner.id,
-                    }),
-                  );
-                }
               }}
-              className={`flex items-center gap-3 px-4 py-4 hover:bg-[#00A8CC1A] cursor-pointer ${
-                !isConnected ? "opacity-50 cursor-not-allowed" : ""
-              }`}
+              className={`flex items-center gap-3 px-4 py-4 cursor-pointer transition-colors ${
+                selectedRoomId === conv.roomId
+                  ? "bg-[#F6EFE9]"
+                  : "hover:bg-[#00A8CC1A]"
+              } ${!isConnected ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-200">
-                {conv.partner?.profileImage &&
-                  isValidUrl(conv.partner.profileImage) && (
-                    <Image
-                      src={conv.partner.profileImage}
-                      alt="avatar"
-                      fill
-                      className="object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                  )}
+                {getConversationAvatar(conv) && (
+                  <Image
+                    src={getConversationAvatar(conv) as string}
+                    alt="avatar"
+                    fill
+                    className="object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-medium text-sm truncate">
-                  {conv.partner?.fullName || "Unknown"}
+                  {getConversationTitle(conv)}
                 </h3>
                 <p className="text-xs text-[#817F9B] truncate">
                   {conv.lastMessage?.content || "No messages"}

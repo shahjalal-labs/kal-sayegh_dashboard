@@ -19,7 +19,16 @@ const messageApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["messages"],
     }),
+
+    generateUrl: builder.mutation({
+      query: (data) => ({
+        url: "/message/generate-urls",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["messages"],
+    }),
   }),
 });
 
-export const { useCreateGroupMutation, useInviteGroupMutation } = messageApi;
+export const { useCreateGroupMutation, useInviteGroupMutation, useGenerateUrlMutation } = messageApi;
