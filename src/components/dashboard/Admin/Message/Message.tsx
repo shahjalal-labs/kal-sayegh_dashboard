@@ -16,6 +16,7 @@ import {
   useInviteGroupMutation,
 } from "@/redux/api/admin/messageApi";
 import { useMyProfileQuery } from "@/redux/api/authApi";
+import { useGetAllUsersQuery } from "@/redux/api/userApi";
 import ChatSidebar from "./ChatSidebar";
 
 type ChatMessage = {
@@ -70,6 +71,8 @@ export default function Message() {
   const [attachmentNames, setAttachmentNames] = useState<string[]>([]);
   const [isUploadingAttachments, setIsUploadingAttachments] = useState(false);
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [inviteMemberIds, setInviteMemberIds] = useState<string[]>([]);
   const socketRef = useRef<WebSocket | null>(null);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -78,11 +81,14 @@ export default function Message() {
   const { data: profileData } = useMyProfileQuery({});
   console.log("profiledata", profileData);
   const [generateUrlFn] = useGenerateUrlMutation();
-  const [inviteMemberGroupFn] = useInviteGroupMutation();
+  const [inviteMemberGroupFn, { isLoading: isInvitingMembers }] =
+    useInviteGroupMutation();
+  const { data: usersData } = useGetAllUsersQuery({});
 
   const currentUserId: string | undefined = profileData?.result?.id;
   const currentUserImage: string | undefined =
     profileData?.result?.profileImage || undefined;
+  const allUsers = usersData?.result || [];
 
   const isValidUrl = (url?: string | null) => {
     if (!url) return false;
@@ -502,8 +508,64 @@ export default function Message() {
     return null;
   };
 
+  const handleAddMemberGroup = () => {
+    if (!selectedConversation) {
+      toast.warning("No conversation selected");
+      return;
+    }
+
+    const isGroup =
+      (selectedConversation.roomType || "").toLowerCase() === "group";
+    if (!isGroup) {
+      toast.warning("Only group chats support member invitations");
+      return;
+    }
+
+    setInviteMemberIds([]);
+    setIsInviteModalOpen(true);
+  };
+
+  const handleInviteMembers = async () => {
+    if (!selectedRoomId) {
+      toast.warning("Please select a group first");
+      return;
+    }
+
+    if (inviteMemberIds.length === 0) {
+      toast.warning("Please select at least one member");
+      return;
+    }
+
+    try {
+      await inviteMemberGroupFn({
+        groupId: selectedRoomId,
+        memberIds: inviteMemberIds,
+      }).unwrap();
+
+      toast.success("Members invited successfully");
+      setIsInviteModalOpen(false);
+      setInviteMemberIds([]);
+
+      if (socketRef.current?.readyState === WebSocket.OPEN) {
+        socketRef.current.send(JSON.stringify({ type: "conversation" }));
+      }
+    } catch (error: any) {
+      toast.error(error?.data?.message || "Failed to invite members");
+    }
+  };
+
+  const existingMemberIds = new Set(
+    selectedConversation?.members?.map((member) => member.id) || [],
+  );
+
+  const inviteCandidates = allUsers.filter((user: any) => {
+    if (!user?.id) return false;
+    if (user.id === currentUserId) return false;
+    return !existingMemberIds.has(user.id);
+  });
+
   return (
-    <div className="flex gap-6 text-[rgb(28,26,60)]">
+    <div className="flex h-[calc(100vh-140px)] min-h-0 gap-6 overflow-hidden text-[rgb(28,26,60)]">
       <ChatSidebar
         searchInput={searchInput}
         setSearchInput={setSearchInput}
@@ -514,7 +576,7 @@ export default function Message() {
         isConnected={isConnected}
       />
 
-      <div className="flex-1 flex flex-col bg-[#F8F9FC] h-[900px] rounded-2xl overflow-hidden border border-[#EEF1F7]">
+      <div className="flex h-full min-h-0 flex-1 flex-col rounded-2xl border border-[#EEF1F7] bg-[#F8F9FC] overflow-hidden">
         <div className="p-4 md:p-5 flex items-center justify-between border-b border-[#E9EDF6] bg-white">
           <div className="flex items-center gap-3 md:gap-4">
             <Button
@@ -552,12 +614,13 @@ export default function Message() {
             variant="ghost"
             size="icon"
             className="h-10 w-10 rounded-xl text-[#F28B3B] hover:bg-[#FFF4EA]"
+            onClick={handleAddMemberGroup}
           >
             <UserPlus className="h-5 w-5" />
           </Button>
         </div>
 
-        <div className="flex-1 px-3 py-4 md:px-6 md:py-6 space-y-5 overflow-y-auto">
+        <div className="flex-1 min-h-0 space-y-5 overflow-y-auto px-3 py-4 md:px-6 md:py-6">
           {isChatLoading ? (
             <div className="flex h-full min-h-[320px] items-center justify-center">
               <div className="w-full max-w-xl rounded-3xl border border-[#E9EDF6] bg-white/80 p-6 shadow-sm backdrop-blur-sm">
@@ -761,6 +824,115 @@ export default function Message() {
           </div>
         </div>
       </div>
+
+      {isInviteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-[#262B45]">
+                  Invite Group Members
+                </h3>
+                <p className="text-sm text-[#8D93AC]">
+                  Select users to invite to this group.
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                className="text-[#7A8099]"
+                onClick={() => setIsInviteModalOpen(false)}
+              >
+                Close
+              </Button>
+            </div>
+
+            <div className="max-h-[360px] space-y-2 overflow-y-auto rounded-xl border border-[#E9EDF6] p-3">
+              {inviteCandidates.length === 0 ? (
+                <p className="py-6 text-center text-sm text-[#9AA1B9]">
+                  No users available to invite.
+                </p>
+              ) : (
+                inviteCandidates.map((user: any) => {
+                  const isSelected = inviteMemberIds.includes(user.id);
+                  return (
+                    <button
+                      key={user.id}
+                      type="button"
+                      onClick={() => {
+                        setInviteMemberIds((prev) =>
+                          prev.includes(user.id)
+                            ? prev.filter((id) => id !== user.id)
+                            : [...prev, user.id],
+                        );
+                      }}
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition-colors ${
+                        isSelected ? "bg-[#F28B3B1A]" : "hover:bg-[#F5F7FC]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="relative h-9 w-9 overflow-hidden rounded-full bg-[#E7EBF5]">
+                          <Image
+                            src={
+                              isValidUrl(user?.profileImage)
+                                ? user.profileImage
+                                : defaultProfileImage
+                            }
+                            alt={user?.fullName || "user"}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-[#262B45]">
+                            {user?.fullName || "Unknown"}
+                          </p>
+                          <p className="text-xs text-[#8D93AC]">
+                            {user?.email || "No email"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <span
+                        className={`rounded-full px-2 py-1 text-xs ${
+                          isSelected
+                            ? "bg-[#F28B3B] text-white"
+                            : "bg-[#EEF1F7] text-[#7A8099]"
+                        }`}
+                      >
+                        {isSelected ? "Selected" : "Select"}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="mt-5 flex items-center justify-between">
+              <p className="text-sm text-[#7A8099]">
+                {inviteMemberIds.length} member(s) selected
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setInviteMemberIds([]);
+                    setIsInviteModalOpen(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleInviteMembers}
+                  disabled={isInvitingMembers || inviteMemberIds.length === 0}
+                  className="bg-[#F28B3B] hover:bg-[#E67D2D] text-white"
+                >
+                  {isInvitingMembers ? "Inviting..." : "Invite Members"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -154,7 +154,7 @@ export default function ChatSidebar({
   };
 
   return (
-    <div className="w-80 flex flex-col gap-4">
+    <div className="w-80 h-full min-h-0 flex flex-col gap-4">
       <div className="p-4 bg-white">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-semibold">Chats</h1>
@@ -178,7 +178,7 @@ export default function ChatSidebar({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto bg-white">
+      <div className="flex-1 min-h-0 overflow-y-auto bg-white">
         <h2 className="px-4 pt-4 pb-2 text-sm font-semibold text-[#817F9B] uppercase">
           Conversations
         </h2>
