@@ -207,36 +207,59 @@ export default function EstimateDetailsDescription() {
           </div>
 
           <div className="mt-9 space-y-4">
-            {sideMapUrls.length > 0 && (
-              <div className="grid grid-cols-1 gap-3">
-                {sideMapUrls.map((url: string, index: number) => (
-                  <div
-                    key={`side-map-${index}`}
-                    className="border border-[#dfdfdf] bg-white p-2"
-                  >
-                    {isVideoUrl(url) ? (
-                      <video controls className="w-full h-auto rounded-sm">
-                        <source src={url} />
-                      </video>
-                    ) : (
-                      <Image
-                        src={url}
-                        alt={`Side Map ${index + 1}`}
-                        width={900}
-                        height={520}
-                        className="w-full h-auto object-contain"
-                      />
-                    )}
+            <div>
+              {sideMapUrls.length > 0 && (
+                <div className="grid grid-cols-1 gap-3 mt-4">
+                  {sideMapUrls.map((url: string, index: number) => (
+                    <div
+                      key={`side-map-${index}`}
+                      className="border border-[#dfdfdf] bg-white p-2"
+                    >
+                      {isVideoUrl(url) ? (
+                        <video controls className="w-full h-auto rounded-sm">
+                          <source src={url} />
+                        </video>
+                      ) : (
+                        <Image
+                          src={url}
+                          alt={`Side Map ${index + 1}`}
+                          width={900}
+                          height={520}
+                          className="w-full h-auto object-contain"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="mt-4 border border-[#d7d7d7] bg-white">
+                <div className="grid grid-cols-1 md:grid-cols-3 text-base text-gray-700">
+                  <div className="p-3 border-b md:border-b-0 md:border-r border-[#e1e1e1]">
+                    <Image
+                      src={logo}
+                      alt="Logo"
+                      width={100}
+                      height={52}
+                      className="h-auto w-[76px] md:w-[200px] mb-2"
+                    />
+                    <p>GeoPaving, CA 91730</p>
+                    <p>(626) 447-0525</p>
+                    <p>www.geopaving.com</p>
                   </div>
-                ))}
+                  <div className="p-3 border-b md:border-b-0 md:border-r border-[#e1e1e1]">
+                    <p>Name: {estimate?.client?.clientName || "-"}</p>
+                    <p>{estimate?.client?.address || "-"}</p>
+                    <p>{estimate?.client?.city || "-"}</p>
+                  </div>
+                  <div className="p-3">
+                    <p>Project: Asphalt</p>
+                    <p>Repairing in route</p>
+                    <p>Cracking, sealing</p>
+                    <p>Striping and sweeping</p>
+                  </div>
+                </div>
               </div>
-            )}
-
-            {sideMapUrls.length > 0 && fileUrls.length > 0 && (
-              <div className="py-3">
-                <div className="w-full border-t-2 border-orange-300" />
-              </div>
-            )}
+            </div>
 
             {fileUrls.length > 0 && (
               <div className="grid grid-cols-1 gap-3">
@@ -262,34 +285,6 @@ export default function EstimateDetailsDescription() {
                 ))}
               </div>
             )}
-
-            <div className="mt-4 border border-[#d7d7d7] bg-white">
-              <div className="grid grid-cols-1 md:grid-cols-3 text-base text-gray-700">
-                <div className="p-3 border-b md:border-b-0 md:border-r border-[#e1e1e1]">
-                  <Image
-                    src={logo}
-                    alt="Logo"
-                    width={100}
-                    height={52}
-                    className="h-auto w-[76px] md:w-[200px] mb-2"
-                  />
-                  <p>GeoPaving, CA 91730</p>
-                  <p>(626) 447-0525</p>
-                  <p>www.geopaving.com</p>
-                </div>
-                <div className="p-3 border-b md:border-b-0 md:border-r border-[#e1e1e1]">
-                  <p>Name: {estimate?.client?.clientName || "-"}</p>
-                  <p>{estimate?.client?.address || "-"}</p>
-                  <p>{estimate?.client?.city || "-"}</p>
-                </div>
-                <div className="p-3">
-                  <p>Project: Asphalt</p>
-                  <p>Repairing in route</p>
-                  <p>Cracking, sealing</p>
-                  <p>Striping and sweeping</p>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 

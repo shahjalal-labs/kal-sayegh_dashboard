@@ -1,6 +1,8 @@
 "use client";
 
+import paymentIcon from "@/assets/dashboard/credit-card-validation.png";
 import logo from "@/assets/kal-logo.png";
+import PaymentModal from "@/components/dashboard/Admin/Invoice/Payment/PaymentModal";
 import {
   useGetInvoiceByIdQuery,
   useSendInvoiceMailMutation,
@@ -9,6 +11,7 @@ import html2pdf from "html2pdf.js";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useState } from "react";
 import { AiOutlineMail } from "react-icons/ai";
 import { FiArrowLeft, FiDownload } from "react-icons/fi";
 import { ColorRing } from "react-loader-spinner";
@@ -16,6 +19,7 @@ import Swal from "sweetalert2";
 
 export default function InvoiceDetailsTableFormat() {
   const { id } = useParams();
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   const { data, isLoading, error } = useGetInvoiceByIdQuery(id as string);
   const invoice = (data as any)?.result;
@@ -209,6 +213,14 @@ export default function InvoiceDetailsTableFormat() {
 
         <div className="flex items-center gap-3 mt-4">
           <button
+            onClick={() => setIsPaymentModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary"
+          >
+            <Image src={paymentIcon} alt="Payment" width={20} height={20} />
+            Payment
+          </button>
+
+          <button
             onClick={handleDownload}
             className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90"
           >
@@ -217,6 +229,13 @@ export default function InvoiceDetailsTableFormat() {
           </button>
         </div>
       </div>
+
+      {isPaymentModalOpen && (
+        <PaymentModal
+          onClose={() => setIsPaymentModalOpen(false)}
+          recipientEmails={invoice?.client?.email ? [invoice.client.email] : []}
+        />
+      )}
 
       <div id="invoice" className="bg-secondary rounded-2xl p-5 md:p-8 mt-4 ">
         <h1 className="text-center tracking-[0.2em] text-base md:text-xl text-gray-400 font-semibold">

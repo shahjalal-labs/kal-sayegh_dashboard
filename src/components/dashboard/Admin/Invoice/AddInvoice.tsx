@@ -23,6 +23,7 @@ export default function AddInvoice() {
     date: "",
     poNumber: "",
     daysToPay: "",
+    legendary: "",
     endDate: "",
     clientId: "",
   });
@@ -120,6 +121,7 @@ export default function AddInvoice() {
       endDate: formData.endDate,
       grandTotal: Math.round(tableData.grandTotal),
       invoiceName: formData.invoiceName,
+      legendary: formData.legendary,
       items: selectedItems.map((item: any) => ({
         id: item.selectedItem.id,
         quantity: parseFloat(item.quantity),
@@ -139,19 +141,6 @@ export default function AddInvoice() {
       const invoiceId = res?.result?.id;
 
       toast.success("Invoice has been created successfully!");
-      setFormData({
-        invoiceName: "",
-        date: "",
-        poNumber: "",
-        daysToPay: "",
-        endDate: "",
-        clientId: "",
-      });
-      setSelectedClient(null);
-      setTableData(null);
-      setTableKey((prev) => prev + 1);
-      setOpen(false);
-      setShowAll(false);
       setSideMaps([]);
       setImages([]);
 
@@ -160,12 +149,12 @@ export default function AddInvoice() {
 
       const storedFormat =
         typeof window !== "undefined"
-          ? localStorage.getItem("estimateDetailsFormat")
+          ? localStorage.getItem("invoiceDetailsFormat")
           : null;
       const format = storedFormat === "table" ? "table" : "description";
 
       if (typeof window !== "undefined") {
-        localStorage.removeItem("estimateDetailsFormat");
+        localStorage.removeItem("invoiceDetailsFormat");
       }
 
       router.push(`/admin/invoice/${invoiceId}?format=${format}`);
@@ -407,20 +396,6 @@ export default function AddInvoice() {
                 />
               </div>
               <div className="space-y-2">
-                <label>PO Number</label>
-                <input
-                  placeholder="PO Number"
-                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
-                  value={formData.poNumber}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      poNumber: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-              <div className="space-y-2">
                 <label>Days to pay</label>
                 <input
                   placeholder="Days to pay"
@@ -430,6 +405,20 @@ export default function AddInvoice() {
                     setFormData((prev) => ({
                       ...prev,
                       daysToPay: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <label>Legendary</label>
+                <input
+                  placeholder="Legendary"
+                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
+                  value={formData.legendary}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      legendary: e.target.value,
                     }))
                   }
                 />

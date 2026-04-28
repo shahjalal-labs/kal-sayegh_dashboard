@@ -118,6 +118,7 @@ export default function EstimateDescription() {
     date: "",
     endDate: "",
     poNumber: "",
+    legendary: "",
     items: [] as any[],
     additionalMarkUp: 0,
     grandTotal: 0,
@@ -405,6 +406,7 @@ export default function EstimateDescription() {
         date: estimateForm.date,
         endDate: estimateForm.endDate,
         poNumber: estimateForm.poNumber,
+        legendary: estimateForm.legendary,
 
         items: lineItemTables.flatMap((table) =>
           table.items.map((item) => ({
@@ -442,6 +444,7 @@ export default function EstimateDescription() {
         date: "",
         endDate: "",
         poNumber: "",
+        legendary: "",
         items: [],
         additionalMarkUp: 0,
         grandTotal: 0,
@@ -763,6 +766,21 @@ export default function EstimateDescription() {
               className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
+        </div>
+
+        <div>
+          <label className="text-sm text-gray-600">Legendary</label>
+          <input
+            placeholder="Legendary"
+            value={estimateForm.legendary}
+            onChange={(e) =>
+              setEstimateForm((prev) => ({
+                ...prev,
+                legendary: e.target.value,
+              }))
+            }
+            className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary"
+          />
         </div>
 
         <div>
