@@ -81,6 +81,20 @@ export default function InvoiceDetailsDescription() {
     return sum + (Number(item?.subTotal) || 0);
   }, 0);
 
+  const clientAddress = [
+    invoice?.client?.address,
+    invoice?.client?.city,
+    invoice?.client?.state,
+    invoice?.client?.zip,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  const scopeSummary = invoiceItems
+    .map((item: any) => item?.description)
+    .filter(Boolean)
+    .join(", ");
+
   const isVideoUrl = (url: string) =>
     /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(url);
 
@@ -171,57 +185,22 @@ export default function InvoiceDetailsDescription() {
             invoiceItems.map((item: any, index: number) => (
               <div
                 key={item?.id || index}
-                className="flex justify-between gap-4 border-b border-[#e1e1e1] py-3 text-base space-y-3 leading-5 text-gray-700"
+                className="flex justify-between gap-4 border-b border-[#e1e1e1] py-3 text-base leading-6 text-gray-700"
               >
-                <div className="space-y-3">
-                  <p className="font-semibold text-black">Invoice Line Item</p>
-                  <p>Item ID: {item?.id || "-"}</p>
-                  <p>Quantity: {Number(item?.quantity) || 0}</p>
-                </div>
+                <p className="max-w-[70%] font-semibold text-black">
+                  {item?.description || "No description"}
+                </p>
                 <p className="font-semibold text-black whitespace-nowrap">
                   ${(Number(item?.subTotal) || 0).toFixed(2)}
                 </p>
               </div>
             ))
           ) : (
-            <div className="flex justify-between border-b border-[#e1e1e1] py-3 text-[10px] text-gray-700">
+            <div className="flex justify-between border-b border-[#e1e1e1] py-3 text-base text-gray-700">
               <p>No items</p>
               <p>$0.00</p>
             </div>
           )}
-
-          <div className="mt-2 flex justify-end">
-            <div className="w-full max-w-[300px] space-y-2 text-base">
-              <div className="flex items-center justify-between border-b border-[#e1e1e1] pb-1">
-                <p className="font-semibold">Subtotal</p>
-                <p className="font-semibold">${subtotal.toFixed(2)}</p>
-              </div>
-              <div className="flex items-center justify-between border-b border-[#e1e1e1] pb-1">
-                <p className="font-semibold">Markup</p>
-                <p className="font-semibold">
-                  ${(Number(invoice?.additionalMarkUp) || 0).toFixed(2)}
-                </p>
-              </div>
-              <div className="flex items-center justify-between border-b border-[#e1e1e1] pb-1">
-                <p className="font-semibold">Discount</p>
-                <p className="font-semibold">
-                  ${(Number(invoice?.discountAmount) || 0).toFixed(2)}
-                </p>
-              </div>
-              <div className="flex items-center justify-between border-b border-[#e1e1e1] pb-1">
-                <p className="font-semibold">Deposit</p>
-                <p className="font-semibold">
-                  ${(Number(invoice?.depositAmount) || 0).toFixed(2)}
-                </p>
-              </div>
-              <div className="flex items-center justify-between border-b border-[#e1e1e1] pb-1">
-                <p className="font-semibold">Total</p>
-                <p className="font-semibold">
-                  ${(Number(invoice?.grandTotal) || 0).toFixed(2)}
-                </p>
-              </div>
-            </div>
-          </div>
 
           <div className="mt-9 space-y-4">
             {sideMapUrls.length > 0 && (
@@ -229,7 +208,7 @@ export default function InvoiceDetailsDescription() {
                 {sideMapUrls.map((url: string, index: number) => (
                   <div
                     key={`side-map-${index}`}
-                    className="border border-[#dfdfdf] bg-white p-2"
+                    className="border border-[#dfdfdf] bg-white"
                   >
                     {isVideoUrl(url) ? (
                       <video controls className="w-full h-auto rounded-sm">
@@ -244,14 +223,43 @@ export default function InvoiceDetailsDescription() {
                         className="w-full h-auto object-contain"
                       />
                     )}
+                    <div className="border-t border-[#e5e5e5] bg-[#f9f9f9]">
+                      <div className="grid grid-cols-1 md:grid-cols-3 text-[11px] text-gray-700">
+                        {/* LEFT: Company Info */}
+                        <div className="p-4 border-r border-[#e5e5e5] space-y-2">
+                          <Image
+                            src={logo}
+                            alt="Geo Paving"
+                            width={120}
+                            height={50}
+                            className="h-auto w-[120px]"
+                          />
+                          <p>Cucamonga, CA 91730</p>
+                          <p>Phone: (951) 469-7002</p>
+                          <p>Email: geopaving@gmail.com</p>
+                          <p>Web: www.geopaving.com</p>
+                        </div>
+
+                        {/* MIDDLE: Client Info */}
+                        <div className="p-4 border-r border-[#e5e5e5] space-y-2">
+                          <p className="font-semibold text-gray-800">
+                            {invoice?.client?.clientName || "-"}
+                          </p>
+                          <p>{clientAddress || "-"}</p>
+                          <p>{invoice?.client?.phoneNumber || "-"}</p>
+                        </div>
+
+                        {/* RIGHT: Project Info */}
+                        <div className="p-4 space-y-2">
+                          <p className="font-semibold text-gray-800">
+                            {invoice?.invoiceName || "-"}
+                          </p>
+                          <p>{scopeSummary || "-"}</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 ))}
-              </div>
-            )}
-
-            {sideMapUrls.length > 0 && fileUrls.length > 0 && (
-              <div className="py-3">
-                <div className="w-full border-t-2 border-orange-300" />
               </div>
             )}
 
@@ -281,24 +289,23 @@ export default function InvoiceDetailsDescription() {
             )}
           </div>
         </div>
+      </div>
+      <div className="flex gap-3 mt-6 justify-end">
+        <button
+          onClick={() => window.print()}
+          className="flex items-center gap-2 px-4 py-2 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary"
+        >
+          <FiPrinter />
+          Print
+        </button>
 
-        <div className="flex gap-3 mt-6 justify-end">
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary"
-          >
-            <FiPrinter />
-            Print
-          </button>
-
-          <button
-            onClick={handleDownload}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90"
-          >
-            <FiDownload />
-            Download
-          </button>
-        </div>
+        <button
+          onClick={handleDownload}
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90"
+        >
+          <FiDownload />
+          Download
+        </button>
       </div>
     </div>
   );

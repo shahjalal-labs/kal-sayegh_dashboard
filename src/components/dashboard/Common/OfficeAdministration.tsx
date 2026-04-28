@@ -258,10 +258,10 @@ export default function OfficeAdministration() {
           />
         </CustomModal>
 
-        <div className="grid grid-cols-2 gap-4 md:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4  md:gap-8">
           {offices?.map((office: any) => (
             <div key={office.id} className="space-y-4">
-              <div className="flex items-center justify-between pb-4 gap-4">
+              <div className="flex items-center justify-between pb-4 gap-4 ">
                 <h2 className="font-normal text-gray-800 bg-white shadow-md border md:pr-14 pl-3 px-2 py-1 md:py-3 text-sm md:text-base rounded-md md:rounded-xl ">
                   {office.name}
                 </h2>
@@ -285,7 +285,7 @@ export default function OfficeAdministration() {
                   allJobs.map((job: JobItem) => (
                     <div
                       key={job.id}
-                      className="flex items-center justify-between p-1 md:py-6 md:px-4 bg-[#F7F8F8] border border-orange-100 rounded-2xl hover:bg-gray-50 transition cursor-pointer"
+                      className="flex items-center justify-between md:py-6 md:px-4 bg-[#F7F8F8] border border-orange-100 rounded-2xl hover:bg-gray-50 transition cursor-pointer p-2"
                       onClick={() => handleJobClick(job)}
                     >
                       <div className="flex flex-col md:flex-row items-start md:items-center gap-3 flex-1">
