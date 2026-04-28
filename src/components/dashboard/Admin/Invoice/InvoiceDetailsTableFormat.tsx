@@ -8,6 +8,7 @@ import {
   useSendInvoiceMailMutation,
 } from "@/redux/api/admin/invoiceApi";
 import html2pdf from "html2pdf.js";
+import { Edit } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -184,7 +185,7 @@ export default function InvoiceDetailsTableFormat() {
 
       <div className="flex flex-col md:flex-row md:justify-between mt-7">
         <div className="flex items-center  gap-3 mt-4">
-          {/* <Link
+          <Link
             href={
               editInvoiceId
                 ? `/admin/edit-invoice?id=${editInvoiceId}&format=table`
@@ -199,7 +200,7 @@ export default function InvoiceDetailsTableFormat() {
           >
             <Edit size={16} />
             Edit
-          </Link> */}
+          </Link>
 
           <button
             onClick={handleSendEstimateEmail}

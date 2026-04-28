@@ -60,6 +60,12 @@ const PaymentModal = ({ onClose, recipientEmails = [] }: PaymentModalProps) => {
   const [isRecordPayment, setIsRecordPayment] = useState(false);
   const [sendMeCopy, setSendMeCopy] = useState(false);
   const [showPaymentList, setShowPaymentList] = useState(false);
+  const [activeMenuId, setActiveMenuId] = useState<"payment" | "refund" | null>(
+    null,
+  );
+  const [activeActionModal, setActiveActionModal] = useState<
+    "details" | "refund" | null
+  >(null);
   const [amountMode, setAmountMode] = useState<"amount" | "percent" | "full">(
     "amount",
   );
@@ -116,6 +122,8 @@ const PaymentModal = ({ onClose, recipientEmails = [] }: PaymentModalProps) => {
 
   const handleClose = () => {
     setShowPaymentList(false);
+    setActiveMenuId(null);
+    setActiveActionModal(null);
     onClose();
   };
 
@@ -131,6 +139,7 @@ const PaymentModal = ({ onClose, recipientEmails = [] }: PaymentModalProps) => {
           closeReminder();
           return;
         }
+        setActiveMenuId(null);
         handleClose();
       }}
     >
@@ -192,13 +201,44 @@ const PaymentModal = ({ onClose, recipientEmails = [] }: PaymentModalProps) => {
                 </p>
                 <p className="text-sm text-gray-500">Apr 20 Mon, 2026 / Cash</p>
               </div>
-              <button
-                type="button"
-                className="h-9 w-12 rounded-md bg-gray-100 text-sm text-gray-700"
-                aria-label="Payment actions"
-              >
-                ---
-              </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveMenuId((prev) =>
+                      prev === "payment" ? null : "payment",
+                    )
+                  }
+                  className="h-9 w-12 rounded-md bg-gray-100 text-sm text-gray-700"
+                  aria-label="Payment actions"
+                >
+                  ---
+                </button>
+                {activeMenuId === "payment" && (
+                  <div className="absolute right-0 top-11 z-10 w-32 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveActionModal("details");
+                        setActiveMenuId(null);
+                      }}
+                      className="block w-full px-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50"
+                    >
+                      Details
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveActionModal("refund");
+                        setActiveMenuId(null);
+                      }}
+                      className="block w-full px-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50"
+                    >
+                      Issue Refund
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex items-start justify-between border-b border-gray-200 pb-4">
@@ -208,13 +248,44 @@ const PaymentModal = ({ onClose, recipientEmails = [] }: PaymentModalProps) => {
                 </p>
                 <p className="text-sm text-gray-400">Apr 20 Mon, 2026 / Cash</p>
               </div>
-              <button
-                type="button"
-                className="h-9 w-12 rounded-md bg-gray-100 text-sm text-gray-700"
-                aria-label="Refund actions"
-              >
-                ---
-              </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveMenuId((prev) =>
+                      prev === "refund" ? null : "refund",
+                    )
+                  }
+                  className="h-9 w-12 rounded-md bg-gray-100 text-sm text-gray-700"
+                  aria-label="Refund actions"
+                >
+                  ---
+                </button>
+                {activeMenuId === "refund" && (
+                  <div className="absolute right-0 top-11 z-10 w-32 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveActionModal("details");
+                        setActiveMenuId(null);
+                      }}
+                      className="block w-full px-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50"
+                    >
+                      Details
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveActionModal("refund");
+                        setActiveMenuId(null);
+                      }}
+                      className="block w-full px-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50"
+                    >
+                      Issue Refund
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -222,7 +293,7 @@ const PaymentModal = ({ onClose, recipientEmails = [] }: PaymentModalProps) => {
         {/* Footer */}
         <div className="flex justify-end mt-6">
           <button
-            className="bg-orange-500 hover:bg-orange-600 transition-colors text-white px-6 py-2 rounded-md text-base"
+            className="bg-primary hover:bg-orange-600 transition-colors text-white px-6 py-2 rounded-md text-base"
             onClick={handleClose}
           >
             Close
@@ -253,6 +324,10 @@ const PaymentModal = ({ onClose, recipientEmails = [] }: PaymentModalProps) => {
                 </label>
                 <CreatableSelect<EmailOption, true>
                   isMulti
+                  components={{
+                    DropdownIndicator: null,
+                    IndicatorSeparator: null,
+                  }}
                   value={recipients}
                   onChange={handleRecipientsChange}
                   onCreateOption={addRecipient}
@@ -272,11 +347,7 @@ const PaymentModal = ({ onClose, recipientEmails = [] }: PaymentModalProps) => {
                     );
                   }}
                   formatCreateLabel={(value) => `Add \"${value}\"`}
-                  noOptionsMessage={() =>
-                    recipientInput.trim()
-                      ? "No matching emails"
-                      : "Type to see suggestions"
-                  }
+                  noOptionsMessage={() => null}
                   placeholder="Type email and press Enter"
                   styles={recipientSelectStyles}
                 />
@@ -343,6 +414,96 @@ const PaymentModal = ({ onClose, recipientEmails = [] }: PaymentModalProps) => {
         </div>
       )}
 
+      {activeActionModal === "details" && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 px-4"
+          onClick={(event) => {
+            event.stopPropagation();
+            setActiveActionModal(null);
+          }}
+        >
+          <div
+            className="w-full max-w-[700px] rounded-2xl bg-white p-6 shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <button
+                type="button"
+                onClick={() => setActiveActionModal(null)}
+                className="text-gray-600 hover:text-black"
+                aria-label="Back"
+              >
+                ←
+              </button>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Payment Details
+              </h2>
+            </div>
+
+            <div className="rounded-xl bg-gray-100 py-8 text-center">
+              <p className="text-xs font-medium uppercase text-gray-400">
+                Total Amount
+              </p>
+              <p className="mt-2 text-3xl font-semibold text-gray-900">
+                $1600.00
+              </p>
+            </div>
+
+            <div className="mt-6 flex items-center justify-between border-t border-gray-200 pt-4 text-sm text-gray-500">
+              <span>Transaction Details</span>
+              <span className="font-medium text-gray-700">20-04-2026</span>
+            </div>
+
+            <div className="mt-8 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setActiveActionModal(null)}
+                className="min-w-[112px] rounded-lg bg-primary px-6 py-2 text-sm text-white hover:opacity-90"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeActionModal === "refund" && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 px-4"
+          onClick={(event) => {
+            event.stopPropagation();
+            setActiveActionModal(null);
+          }}
+        >
+          <div
+            className="w-full max-w-[560px] rounded-2xl bg-white p-6 shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 className="text-lg font-semibold text-gray-900">
+              Issue Refund
+            </h2>
+            <p className="mt-2 text-sm text-gray-500">
+              Are you sure you want to refund $1,600.00?
+            </p>
+            <div className="mt-8 flex items-center justify-center gap-4">
+              <button
+                type="button"
+                onClick={() => setActiveActionModal(null)}
+                className="min-w-[120px] rounded-lg border border-orange-400 px-5 py-2 text-sm text-primary hover:opacity-90"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="min-w-[140px] rounded-lg bg-primary px-5 py-2 text-sm text-white hover:opacity-90"
+              >
+                Issue Refunded
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isRecordPayment && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4"
@@ -399,7 +560,7 @@ const PaymentModal = ({ onClose, recipientEmails = [] }: PaymentModalProps) => {
                       onClick={() => setAmountMode("amount")}
                       className={`px-4 text-sm font-semibold transition-colors ${
                         amountMode === "amount"
-                          ? "bg-orange-500 text-white"
+                          ? "bg-primary text-white"
                           : "text-gray-500"
                       }`}
                     >
@@ -410,7 +571,7 @@ const PaymentModal = ({ onClose, recipientEmails = [] }: PaymentModalProps) => {
                       onClick={() => setAmountMode("percent")}
                       className={`px-4 text-sm border-l border-gray-300 transition-colors ${
                         amountMode === "percent"
-                          ? "bg-orange-500 text-white"
+                          ? "bg-primary text-white"
                           : "text-gray-500"
                       }`}
                     >
@@ -421,7 +582,7 @@ const PaymentModal = ({ onClose, recipientEmails = [] }: PaymentModalProps) => {
                       onClick={() => setAmountMode("full")}
                       className={`px-4 text-sm border-l border-gray-300 transition-colors ${
                         amountMode === "full"
-                          ? "bg-orange-500 text-white"
+                          ? "bg-primary text-white"
                           : "text-gray-500"
                       }`}
                     >
@@ -452,7 +613,7 @@ const PaymentModal = ({ onClose, recipientEmails = [] }: PaymentModalProps) => {
                     onClick={() => setPaymentMethod("cash")}
                     className={`py-2 text-sm transition-colors ${
                       paymentMethod === "cash"
-                        ? "bg-orange-500 text-white"
+                        ? "bg-primary text-white"
                         : "text-gray-500"
                     }`}
                   >
@@ -463,7 +624,7 @@ const PaymentModal = ({ onClose, recipientEmails = [] }: PaymentModalProps) => {
                     onClick={() => setPaymentMethod("check")}
                     className={`py-2 text-sm border-l border-gray-300 transition-colors ${
                       paymentMethod === "check"
-                        ? "bg-orange-500 text-white"
+                        ? "bg-primary text-white"
                         : "text-gray-500"
                     }`}
                   >
@@ -474,7 +635,7 @@ const PaymentModal = ({ onClose, recipientEmails = [] }: PaymentModalProps) => {
                     onClick={() => setPaymentMethod("card")}
                     className={`py-2 text-sm border-l border-gray-300 transition-colors ${
                       paymentMethod === "card"
-                        ? "bg-orange-500 text-white"
+                        ? "bg-primary text-white"
                         : "text-gray-500"
                     }`}
                   >
@@ -485,7 +646,7 @@ const PaymentModal = ({ onClose, recipientEmails = [] }: PaymentModalProps) => {
                     onClick={() => setPaymentMethod("bank")}
                     className={`py-2 text-sm border-l border-gray-300 transition-colors ${
                       paymentMethod === "bank"
-                        ? "bg-orange-500 text-white"
+                        ? "bg-primary text-white"
                         : "text-gray-500"
                     }`}
                   >
@@ -499,7 +660,7 @@ const PaymentModal = ({ onClose, recipientEmails = [] }: PaymentModalProps) => {
               <button
                 type="button"
                 onClick={closeRecordPayment}
-                className="min-w-[100px] rounded-lg border border-orange-400 px-5 py-2 text-sm text-orange-500 hover:bg-orange-50"
+                className="min-w-[100px] rounded-lg border border-orange-400 px-5 py-2 text-sm text-primaryhover:opacity-90"
               >
                 Close
               </button>
@@ -509,7 +670,7 @@ const PaymentModal = ({ onClose, recipientEmails = [] }: PaymentModalProps) => {
                   setShowPaymentList(true);
                   closeRecordPayment();
                 }}
-                className="min-w-[100px] rounded-lg bg-orange-500 px-5 py-2 text-sm text-white hover:opacity-90"
+                className="min-w-[100px] rounded-lg bg-primary px-5 py-2 text-sm text-white hover:opacity-90"
               >
                 Add
               </button>
