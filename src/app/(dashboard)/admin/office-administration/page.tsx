@@ -1,4 +1,4 @@
-import OfficeAdministration from "@/components/dashboard/Common/OfficeAdministration";
+import OfficeAdministration from "@/components/dashboard/Admin/OfficeAdministration";
 
 export default function OfficeAdministrationPage() {
   return (
