@@ -4,10 +4,9 @@ import paymentIcon from "@/assets/dashboard/credit-card-validation.png";
 import logo from "@/assets/kal-logo.png";
 import {
   useGetInvoiceByIdQuery,
-  useSendInvoiceMailMutation,
+  useSendReminderEmailMutation,
 } from "@/redux/api/admin/invoiceApi";
 import html2pdf from "html2pdf.js";
-import { Edit } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -21,12 +20,41 @@ import PaymentModal from "./Payment/PaymentModal";
 export default function InvoiceDetailsTableFormat() {
   const { id } = useParams();
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isReminderOpen, setIsReminderOpen] = useState(false);
+  const [showClientEmail, setShowClientEmail] = useState(true);
+  const [emailInput, setEmailInput] = useState("");
 
   const { data, isLoading, error } = useGetInvoiceByIdQuery(id as string);
   const invoice = (data as any)?.result;
+  const clientEmail = invoice?.client?.email || "";
 
-  const [sendInvoiceMail, { isLoading: isSendingMail }] =
-    useSendInvoiceMailMutation();
+  const [invoiceReminder, { isLoading: isSendingReminder }] =
+    useSendReminderEmailMutation();
+
+  const [formData, setFormData] = useState({
+    message: "",
+    sendMeCopy: false,
+    subject: "",
+    to: [] as string[],
+  });
+
+  const editInvoiceId =
+    typeof id === "string" ? id : Array.isArray(id) ? id[0] : invoice?.id || "";
+
+  const addRecipientEmail = (rawEmail: string) => {
+    const trimmedEmail = rawEmail.trim();
+    if (!trimmedEmail) return;
+
+    setFormData((prev) => {
+      if (prev.to.includes(trimmedEmail)) return prev;
+      return {
+        ...prev,
+        to: [...prev.to, trimmedEmail],
+      };
+    });
+
+    setEmailInput("");
+  };
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("en-US", {
@@ -106,28 +134,65 @@ export default function InvoiceDetailsTableFormat() {
   };
 
   const handleSendEstimateEmail = async () => {
-    if (!id) return;
+    setIsReminderOpen(true);
+  };
 
-    const result = await Swal.fire({
-      title: "Send Estimate",
-      text: "Do you want to send this estimate by email?",
-      icon: "question",
-      confirmButtonText: "Send Email",
-      showCancelButton: true,
-      cancelButtonText: "Cancel",
-    });
-
-    if (!result.isConfirmed) return;
-
+  const handleInvoiceReminder = async () => {
     try {
-      await sendInvoiceMail(id as string).unwrap();
+      const reminderRecipients = Array.from(
+        new Set(
+          [
+            ...formData.to,
+            ...(showClientEmail && clientEmail ? [clientEmail] : []),
+          ].filter(Boolean),
+        ),
+      );
+
+      if (!editInvoiceId) {
+        await Swal.fire({
+          title: "Failed",
+          text: "Invoice id is missing.",
+          icon: "error",
+          confirmButtonText: "OK",
+        });
+        return;
+      }
+
+      if (reminderRecipients.length === 0) {
+        await Swal.fire({
+          title: "Recipients Required",
+          text: "Please add at least one recipient email.",
+          icon: "warning",
+          confirmButtonText: "OK",
+        });
+        return;
+      }
+
+      await invoiceReminder({
+        invoiceId: editInvoiceId,
+        message: formData.message,
+        sendMeCopy: formData.sendMeCopy,
+        subject: formData.subject,
+        to: reminderRecipients,
+      }).unwrap();
+
       await Swal.fire({
         title: "Sent",
         text: "Invoice email sent successfully.",
         icon: "success",
         confirmButtonText: "OK",
       });
-    } catch {
+
+      setFormData({
+        message: "",
+        sendMeCopy: false,
+        subject: "",
+        to: [],
+      });
+      setEmailInput("");
+      setShowClientEmail(true);
+      setIsReminderOpen(false);
+    } catch (error) {
       await Swal.fire({
         title: "Failed",
         text: "Failed to send invoice email. Please try again.",
@@ -170,9 +235,6 @@ export default function InvoiceDetailsTableFormat() {
       ? (invoice?.grandTotal || 0) / normalizedItems.length
       : invoice?.grandTotal || 0;
 
-  const editInvoiceId =
-    typeof id === "string" ? id : Array.isArray(id) ? id[0] : invoice?.id || "";
-
   return (
     <div>
       <Link
@@ -185,7 +247,7 @@ export default function InvoiceDetailsTableFormat() {
 
       <div className="flex flex-col md:flex-row md:justify-between mt-7">
         <div className="flex items-center  gap-3 mt-4">
-          <Link
+          {/* <Link
             href={
               editInvoiceId
                 ? `/admin/edit-invoice?id=${editInvoiceId}&format=table`
@@ -200,11 +262,11 @@ export default function InvoiceDetailsTableFormat() {
           >
             <Edit size={16} />
             Edit
-          </Link>
+          </Link> */}
 
           <button
             onClick={handleSendEstimateEmail}
-            disabled={isSendingMail}
+            disabled={isSendingReminder}
             className="flex items-center gap-2 px-4 py-2 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary"
           >
             <AiOutlineMail />
@@ -215,9 +277,15 @@ export default function InvoiceDetailsTableFormat() {
         <div className="flex items-center gap-3 mt-4">
           <button
             onClick={() => setIsPaymentModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary"
+            className="group flex items-center gap-2 px-4 py-2 border-primary transition-all duration-300 border text-primary rounded-lg hover:bg-primary hover:text-white ease-in"
           >
-            <Image src={paymentIcon} alt="Payment" width={20} height={20} />
+            <Image
+              src={paymentIcon}
+              alt="Payment"
+              width={20}
+              height={20}
+              className="transition duration-300 group-hover:brightness-0 group-hover:invert"
+            />
             Payment
           </button>
 
@@ -230,6 +298,172 @@ export default function InvoiceDetailsTableFormat() {
           </button>
         </div>
       </div>
+
+      {isReminderOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4"
+          onClick={(event) => {
+            event.stopPropagation();
+            setIsReminderOpen(false);
+          }}
+        >
+          <div
+            className="w-full max-w-[640px] rounded-2xl bg-white p-6 shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 className="text-xl font-semibold text-gray-900">
+              Send Payment Reminder
+            </h2>
+
+            <div className="mt-8 space-y-6">
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-900">
+                  To
+                </label>
+
+                <div className="flex min-h-[48px] w-full flex-wrap items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 focus-within:border-primary">
+                  {showClientEmail && clientEmail ? (
+                    <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm text-gray-700">
+                      <span>{clientEmail}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowClientEmail(false);
+                          setFormData((prev) => ({
+                            ...prev,
+                            to: prev.to.filter(
+                              (email) => email !== clientEmail,
+                            ),
+                          }));
+                        }}
+                        className="text-gray-400 hover:text-red-500"
+                        aria-label="Remove client email"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : null}
+
+                  {formData.to.map((email) => (
+                    <div
+                      key={email}
+                      className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm text-gray-700"
+                    >
+                      <span>{email}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            to: prev.to.filter((item) => item !== email),
+                          }));
+                        }}
+                        className="text-gray-400 hover:text-red-500"
+                        aria-label={`Remove ${email}`}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+
+                  <input
+                    type="text"
+                    placeholder="Add email..."
+                    value={emailInput}
+                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                      setEmailInput(event.target.value);
+                    }}
+                    onKeyDown={(
+                      event: React.KeyboardEvent<HTMLInputElement>,
+                    ) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        addRecipientEmail(emailInput);
+                      }
+                    }}
+                    className="flex-1 bg-transparent text-sm outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-900">
+                  Subject
+                </label>
+                <input
+                  type="text"
+                  value={formData.subject}
+                  onChange={(event) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      subject: event.target.value,
+                    }))
+                  }
+                  className="h-12 w-full rounded-xl border border-gray-200 px-4 text-sm text-gray-500 outline-none placeholder:text-gray-400 focus:border-primary"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-4">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      sendMeCopy: !prev.sendMeCopy,
+                    }))
+                  }
+                  className={`relative inline-flex h-8 w-16 items-center rounded-full px-1 transition-colors ${
+                    formData.sendMeCopy ? "bg-primary" : "bg-gray-200"
+                  }`}
+                  aria-label="Send me a copy toggle"
+                >
+                  <span
+                    className={`inline-block h-6 w-6 rounded-full bg-white shadow transition-transform ${
+                      formData.sendMeCopy ? "translate-x-8" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+                <span className="text-sm font-medium text-gray-700">
+                  Send me a copy
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-900">
+                  Message
+                </label>
+                <textarea
+                  value={formData.message}
+                  onChange={(event) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      message: event.target.value,
+                    }))
+                  }
+                  className="min-h-[120px] w-full rounded-xl border border-gray-200 px-4 py-3 text-sm leading-6 text-gray-600 outline-none focus:border-primary"
+                />
+              </div>
+            </div>
+
+            <div className="mt-10 flex items-center justify-end gap-5">
+              <button
+                type="button"
+                onClick={() => setIsReminderOpen(false)}
+                className="min-w-[112px] rounded-xl border border-primary px-6 py-3 text-base text-primary transition-colors hover:bg-primary hover:text-white"
+              >
+                Close
+              </button>
+              <button
+                onClick={handleInvoiceReminder}
+                type="button"
+                className="min-w-[112px] rounded-xl bg-primary px-6 py-3 text-base text-white transition-colors hover:opacity-90"
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isPaymentModalOpen && (
         <PaymentModal

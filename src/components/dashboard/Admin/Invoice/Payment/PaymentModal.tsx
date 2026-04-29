@@ -4,6 +4,7 @@ import {
   useGetInvoiceDetailsQuery,
   useGetInvoicePaymentsQuery,
   useInvoiceManualPaymentMutation,
+  useRefundPaymentMutation,
   useSendReminderEmailMutation,
 } from "@/redux/api/admin/invoiceApi";
 import { LucideMoreHorizontal } from "lucide-react";
@@ -71,6 +72,7 @@ const PaymentModal = ({
 
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [activeTransaction, setActiveTransaction] = useState<any>(null);
+  const [refundAmount, setRefundAmount] = useState("");
   const [activeActionModal, setActiveActionModal] = useState<
     "details" | "refund" | null
   >(null);
@@ -85,6 +87,7 @@ const PaymentModal = ({
 
   const [invoiceReminder] = useSendReminderEmailMutation();
   const [manualPayment] = useInvoiceManualPaymentMutation();
+  const [refundPayment] = useRefundPaymentMutation();
 
   const payments = data?.result;
   const summary = payments?.summary || {};
@@ -110,6 +113,11 @@ const PaymentModal = ({
       amountMode: "$",
     },
   );
+
+  const [refund, setrefund] = useState({
+    amount: 0,
+    reason: "",
+  });
 
   const totalDue = summary?.totalDue || 0;
   const totalPaid = summary?.totalPaid || 0;
@@ -224,13 +232,44 @@ const PaymentModal = ({
     }
   };
 
+  const handleRefund = async () => {
+    try {
+      const paymentId =
+        typeof activeTransaction?.id === "string"
+          ? activeTransaction.id
+          : typeof activeTransaction?._id === "string"
+            ? activeTransaction._id
+            : "";
+
+      if (!paymentId) {
+        toast.error("Missing payment id for refund");
+        return;
+      }
+
+      await refundPayment({
+        paymentId,
+        payload: {
+          amount: Number(refundAmount || 0),
+          reason: refund.reason,
+        },
+      }).unwrap();
+
+      toast.success("Refund issued successfully");
+      setRefundAmount("");
+      setrefund({ amount: 0, reason: "" });
+      setActiveActionModal(null);
+    } catch (error) {
+      toast.error("Failed to issue refund");
+    }
+  };
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 sm:p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 sm:p-4 "
       onClick={handleClose}
     >
       <div
-        className="w-full max-w-[560px] rounded-2xl bg-white p-5 shadow-xl sm:max-w-[640px] sm:p-6"
+        className="w-full max-w-[560px] max-h-[80vh] overflow-y-auto  rounded-2xl bg-white p-5 shadow-xl sm:max-w-[640px] sm:p-6 "
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-7 flex items-center justify-between">
@@ -239,7 +278,7 @@ const PaymentModal = ({
           </h2>
           <button
             type="button"
-            className="rounded-[14px] bg-[#e97f2d] px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-[#d96f1f]"
+            className="rounded-xl bg-primary px-6 py-3 text-base font-medium text-white transition-colors hover:bg-primary/90  "
             onClick={() => {
               setIsRecordPayment(true);
               setIsReminderOpen(false);
@@ -270,7 +309,7 @@ const PaymentModal = ({
 
           <button
             type="button"
-            className="mt-4 inline-flex items-center gap-3 text-sm font-medium text-[#f36f21] transition-colors hover:text-[#d95e12]"
+            className="mt-4 inline-flex items-center gap-3 text-base font-medium text-[#f36f21] transition-colors hover:text-[#d95e12]"
             onClick={() => {
               setIsReminderOpen(true);
               setIsRecordPayment(false);
@@ -399,6 +438,12 @@ const PaymentModal = ({
                               type="button"
                               onClick={() => {
                                 setActiveTransaction(transaction);
+                                setRefundAmount(
+                                  String(transaction.amount || ""),
+                                );
+                                setRefundAmount(
+                                  String(transaction.amount || ""),
+                                );
                                 setActiveActionModal("refund");
                                 setActiveMenuId(null);
                               }}
@@ -621,15 +666,13 @@ const PaymentModal = ({
             </div>
 
             <div className="rounded-xl bg-gray-100 py-8 text-center">
-              <p className="text-xs font-medium uppercase text-gray-400">
-                Total Amount
-              </p>
+              <p className="text-base uppercase font-normal">Total Amount</p>
               <p className="mt-2 text-3xl font-semibold text-gray-900">
                 {formatCurrency(activeTransaction?.amount || 0)}
               </p>
             </div>
 
-            <div className="mt-6 flex items-center justify-between border-t border-gray-200 pt-4 text-sm text-gray-500">
+            <div className="mt-6 flex items-center justify-between border-t border-gray-200 pt-4 text-base text-gray-500">
               <span>Transaction Details</span>
               <span className="font-medium text-gray-700">
                 {activeTransaction ? formatDate(activeTransaction.date) : "-"}
@@ -677,21 +720,41 @@ const PaymentModal = ({
             <h2 className="text-lg font-semibold text-gray-900">
               Issue Refund
             </h2>
+
+            <input
+              type="number"
+              value={refundAmount}
+              onChange={(event) => setRefundAmount(event.target.value)}
+              inputMode="decimal"
+              aria-label="Refund amount"
+              className="border border-gray-300 p-2 outline-none focus:ring-1 focus:ring-primary w-full rounded-lg mt-4"
+            />
             <p className="mt-2 text-sm text-gray-500">
               Are you sure you want to refund{" "}
               {formatCurrency(activeTransaction?.amount || 0)}?
             </p>
+
+            <input
+              type="text"
+              value={refund.reason}
+              placeholder="Refund Reason"
+              onChange={(e) => {
+                setrefund((prev) => ({ ...prev, reason: e.target.value }));
+              }}
+              className="border border-gray-300 p-2 outline-none focus:ring-1 focus:ring-primary w-full rounded-lg mt-4"
+            />
             <div className="mt-8 flex items-center justify-center gap-4">
               <button
                 type="button"
                 onClick={() => setActiveActionModal(null)}
-                className="min-w-[120px] rounded-lg border border-orange-400 px-5 py-2 text-sm text-primary hover:opacity-90"
+                className="min-w-[120px] rounded-lg border border-primary hover:text-white hover:bg-primary px-5 py-2 text-base text-primary hover:opacity-90 transition-all duration-300 ease-in"
               >
                 Cancel
               </button>
               <button
+                onClick={handleRefund}
                 type="button"
-                className="min-w-[140px] rounded-lg bg-primary px-5 py-2 text-sm text-white hover:opacity-90"
+                className="min-w-[140px] rounded-lg bg-primary px-5 py-2 text-base text-white hover:opacity-90 transition-all duration-300 ease-in"
               >
                 Issue Refunded
               </button>

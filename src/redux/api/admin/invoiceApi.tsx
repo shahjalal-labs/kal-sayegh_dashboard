@@ -124,6 +124,14 @@ const invoiceApi = baseApi.injectEndpoints({
         body: payload,
       }),
     }),
+
+    refundPayment: builder.mutation({
+      query: ({ paymentId, payload }) => ({
+        url: `/invoice/refund-payment/${paymentId}`,
+        method: "POST",
+        body: payload,
+      }),
+    }),
   }),
 });
 
@@ -136,4 +144,5 @@ export const {
   useSendReminderEmailMutation,
   useGetInvoiceDetailsQuery,
   useInvoiceManualPaymentMutation,
+  useRefundPaymentMutation,
 } = invoiceApi;
