@@ -122,6 +122,13 @@ export default function Estimate() {
     b.localeCompare(a),
   );
 
+  const getEstimateDetailsFormat = (item: any) => {
+    const formatValue =
+      item?.detailsFormat || item?.format || item?.viewFormat || "description";
+
+    return formatValue === "table" ? "table" : "description";
+  };
+
   return (
     <div className="md:bg-secondary bg-secondary-none p-4 md:p-6 rounded-2xl">
       {/* HEADER */}
@@ -291,10 +298,24 @@ export default function Estimate() {
                     </div>
 
                     <div className="hidden md:flex md:gap-2 md:w-[15%] md:justify-end">
-                      <button className="px-4 py-2 border border-primary text-primary rounded-lg whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          router.push(
+                            `/admin/estimate/${item.id}?format=${getEstimateDetailsFormat(item)}`,
+                          );
+                        }}
+                        className="px-4 py-2 border border-primary text-primary rounded-lg whitespace-nowrap"
+                      >
                         Open
                       </button>
-                      <button className="px-4 py-2 bg-primary text-secondary rounded-lg whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          router.push(`/admin/edit-estimate?id=${item.id}`);
+                        }}
+                        className="px-4 py-2 bg-primary text-secondary rounded-lg whitespace-nowrap"
+                      >
                         Edit
                       </button>
                     </div>

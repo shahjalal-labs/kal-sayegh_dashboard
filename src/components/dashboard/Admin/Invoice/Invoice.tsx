@@ -122,6 +122,16 @@ export default function Invoice() {
     b.localeCompare(a),
   );
 
+  const getInvoiceDetailsFormat = () => {
+    if (typeof window === "undefined") {
+      return "description";
+    }
+
+    return localStorage.getItem("invoiceDetailsFormat") === "table"
+      ? "table"
+      : "description";
+  };
+
   return (
     <div className="md:bg-secondary bg-secondary-none p-4 md:p-6 rounded-2xl">
       {/* HEADER */}
@@ -289,12 +299,20 @@ export default function Invoice() {
                     </div>
 
                     <div className="hidden md:flex md:gap-2 md:w-[15%] md:justify-end">
-                      <button className="px-4 py-2 border border-primary text-primary rounded-lg whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          router.push(
+                            `/admin/invoice/${item.id}?format=${getInvoiceDetailsFormat()}`,
+                          );
+                        }}
+                        className="px-4 py-2 border border-primary text-primary hover:bg-primary/90 transition-colors hover:text-white rounded-lg whitespace-nowrap"
+                      >
                         Open
                       </button>
-                      <button className="px-4 py-2 bg-primary text-secondary rounded-lg whitespace-nowrap">
+                      {/* <button className="px-4 py-2 bg-primary text-secondary rounded-lg whitespace-nowrap">
                         Edit
-                      </button>
+                      </button> */}
                     </div>
                   </div>
                 ))}

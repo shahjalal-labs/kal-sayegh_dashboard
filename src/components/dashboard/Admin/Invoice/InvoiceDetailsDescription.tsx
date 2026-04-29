@@ -202,13 +202,13 @@ export default function InvoiceDetailsDescription() {
             </div>
           )}
 
-          <div className="mt-9 space-y-4">
-            {sideMapUrls.length > 0 && (
-              <div className="grid grid-cols-1 gap-3">
+          <div className="mt-9 space-y-4 ">
+            {sideMapUrls.length > 0 ? (
+              <div className=" gap-3 flex flex-col-reverse">
                 {sideMapUrls.map((url: string, index: number) => (
                   <div
                     key={`side-map-${index}`}
-                    className="border border-[#dfdfdf] bg-white"
+                    className="border border-[#dfdfdf] "
                   >
                     {isVideoUrl(url) ? (
                       <video controls className="w-full h-auto rounded-sm">
@@ -223,45 +223,50 @@ export default function InvoiceDetailsDescription() {
                         className="w-full h-auto object-contain"
                       />
                     )}
-                    <div className="border-t border-[#e5e5e5] bg-[#f9f9f9]">
-                      <div className="grid grid-cols-1 md:grid-cols-3 text-[11px] text-gray-700">
-                        {/* LEFT: Company Info */}
-                        <div className="p-4 border-r border-[#e5e5e5] space-y-2">
-                          <Image
-                            src={logo}
-                            alt="Geo Paving"
-                            width={120}
-                            height={50}
-                            className="h-auto w-[120px]"
-                          />
-                          <p>Cucamonga, CA 91730</p>
-                          <p>Phone: (951) 469-7002</p>
-                          <p>Email: geopaving@gmail.com</p>
-                          <p>Web: www.geopaving.com</p>
-                        </div>
-
-                        {/* MIDDLE: Client Info */}
-                        <div className="p-4 border-r border-[#e5e5e5] space-y-2">
-                          <p className="font-semibold text-gray-800">
-                            {invoice?.client?.clientName || "-"}
-                          </p>
-                          <p>{clientAddress || "-"}</p>
-                          <p>{invoice?.client?.phoneNumber || "-"}</p>
-                        </div>
-
-                        {/* RIGHT: Project Info */}
-                        <div className="p-4 space-y-2">
-                          <p className="font-semibold text-gray-800">
-                            {invoice?.invoiceName || "-"}
-                          </p>
-                          <p>{scopeSummary || "-"}</p>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 ))}
               </div>
+            ) : (
+              <div className="flex justify-center border-b items-center border-[#e1e1e1] py-3 text-2xl text-center text-gray-700 h-24">
+                <p>No side map</p>
+              </div>
             )}
+
+            <div className="border-t border-[#e5e5e5] bg-[#f9f9f9] ">
+              <div className="grid grid-cols-1 md:grid-cols-3 text-base text-gray-700">
+                {/* LEFT: Company Info */}
+                <div className="p-4 border-r border-[#e5e5e5] space-y-2">
+                  <Image
+                    src={logo}
+                    alt="Geo Paving"
+                    width={120}
+                    height={50}
+                    className="h-auto w-[120px]"
+                  />
+                  <p>Cucamonga, CA 91730</p>
+                  <p>Phone: (951) 469-7002</p>
+                  <p>Email: geopaving@gmail.com</p>
+                  <p>Web: www.geopaving.com</p>
+                </div>
+
+                {/* MIDDLE: Client Info */}
+                <div className="p-4 border-r border-[#e5e5e5] space-y-2">
+                  <p className="font-semibold text-gray-800">
+                    {invoice?.client?.clientName || "-"}
+                  </p>
+                  <p>{clientAddress || "-"}</p>
+                  <p>{invoice?.client?.phoneNumber || "-"}</p>
+                </div>
+
+                {/* RIGHT: Project Info */}
+                <div className="p-4 space-y-2">
+                  <p className="font-semibold text-gray-800">
+                    {invoice?.invoiceName || "-"}
+                  </p>
+                  <p>{scopeSummary || "-"}</p>
+                </div>
+              </div>
+            </div>
 
             {fileUrls.length > 0 && (
               <div className="grid grid-cols-1 gap-3">

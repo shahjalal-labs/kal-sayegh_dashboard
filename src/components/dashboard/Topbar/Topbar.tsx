@@ -100,17 +100,19 @@ const Topbar: React.FC<{ onHamburgerClick: () => void }> = ({
             </div>
           </Link>
 
-          {profile?.profileImage ? (
-            <Image
-              src={profile.profileImage}
-              className="w-10 h-10 rounded-full bg-gray-200"
-              alt="profile"
-              width={40}
-              height={40}
-            />
-          ) : (
-            <div className="w-10 h-10 rounded-full bg-gray-300" />
-          )}
+          <Link href={"/admin/settings"}>
+            {profile?.profileImage ? (
+              <Image
+                src={profile.profileImage}
+                className="w-10 h-10 rounded-full bg-gray-200"
+                alt="profile"
+                width={40}
+                height={40}
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-gray-300" />
+            )}
+          </Link>
         </div>
       </div>
     </header>
