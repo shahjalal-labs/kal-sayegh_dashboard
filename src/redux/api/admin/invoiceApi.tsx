@@ -70,6 +70,60 @@ const invoiceApi = baseApi.injectEndpoints({
         };
       },
     }),
+
+    getInvoicePayments: builder.query({
+      query: (invoiceId) => ({
+        url: `/invoice/payments/${invoiceId}`,
+        method: "GET",
+      }),
+    }),
+
+    sendReminderEmail: builder.mutation({
+      query: (payload) => {
+        const normalizedPayload =
+          payload && typeof payload === "object"
+            ? payload
+            : { invoiceId: payload };
+
+        const rawInvoiceId =
+          normalizedPayload.invoiceId ??
+          normalizedPayload.id ??
+          normalizedPayload._id;
+
+        const invoiceId =
+          typeof rawInvoiceId === "string" || typeof rawInvoiceId === "number"
+            ? String(rawInvoiceId)
+            : String(rawInvoiceId?.id ?? rawInvoiceId?._id ?? "");
+
+        const {
+          invoiceId: _invoiceId,
+          id: _id,
+          _id: _rawId,
+          ...body
+        } = normalizedPayload;
+
+        return {
+          url: `/invoice/send-email/${invoiceId}`,
+          method: "POST",
+          body,
+        };
+      },
+    }),
+
+    getInvoiceDetails: builder.query({
+      query: (invoiceId) => ({
+        url: `/invoice/details/${invoiceId}`,
+        method: "GET",
+      }),
+    }),
+
+    invoiceManualPayment: builder.mutation({
+      query: ({ invoiceId, payload }) => ({
+        url: `/invoice/record-payment/${invoiceId}`,
+        method: "POST",
+        body: payload,
+      }),
+    }),
   }),
 });
 
@@ -78,4 +132,8 @@ export const {
   useGetAllInvoiceQuery,
   useGetInvoiceByIdQuery,
   useSendInvoiceMailMutation,
+  useGetInvoicePaymentsQuery,
+  useSendReminderEmailMutation,
+  useGetInvoiceDetailsQuery,
+  useInvoiceManualPaymentMutation,
 } = invoiceApi;

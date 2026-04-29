@@ -2,7 +2,6 @@
 
 import paymentIcon from "@/assets/dashboard/credit-card-validation.png";
 import logo from "@/assets/kal-logo.png";
-import PaymentModal from "@/components/dashboard/Admin/Invoice/Payment/PaymentModal";
 import {
   useGetInvoiceByIdQuery,
   useSendInvoiceMailMutation,
@@ -17,6 +16,7 @@ import { AiOutlineMail } from "react-icons/ai";
 import { FiArrowLeft, FiDownload } from "react-icons/fi";
 import { ColorRing } from "react-loader-spinner";
 import Swal from "sweetalert2";
+import PaymentModal from "./Payment/PaymentModal";
 
 export default function InvoiceDetailsTableFormat() {
   const { id } = useParams();
@@ -234,6 +234,7 @@ export default function InvoiceDetailsTableFormat() {
       {isPaymentModalOpen && (
         <PaymentModal
           onClose={() => setIsPaymentModalOpen(false)}
+          invoiceId={editInvoiceId}
           recipientEmails={invoice?.client?.email ? [invoice.client.email] : []}
         />
       )}
