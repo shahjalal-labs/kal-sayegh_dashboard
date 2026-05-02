@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SK || "";
+
+const stripe = new Stripe(stripeSecretKey, {
   apiVersion: "2023-10-16",
 });
 
@@ -14,6 +16,13 @@ export async function POST(
 
     if (!invoiceId) {
       return NextResponse.json({ error: "Invoice ID is required" }, { status: 400 });
+    }
+
+    if (!stripeSecretKey) {
+      return NextResponse.json(
+        { error: "Stripe secret key is not configured" },
+        { status: 500 }
+      );
     }
 
     // TODO: Replace with actual invoice lookup from database

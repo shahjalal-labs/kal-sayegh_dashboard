@@ -42,42 +42,46 @@ function CheckoutForm({
 
       if (submitError) {
         toast.error(submitError.message || "Form submission failed");
-        setSubmitting(false);
         return;
       }
 
-      // Create the payment method without confirming
-      const { paymentMethod, error: pmError } = await stripe.createPaymentMethod({
+      const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
+        confirmParams: {
+          return_url: `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/invoice/${invoiceId}`,
+        },
+        redirect: "if_required",
       });
 
-      if (pmError) {
-        toast.error(pmError.message || "Failed to create payment method");
-        setSubmitting(false);
+      if (error) {
+        toast.error(error.message || "Payment failed");
         return;
       }
 
-      const paymentMethodId = paymentMethod?.id;
+      if (paymentIntent) {
+        const paymentMethodId =
+          typeof paymentIntent.payment_method === "string"
+            ? paymentIntent.payment_method
+            : paymentIntent.payment_method?.id;
 
-      if (!paymentMethodId) {
-        toast.error("Payment method ID not found");
-        console.error("Payment method:", paymentMethod);
-        setSubmitting(false);
-        return;
-      }
+        if (paymentMethodId) {
+          const paymentResponse = await payment({
+            invoiceId,
+            payload: {
+              paymentMethodId,
+            },
+          }).unwrap();
 
-      console.log("Payment Method ID:", paymentMethodId);
-
-      // Call the payment API with the payment method ID
-      const paymentResponse = await payment({
-        paymentMethodId,
-      }).unwrap();
-
-      if (paymentResponse?.success) {
-        toast.success("Payment successful");
-        onClose();
-      } else {
-        toast.error(paymentResponse?.message || "Payment failed");
+          if (paymentResponse?.success) {
+            toast.success("Payment successful");
+            onClose();
+          } else {
+            toast.error(paymentResponse?.message || "Payment failed");
+          }
+        } else {
+          toast.success("Payment successful");
+          onClose();
+        }
       }
     } catch (err: any) {
       toast.error(err?.message || "Payment error");
@@ -95,7 +99,7 @@ function CheckoutForm({
       <button
         type="submit"
         disabled={submitting || !stripe}
-        className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {submitting ? "Processing…" : "Pay Now"}
       </button>
