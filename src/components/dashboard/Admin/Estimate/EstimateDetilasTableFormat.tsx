@@ -115,8 +115,28 @@ export default function EstimateDetilasTableFormat() {
 
     if (!result.isConfirmed) return;
 
+    const to = estimate?.client?.email ? [estimate.client.email] : [];
+
+    if (to.length === 0) {
+      await Swal.fire({
+        title: "Missing email",
+        text: "No recipient email was found for this estimate.",
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+      return;
+    }
+
     try {
-      await sendEstimateMail(id as string).unwrap();
+      await sendEstimateMail({
+        estimateId: id as string,
+        to,
+        cc: [],
+        bcc: [],
+        message: "We are pleased to work with you. Please review the estimate.",
+        sendMeCopy: true,
+        subject: "Your Estimate  from Geo Paving and Sealcoating",
+      }).unwrap();
       await Swal.fire({
         title: "Sent",
         text: "Estimate email sent successfully.",

@@ -67,7 +67,7 @@ export default function Account() {
         <form className="space-y-6">
           {/* Old Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-lg font-medium text-gray-700 mb-2">
               Old Password
             </label>
             <div className="relative">
@@ -95,7 +95,7 @@ export default function Account() {
 
           {/* New Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-lg font-medium text-gray-700 mb-2">
               New Password
             </label>
             <div className="relative">
@@ -119,14 +119,14 @@ export default function Account() {
                 )}
               </button>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-base text-gray-500 mt-1">
               Min 8 Characters with a combination of letters and numbers
             </p>
           </div>
 
           {/* Confirmation New Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-lg font-medium text-gray-700 mb-2">
               Confirmation New Password
             </label>
             <div className="relative">
@@ -156,7 +156,7 @@ export default function Account() {
             <button
               onClick={handleSubmit}
               type="submit"
-              className="bg-primary text-white px-16 py-3 rounded-xl"
+              className="bg-primary hover:opacity-90 text-white px-16 py-3 rounded-xl"
             >
               {isLoading ? "Changing..." : "Save "}
             </button>

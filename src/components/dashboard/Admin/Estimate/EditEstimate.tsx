@@ -27,6 +27,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { GoPlus } from "react-icons/go";
 import { LuMapPin } from "react-icons/lu";
 import { toast } from "sonner";
+import { ColorRing } from "react-loader-spinner";
 
 interface LineItem {
   id: string;
@@ -876,7 +877,14 @@ export default function EditEstimate() {
   };
 
   if (isEstimateLoading) {
-    return <div className="p-4">Loading estimate...</div>;
+    return  <div className="flex items-center justify-center h-64">
+        <ColorRing
+          visible={true}
+          height="70"
+          width="70"
+          colors={["#e15b64", "#f47e60", "#f8b26a", "#abbd81", "#849b87"]}
+        />
+      </div>
   }
 
   if (!estimateId) {

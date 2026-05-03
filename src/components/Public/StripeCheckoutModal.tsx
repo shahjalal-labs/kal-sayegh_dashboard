@@ -162,15 +162,10 @@ export default function StripeCheckoutModal({
 
   return (
     <div className="mt-6 relative">
-      <div className="bg-white rounded-2xl shadow-lg p-8">
+      <div className="bg-[#F8F9F5]  shadow-lg p-8 rounded-b-2xl">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg font-semibold">Payment Method</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-2xl"
-          >
-            ×
-          </button>
+          <h3 className="text-lg text-gray-500 font-semibold">Payment Method</h3>
+         
         </div>
 
         <Elements

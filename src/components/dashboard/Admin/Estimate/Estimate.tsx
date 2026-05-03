@@ -8,24 +8,83 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/Pagination";
-import { useGetAllEstimatesQuery } from "@/redux/api/admin/estimateApi";
-import { Check, Plus, Search } from "lucide-react";
+import {
+  useGetAllEstimatesQuery,
+  useSendEstimateMailMutation,
+} from "@/redux/api/admin/estimateApi";
+import { Check, FilePenLine, MailCheck, MailOpen, Plus, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { HiOutlineMailOpen } from "react-icons/hi";
 import { toast } from "sonner";
 import { CustomModal } from "../../../modal/CustomModal";
 
 export default function Estimate() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [selectedEstimate, setSelectedEstimate] = useState<any>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("pending");
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 6;
-  const { data } = useGetAllEstimatesQuery({});
+  const { data, refetch } = useGetAllEstimatesQuery({});
   const estimates = data?.result?.data || [];
+
+  const [sendEmail, { isLoading: isSendingEmail }] =
+    useSendEstimateMailMutation();
+
+  const [emailForm, setEmailForm] = useState({
+    to: "",
+    subject: "Your Estimate  from Geo Paving and Sealcoating",
+    message: "We are pleased to work with you. Please review the estimate.",
+    sendMeCopy: true,
+  });
+
+  const normalizeStatus = (status?: string) =>
+    status?.trim().toLowerCase() || "";
+
+  const getEstimateStatus = (item: any) =>
+    normalizeStatus(item?.status || item?.stage || item?.emailStatus);
+
+  const getStageLabel = (item: any) => {
+    const normalizedStage = normalizeStatus(item?.stage);
+    if (normalizedStage) return normalizedStage.replace(/_/g, " ").toUpperCase();
+
+    const normalizedStatus = normalizeStatus(item?.status);
+    if (normalizedStatus === "approved") return "INVOICED";
+    if (normalizedStatus === "pending") return "ISSUED";
+    if (normalizedStatus === "declined") return "DECLINED";
+    return "UNKNOWN";
+  };
+
+  const getStageBadgeClasses = (item: any) => {
+    const normalizedStage = normalizeStatus(item?.stage);
+    const normalizedStatus = normalizeStatus(item?.status);
+
+    if (normalizedStage === "draft") return "bg-[#FEE2E2] text-[#EF4444]";
+    if (normalizedStage === "issued") return "bg-[#2196F333] text-[#2196F3]";
+    if (normalizedStage === "invoiced") return "bg-[#2196F333] text-[#2196F3]";
+
+    if (normalizedStatus === "approved") return "bg-[#2196F333] text-[#2196F3]";
+    if (normalizedStatus === "pending") return "bg-[#2196F333] text-[#2196F3]";
+    if (normalizedStatus === "declined") return "bg-red-100 text-red-600";
+    return "bg-gray-100 text-gray-600";
+  };
+
+  const getShortMetaDate = (dateString?: string) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return "-";
+    return date
+      .toLocaleDateString("en-US", { month: "short", day: "numeric" })
+      .toUpperCase();
+  };
+
+  const getEstimateRef = (id?: string) => {
+    if (!id) return "#----";
+    return `#${id.slice(-4)}`;
+  };
 
   const options = [
     { id: "description", label: "Description" },
@@ -35,7 +94,7 @@ export default function Estimate() {
 
   // FIXED: Case-insensitive filtering and search
   const filteredEstimates = estimates.filter((item: any) => {
-    const itemStatus = item.status?.toLowerCase() || "";
+    const itemStatus = getEstimateStatus(item);
     const matchesStatus = itemStatus === activeTab;
     if (!matchesStatus) return false;
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -129,6 +188,73 @@ export default function Estimate() {
     return formatValue === "table" ? "table" : "description";
   };
 
+  const getStatusBadgeClasses = (status?: string) => {
+    const normalizedStatus = normalizeStatus(status);
+
+    if (normalizedStatus === "approved") {
+      return "bg-[#2196F333] text-[#2196F3]";
+    }
+
+    if (normalizedStatus === "pending") {
+      return "bg-[#2196F333] text-[#2196F3]";
+    }
+
+    return "bg-red-100 text-red-600";
+  };
+
+  const getStatusLabel = (status?: string) => {
+    const normalizedStatus = normalizeStatus(status);
+
+    if (normalizedStatus === "pending") return "ISSUED";
+    if (normalizedStatus === "approved") return "Invoiced";
+    return status || "UNKNOWN";
+  };
+
+  const openEmailModal = (item: any) => {
+    setSelectedEstimate(item);
+    setEmailForm({
+      to: item?.client?.email ? item.client.email : "",
+      subject: "Your Estimate  from Geo Paving and Sealcoating",
+      message:
+        "We are pleased to work with you. Please review the estimate.",
+      sendMeCopy: true,
+    });
+    setEmailModalOpen(true);
+  };
+
+  const handleSendEstimateEmail = async () => {
+    if (!selectedEstimate?.id) return;
+
+    const to = emailForm.to
+      .split(",")
+      .map((email) => email.trim())
+      .filter(Boolean);
+
+    if (to.length === 0) {
+      toast.error("Please add at least one recipient email.");
+      return;
+    }
+
+    try {
+      await sendEmail({
+        estimateId: selectedEstimate.id,
+        to,
+        cc: [],
+        bcc: [],
+        message: emailForm.message,
+        sendMeCopy: emailForm.sendMeCopy,
+        subject: emailForm.subject,
+      }).unwrap();
+
+      toast.success("Estimate email sent successfully");
+      setEmailModalOpen(false);
+      setSelectedEstimate(null);
+      refetch();
+    } catch (error: any) {
+      toast.error(error?.data?.message || "Failed to send estimate email");
+    }
+  };
+
   return (
     <div className="md:bg-secondary bg-secondary-none p-4 md:p-6 rounded-2xl">
       {/* HEADER */}
@@ -202,7 +328,8 @@ export default function Estimate() {
             No {activeTab} estimates found
           </p>
         ) : (
-          groupedEntries.map(([_, group]: any) => {
+          groupedEntries.map((entry: any) => {
+            const [, group] = entry;
             const month = group.label;
             const items = group.items;
             return (
@@ -221,106 +348,199 @@ export default function Estimate() {
                   </span>
                 </div>
 
-                {items.map((item: any) => (
-                  <div
-                    key={item.id}
-                    className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b md:border-0 mb-4"
-                  >
-                    <div className="flex-1 md:flex-none md:w-[30%]">
-                      <div className="flex items-center justify-between gap-2 w-full">
-                        <span className="font-semibold text-gray-800 lg:border-b lg:border-[#52C41A]">
-                          {item.estimateName || "Untitled Estimate"}
-                        </span>
-                        <span className="block md:hidden font-medium text-gray-600">
-                          ${item.grandTotal?.toFixed(2) || "0.00"}
-                        </span>
+                {items.map((item: any) => {
+                  const isApproved = getEstimateStatus(item) === "approved";
+                  const stageLabel = getStageLabel(item);
+                  const stageClasses = getStageBadgeClasses(item);
+                  const emailStatus = normalizeStatus(item.emailStatus);
+                  const isEmailNotSent = emailStatus === "not_sent";
+                  const showSignedIcon = Boolean(item?.isSigned) || isApproved;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="mb-4 border-b pb-4 last:border-b-0 last:pb-0 "
+                    >
+                      <div className="md:hidden rounded-2xl px-3 py-4 ">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-lg font-semibold text-gray-900 truncate">
+                              {item.estimateName || "Untitled Estimate"}
+                            </p>
+                            
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <p className="text-lg font-semibold text-gray-900">
+                              ${item.grandTotal?.toFixed(2) || "0.00"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 flex items-center justify-between gap-3 text-base text-gray-500">
+                          <span className="text-base text-gray-400 lowercase">
+                            {`${getShortMetaDate(item.createdAt || item.date)} • ${getEstimateRef(item.id)}`}
+                          </span>
+
+                          <div className="inline-flex items-center gap-3 whitespace-nowrap">
+                            {isEmailNotSent ? (
+                              <button
+                                type="button"
+                                onClick={() => openEmailModal(item)}
+                                className="inline-flex items-center "
+                                aria-label="Open email"
+                                title="Open email"
+                              >
+                                <MailOpen size={18} />
+                              </button>
+                            ) : isApproved ? (
+                              <span
+                                className="inline-flex items-center text-gray-500"
+                                aria-label="Email opened"
+                                title="Email opened"
+                              >
+                                <MailCheck size={18} />
+                              </span>
+                            ) : (
+                              <span
+                                className="inline-flex items-center text-gray-500"
+                                aria-label="Email sent"
+                                title="Email sent"
+                              >
+                                <MailCheck size={18} />
+                              </span>
+                            )}
+
+                            {showSignedIcon && (
+                              <span
+                                className="inline-flex items-center text-gray-500"
+                                aria-label="Signed"
+                                title="Signed"
+                              >
+                                <FilePenLine size={15} />
+                              </span>
+                            )}
+
+                            <span
+                              className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${stageClasses}`}
+                            >
+                              {stageLabel}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between gap-4 mt-1 text-gray-800 p-2 w-full">
-                        <p className="text-sm text-gray-400">
-                          {item.createdAt
-                            ? formatDate(item.createdAt)
-                            : item.date || "-"}
-                        </p>
+
+                      <div className="hidden md:flex md:flex-row md:items-start md:justify-between gap-4 md:pb-0 md:border-0">
+                        <div className="flex-1 md:flex-none md:w-[30%]">
+                          <div className="flex items-center justify-between gap-2 w-full">
+                            <span className="font-semibold text-gray-800 lg:border-b lg:border-[#52C41A]">
+                              {item.estimateName || "Untitled Estimate"}
+                            </span>
+                            <span className="block md:hidden font-medium text-gray-600">
+                              ${item.grandTotal?.toFixed(2) || "0.00"}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between gap-4 mt-1 text-gray-800 p-2 w-full">
+                            <p className="text-base text-gray-400">
+                              {item.createdAt
+                                ? formatDate(item.createdAt)
+                                : item.date || "-"}
+                            </p>
+                            <span
+                              className={`px-3 py-1 text-base rounded-full md:hidden block ${stageClasses}`}
+                            >
+                              <span className="text-base font-medium">
+                                {stageLabel}
+                              </span>
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="hidden md:block">
                         <span
-                          className={`px-3 py-1 text-xs rounded-full md:hidden block ${
-                            item.status?.toLowerCase() === "pending"
-                              ? "bg-[#2196F333] text-[#2196F3]"
-                              : item.status?.toLowerCase() === "approved"
-                                ? "bg-green-100 text-green-600"
-                                : "bg-red-100 text-red-600"
-                          }`}
+                            className={`px-3 py-1 text-base rounded-full ${stageClasses}`}
                         >
-                          <span className="text-sm font-medium">
-                            {item.status?.toLowerCase() === "pending"
-                              ? "ISSUED"
-                              : item.status?.toLowerCase() === "approved"
-                                ? "Invoiced"
-                                : item.status || "UNKNOWN"}
+                          <span className="text-base font-medium">
+                              {stageLabel}
                           </span>
                         </span>
                       </div>
-                    </div>
 
-                    <div className="md:block hidden">
-                      <span
-                        className={`px-3 py-1 text-xs rounded-full ${
-                          item.status?.toLowerCase() === "pending"
-                            ? "bg-[#2196F333] text-[#2196F3]"
-                            : item.status?.toLowerCase() === "approved"
-                              ? "bg-green-100 text-green-600"
-                              : "bg-red-100 text-red-600"
-                        }`}
-                      >
-                        <span className="text-sm font-medium">
-                          {item.status?.toLowerCase() === "pending"
-                            ? "ISSUED"
-                            : item.status?.toLowerCase() === "approved"
-                              ? "Invoiced"
-                              : item.status || "UNKNOWN"}
-                        </span>
-                      </span>
-                    </div>
+                        <div className="text-base text-gray-500 max-w-xs hidden md:block md:w-[20%]">
+                          <p>{item?.client?.address}</p>
+                          <p>{item?.client?.city}</p>
+                          <p>{item?.client?.state}</p>
+                          <p>{item?.client?.zip}</p>
+                        </div>
 
-                    <div className="text-sm text-gray-500 max-w-xs hidden md:block md:w-[20%]">
-                      <p>{item?.client?.address}</p>
-                      <p>{item?.client?.city}</p>
-                      <p>{item?.client?.state}</p>
-                      <p>{item?.client?.zip}</p>
-                    </div>
+                        <div className="text-left hidden md:block md:w-[15%]">
+                          <p className="font-semibold">
+                            ${item.grandTotal?.toFixed(2) || "0.00"}
+                          </p>
 
-                    <div className="text-left hidden md:block md:w-[15%]">
-                      <p className="font-semibold">
-                        ${item.grandTotal?.toFixed(2) || "0.00"}
-                      </p>
-                      <p className="text-base flex items-center gap-2">
-                        <HiOutlineMailOpen /> Email Sent
-                      </p>
-                    </div>
+                          <div className="mt-1 flex items-center gap-3 text-gray-500">
+                            {isEmailNotSent ? (
+                              <button
+                                type="button"
+                                onClick={() => openEmailModal(item)}
+                                className="inline-flex items-center gap-1  hover:text-primary/80"
+                                aria-label="Open email"
+                                title="Open email"
+                              >
+                                <MailOpen size={18} />
+                                <span className="text-base">Open Email</span>
+                              </button>
+                            ) : (
+                              <span
+                                className="inline-flex items-center gap-1"
+                                aria-label={isApproved ? "Email opened" : "Email sent"}
+                                title={isApproved ? "Email opened" : "Email sent"}
+                              >
+                                <MailCheck size={18} />
+                                <span className="text-base">
+                                  {isApproved ? "Email Opened" : "Email Sent"}
+                                </span>
+                              </span>
+                            )}
 
-                    <div className="hidden md:flex md:gap-2 md:w-[15%] md:justify-end">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          router.push(
-                            `/admin/estimate/${item.id}?format=${getEstimateDetailsFormat(item)}`,
-                          );
-                        }}
-                        className="px-4 py-2 border border-primary text-primary rounded-lg whitespace-nowrap"
-                      >
-                        Open
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          router.push(`/admin/edit-estimate?id=${item.id}`);
-                        }}
-                        className="px-4 py-2 bg-primary text-secondary rounded-lg whitespace-nowrap"
-                      >
-                        Edit
-                      </button>
+                            {showSignedIcon && (
+                              <span
+                                className="inline-flex items-center"
+                                aria-label="Signed"
+                                title="Signed"
+                              >
+                                <FilePenLine size={15} />
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="hidden md:flex md:gap-2 md:w-[15%] md:justify-end">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              router.push(
+                                `/admin/estimate/${item.id}?format=${getEstimateDetailsFormat(item)}`,
+                              );
+                            }}
+                            className="px-4 py-2 border border-primary text-primary rounded-lg whitespace-nowrap"
+                          >
+                            Open
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              router.push(`/admin/edit-estimate?id=${item.id}`);
+                            }}
+                            className="px-4 py-2 bg-primary text-secondary rounded-lg whitespace-nowrap"
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             );
           })
@@ -422,6 +642,115 @@ export default function Estimate() {
               </div>
             </div>
           ))}
+        </div>
+      </CustomModal>
+
+      <CustomModal
+        open={emailModalOpen}
+        onClose={() => {
+          setEmailModalOpen(false);
+          setSelectedEstimate(null);
+        }}
+        title="Send Estimate Email"
+        maxWidth="2xl"
+        actions={[
+          {
+            label: "Cancel",
+            variant: "secondary",
+            onClick: () => {
+              setEmailModalOpen(false);
+              setSelectedEstimate(null);
+            },
+          },
+          {
+            label: isSendingEmail ? "Sending..." : "Send Email",
+            variant: "primary",
+            disabled: isSendingEmail,
+            onClick: handleSendEstimateEmail,
+          },
+        ]}
+      >
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4">
+            <p className="text-base text-gray-500">Estimate</p>
+            <p className="text-lg font-semibold text-gray-900">
+              {selectedEstimate?.estimateName || "Untitled Estimate"}
+            </p>
+            <p className="text-base text-gray-500">
+              Client: {selectedEstimate?.client?.clientName || "-"}
+            </p>
+          </div>
+
+          <div className="grid gap-4">
+            <label className="space-y-2">
+              <span className="text-base font-medium text-gray-700">
+                To
+              </span>
+              <textarea
+                value={emailForm.to}
+                onChange={(e) =>
+                  setEmailForm((prev) => ({ ...prev, to: e.target.value }))
+                }
+                rows={2}
+                className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                placeholder="recipient@example.com, another@example.com"
+              />
+              <span className="text-base text-gray-500">
+                Separate multiple emails with commas.
+              </span>
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-base font-medium text-gray-700">
+                Subject
+              </span>
+              <input
+                type="text"
+                value={emailForm.subject}
+                onChange={(e) =>
+                  setEmailForm((prev) => ({
+                    ...prev,
+                    subject: e.target.value,
+                  }))
+                }
+                className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              />
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-base font-medium text-gray-700">
+                Message
+              </span>
+              <textarea
+                value={emailForm.message}
+                onChange={(e) =>
+                  setEmailForm((prev) => ({ ...prev, message: e.target.value }))
+                }
+                rows={5}
+                className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              />
+            </label>
+
+            <label className="flex items-center gap-3 rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-4 py-3">
+              <input
+                type="checkbox"
+                checked={emailForm.sendMeCopy}
+                onChange={(e) =>
+                  setEmailForm((prev) => ({
+                    ...prev,
+                    sendMeCopy: e.target.checked,
+                  }))
+                }
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <div>
+                <p className="text-base font-medium text-gray-800">Send me a copy</p>
+                <p className="text-base text-gray-500">
+                  Bcc and cc are intentionally sent as empty arrays.
+                </p>
+              </div>
+            </label>
+          </div>
         </div>
       </CustomModal>
     </div>

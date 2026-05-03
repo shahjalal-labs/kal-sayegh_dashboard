@@ -247,7 +247,7 @@ export default function Settings() {
           <button
             key={tab.key}
             className={`w-full px-4 py-3 rounded-lg flex justify-between items-center
-            ${activeTab === tab.key ? "bg-primary text-white" : "text-gray-700"}`}
+            ${activeTab === tab.key ? "bg-primary text-white" : "text-gray-700 hover:bg-gray-100"}`}
             onClick={() => handleTabChange(tab.key)}
           >
             {tab.label}

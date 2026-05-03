@@ -161,7 +161,7 @@ export default function Items() {
     <div className="p-4  bg-gray-50 min-h-screen">
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <h1 className="text-xl font-semibold">Item List</h1>
+        <h1 className="text-xl md:text-3xl font-semibold px-9">Item List</h1>
 
         <div className="flex gap-3 w-full md:w-auto">
           {/* SEARCH */}
@@ -175,7 +175,7 @@ export default function Items() {
           {/* ADD BUTTON */}
           <button
             onClick={() => setOpen(true)}
-            className="bg-primary hover:bg-primary/80 text-white px-5 py-2 rounded-xl transition-colors text-sm md:text-lg"
+            className="bg-primary hover:bg-primary/80 text-white px-5 py-2 rounded-xl transition-colors text-base md:text-lg"
           >
             + Add Item
           </button>
@@ -191,20 +191,20 @@ export default function Items() {
               className="p-4 flex justify-between items-start hover:bg-orange-50 transition"
             >
               <div className="space-y-1">
-                <h2 className="font-semibold text-gray-800 uppercase">
+                <h2 className="font-semibold text-gray-800 uppercase text-2xl">
                   {item.itemName}
                 </h2>
 
-                <p className="text-sm text-gray-500">{item.description}</p>
+                <p className="text-base text-gray-500">{item.description}</p>
 
                 {item.markUp && (
-                  <p className="text-xs text-gray-400">
+                  <p className="text-base text-gray-400">
                     Markup: {item.markUp.name}
                   </p>
                 )}
 
                 {item.taxes?.length > 0 && (
-                  <p className="text-xs text-gray-400">
+                  <p className="text-base text-gray-400">
                     Taxes: {item.taxes.map((t: any) => t.name).join(", ")}
                   </p>
                 )}
@@ -218,7 +218,7 @@ export default function Items() {
             </div>
           ))
         ) : (
-          <p className="p-6 text-center text-gray-400">No items found</p>
+          <p className="p-6 text-center text-2xl">No items found</p>
         )}
       </div>
 

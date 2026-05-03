@@ -70,11 +70,12 @@ export const CustomModal: React.FC<CustomModalProps> = ({
               <button
                 key={i}
                 onClick={() => btn.onClick()}
+                disabled={btn.disabled}
                 className={`w-full sm:w-auto px-4 sm:px-8 py-2.5 sm:py-3 text-sm sm:text-base font-medium transition-colors rounded-2xl ${
                   btn.variant === "primary"
                     ? "bg-primary text-white hover:bg-primary/90 transition-all"
                     : "border border-primary text-primary hover:bg-primary transition-colors duration-300 ease-in hover:text-secondary"
-                }`}
+                } ${btn.disabled ? "cursor-not-allowed opacity-60 hover:bg-inherit hover:text-inherit" : ""}`}
               >
                 {btn.label}
               </button>

@@ -48,7 +48,7 @@ export default function EmployeeManagement({
     searchTerm: normalizedSearchTerm,
   });
 
-  const { data: singleEmployee } = useGetSingleUserQuery(selectedRow?.id);
+  const { data: singleEmployee, isLoading: isSingleLoading } = useGetSingleUserQuery(selectedRow?.id);
   const employee = singleEmployee?.result;
 
   const [deleteUser] = useDeleteUserMutation();
@@ -306,6 +306,7 @@ export default function EmployeeManagement({
 
             <EmployeeSchedule
               data={singleEmployee?.result?.dailyDetails || []}
+              loading={isSingleLoading}
             />
           </div>
         ) : (

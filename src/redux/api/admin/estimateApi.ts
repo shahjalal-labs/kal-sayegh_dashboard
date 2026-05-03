@@ -113,19 +113,52 @@ const estimateApi = baseApi.injectEndpoints({
 
     sendEstimateMail: builder.mutation({
       query: (
-        payload: string | { estimateId: string; recipientEmail?: string },
+        payload:
+          | string
+          | {
+              estimateId: string;
+              to?: string[];
+              cc?: string[];
+              bcc?: string[];
+              message?: string;
+              sendMeCopy?: boolean;
+              subject?: string;
+              recipientEmail?: string;
+              data?: Record<string, any>;
+            },
       ) => {
         const estimateId =
           typeof payload === "string" ? payload : payload.estimateId;
-        const recipientEmail =
-          typeof payload === "string" ? undefined : payload.recipientEmail;
+
+        if (typeof payload === "string") {
+          return {
+            url: `/estimate/send-email/${estimateId}`,
+            method: "POST",
+          };
+        }
+
+        const { estimateId: _estimateId, data, recipientEmail, ...rest } = payload;
+        const flatBody = data && typeof data === "object" ? { ...data, ...rest } : rest;
+        const normalizedTo =
+          flatBody.to?.length || recipientEmail
+            ? flatBody.to?.length
+              ? flatBody.to
+              : recipientEmail
+                ? [recipientEmail]
+                : []
+            : [];
 
         return {
-          url: `/estimate/send-mail/${estimateId}`,
+          url: `/estimate/send-email/${estimateId}`,
           method: "POST",
-          body: recipientEmail
-            ? { email: recipientEmail, recipientEmail }
-            : undefined,
+          body: {
+            ...flatBody,
+            to: normalizedTo,
+            cc: flatBody.cc || [],
+            bcc: flatBody.bcc || [],
+            email: normalizedTo[0] || recipientEmail,
+            recipientEmail: recipientEmail || normalizedTo[0],
+          },
         };
       },
     }),

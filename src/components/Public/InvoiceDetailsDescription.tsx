@@ -18,7 +18,7 @@ const StripeCheckoutModal = dynamic(() => import("@/components/Public/StripeChec
 export default function InvoiceDetailsDescription() {
   const { id } = useParams();
 
-  const { data, isLoading, error } = usePublicInvoiceDetailsQuery(id as string);
+  const { data, isLoading, error , refetch} = usePublicInvoiceDetailsQuery(id as string);
   const invoice = (data as any)?.result;
 
    const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -328,7 +328,7 @@ export default function InvoiceDetailsDescription() {
       </div>
     </div>
     
-   <div className="w-[350px] lg:w-[400px] 2xl:w-[550px]   rounded-t-xl">
+   <div className="w-[350px] lg:w-[400px] 2xl:w-[550px]  rounded-t-2xl">
           <div className="shadow-md rounded-2xl bg-secondary">
             {/* Invoice Number */}
            <div className="bg-secondary  p-8  top-6 h-fit  mt-4">
