@@ -52,24 +52,13 @@ const invoiceApi = baseApi.injectEndpoints({
       },
     }),
 
-    sendInvoiceMail: builder.mutation({
-      query: (
-        payload: string | { invoiceId: string; recipientEmail?: string },
-      ) => {
-        const invoiceId =
-          typeof payload === "string" ? payload : payload.invoiceId;
-        const recipientEmail =
-          typeof payload === "string" ? undefined : payload.recipientEmail;
-
-        return {
-          url: `/invoice/send-mail/${invoiceId}`,
-          method: "POST",
-          body: recipientEmail
-            ? { email: recipientEmail, recipientEmail }
-            : undefined,
-        };
-      },
-    }),
+   sendInvoiceMail: builder.mutation({
+  query: ({ payload, invoiceId }) => ({
+    url: `/invoice/send-email/${invoiceId}`,
+    method: "POST",
+    body: payload,
+  }),
+}),
 
     getInvoicePayments: builder.query({
       query: (invoiceId) => ({
@@ -162,4 +151,5 @@ export const {
   useRefundPaymentMutation,
   usePaymentMutation,
   usePublicInvoiceDetailsQuery,
+
 } = invoiceApi;
