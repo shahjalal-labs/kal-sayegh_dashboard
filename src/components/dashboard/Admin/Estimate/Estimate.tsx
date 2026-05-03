@@ -13,10 +13,12 @@ import {
   useSendEstimateMailMutation,
 } from "@/redux/api/admin/estimateApi";
 import { Check, FilePenLine, MailCheck, MailOpen, Plus, Search } from "lucide-react";
+
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CustomModal } from "../../../modal/CustomModal";
+import { ColorRing } from "react-loader-spinner";
 
 export default function Estimate() {
   const router = useRouter();
@@ -28,7 +30,7 @@ export default function Estimate() {
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 6;
-  const { data, refetch } = useGetAllEstimatesQuery({});
+  const { data, isLoading, refetch } = useGetAllEstimatesQuery({});
   const estimates = data?.result?.data || [];
 
   const [sendEmail, { isLoading: isSendingEmail }] =
@@ -321,14 +323,27 @@ export default function Estimate() {
         </div>
       </div>
 
+      {/* LOADING STATE */}
+      {isLoading && (
+        <div className="flex items-center justify-center h-64 mt-10">
+          <ColorRing
+            visible={true}
+            height="70"
+            width="70"
+            colors={["#e15b64", "#f47e60", "#f8b26a", "#abbd81", "#849b87"]}
+          />
+        </div>
+      )}
+
       {/* LIST */}
-      <div className="md:mt-10 md:space-y-6 ">
-        {groupedEntries.length === 0 ? (
-          <p className="text-center text-gray-400">
-            No {activeTab} estimates found
-          </p>
-        ) : (
-          groupedEntries.map((entry: any) => {
+      {!isLoading && (
+        <div className="md:mt-10 md:space-y-6 ">
+          {groupedEntries.length === 0 ? (
+            <p className="text-center text-gray-400">
+              No {activeTab} estimates found
+            </p>
+          ) : (
+            groupedEntries.map((entry: any) => {
             const [, group] = entry;
             const month = group.label;
             const items = group.items;
@@ -336,8 +351,8 @@ export default function Estimate() {
               <div key={month}>
                 {/* MONTH HEADER */}
                 <div className="flex justify-between border-b pb-2 mb-4">
-                  <span className="font-semibold">{month}</span>
-                  <span className="text-gray-500 hidden md:block">
+                  <span className="font-semibold text-xl">{month}</span>
+                  <span className="text-gray-500 hidden md:block text-xl">
                     Total: $
                     {items
                       .reduce(
@@ -546,6 +561,7 @@ export default function Estimate() {
           })
         )}
       </div>
+      )}
 
       {totalPages > 1 && (
         <div className="mt-6 flex flex-col items-center justify-between gap-3 rounded-b-2xl bg-white p-3 md:flex-row md:px-4 md:py-3">
