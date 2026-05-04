@@ -1,6 +1,7 @@
 "use client";
 
 import logo from "@/assets/kal-logo.png";
+import Conditions from "@/components/Conditions";
 import {
   useGetEstimateByIdQuery,
   useSendEstimateMailMutation,
@@ -10,6 +11,7 @@ import { Edit, WandSparkles } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { Fragment } from "react";
 import { AiOutlineMail } from "react-icons/ai";
 import { FiArrowLeft, FiDownload } from "react-icons/fi";
 import { ColorRing } from "react-loader-spinner";
@@ -335,6 +337,9 @@ export default function EstimateDetilasTableFormat() {
                   MARKUP
                 </th>
                 <th className="border border-gray-500 px-3 py-2 font-semibold text-black">
+                  TAX
+                </th>
+                <th className="border border-gray-500 px-3 py-2 font-semibold text-black">
                   DISCOUNT
                 </th>
                 <th className="border border-gray-500 px-3 py-2 font-semibold text-black">
@@ -345,75 +350,104 @@ export default function EstimateDetilasTableFormat() {
 
             <tbody>
               {normalizedItems.length > 0 ? (
-                normalizedItems.map(
-                  (
-                    item: {
-                      description?: string;
-                      quantity?: number;
-                      unit?: string;
-                      markUp?: number;
-                      discount?: number;
-                      amount?: number;
-                    },
-                    index: number,
-                  ) => {
-                    const qty = Number(item?.quantity || 1);
-                    const amount = Number(item?.amount || unitCost);
-                    const markUp = Number(item?.markUp || 0);
-                    const discount = Number(item?.discount || 0);
+                normalizedItems.map((item: any, index: number) => {
+                  const qty = Number(item?.quantity || 1);
+                  const unit = item?.unit || "SF";
+                  const unitCostVal = Number(
+                    item?.rate ?? item?.amount ?? unitCost ?? 0,
+                  );
 
-                    return (
-                      <>
-                        <tr key={`desc-${index}`} className="bg-gray-200">
-                          <td className="border border-gray-500 px-3 py-2 font-medium text-black">
-                            {item?.description || "-"}
-                          </td>
-                          <td
-                            className="border border-gray-500 px-3 py-2"
-                            colSpan={6}
-                          />
-                        </tr>
-                        <tr key={`item-${index}`}>
-                          <td className="border border-gray-500 px-3 py-2 text-gray-600">
-                            &nbsp;
-                          </td>
-                          <td className="border border-gray-500 px-3 py-2 text-center">
-                            {qty}
-                          </td>
-                          <td className="border border-gray-500 px-3 py-2 text-center">
-                            {item?.unit || "SF"}
-                          </td>
-                          <td className="border border-gray-500 px-3 py-2 text-center">
-                            {formatCurrency(amount)}
-                          </td>
-                          <td className="border border-gray-500 px-3 py-2 text-center">
-                            {markUp}%
-                          </td>
-                          <td className="border border-gray-500 px-3 py-2 text-center">
-                            {discount}%
-                          </td>
-                          <td className="border border-gray-500 px-3 py-2 text-center font-medium ">
-                            {formatCurrency(amount * qty)}
-                          </td>
-                        </tr>
-                        <tr key={`sub-${index}`}>
-                          <td
-                            className="border border-gray-500 px-3 py-2  text-right font-semibold text-black"
-                            colSpan={6}
-                          >
-                            Subtotal
-                          </td>
-                          <td className="border border-gray-500 px-3 py-2  font-semibold text-black text-center">
-                            {formatCurrency(amount * qty)}
-                          </td>
-                        </tr>
-                      </>
-                    );
-                  },
-                )
+                  // Determine markup display (could be object with percentage or amount)
+                  const rawMarkUp = item?.markUp;
+                  let markUpDisplay = "0%";
+                  if (rawMarkUp != null) {
+                    if (typeof rawMarkUp === "object") {
+                      if (rawMarkUp.percentage != null) {
+                        markUpDisplay = `${rawMarkUp.percentage}%`;
+                      } else if (rawMarkUp.amount != null) {
+                        markUpDisplay = formatCurrency(rawMarkUp.amount);
+                      }
+                    } else {
+                      const m = Number(rawMarkUp) || 0;
+                      markUpDisplay = `${m}%`;
+                    }
+                  }
+
+                  const rawTax =
+                    item?.tax ??
+                    item?.taxPercentage ??
+                    item?.item?.taxPercentage ??
+                    item?.tax?.percentage ??
+                    0;
+
+                  const taxDisplay =
+                    typeof rawTax === "object"
+                      ? rawTax?.percentage != null
+                        ? `${rawTax.percentage}%`
+                        : "0%"
+                      : `${Number(rawTax) || 0}%`;
+
+                  const discountVal = Number(item?.discount ?? 0);
+
+                  // Use backend subtotal if provided, otherwise compute
+                  const rowPrice = Number(item?.subTotal ?? unitCostVal * qty);
+
+                  return (
+                    <Fragment key={`row-${index}`}>
+                      <tr key={`desc-${index}`} className="bg-gray-200">
+                        <td className="border border-gray-500 px-3 py-2 font-medium text-black">
+                          {item?.description || "-"}
+                        </td>
+                        <td
+                          className="border border-gray-500 px-3 py-2"
+                          colSpan={7}
+                        />
+                      </tr>
+
+                      <tr key={`item-${index}`}>
+                        <td className="border border-gray-500 px-3 py-2 text-gray-600">
+                          &nbsp;
+                        </td>
+                        <td className="border border-gray-500 px-3 py-2 text-center">
+                          {qty}
+                        </td>
+                        <td className="border border-gray-500 px-3 py-2 text-center">
+                          {unit}
+                        </td>
+                        <td className="border border-gray-500 px-3 py-2 text-center">
+                          {formatCurrency(unitCostVal)}
+                        </td>
+                        <td className="border border-gray-500 px-3 py-2 text-center">
+                          {markUpDisplay}
+                        </td>
+                        <td className="border border-gray-500 px-3 py-2 text-center">
+                          {taxDisplay}
+                        </td>
+                        <td className="border border-gray-500 px-3 py-2 text-center">
+                          {discountVal}%
+                        </td>
+                        <td className="border border-gray-500 px-3 py-2 text-center font-medium ">
+                          {formatCurrency(rowPrice)}
+                        </td>
+                      </tr>
+
+                      <tr key={`sub-${index}`}>
+                        <td
+                          className="border border-gray-500 px-3 py-2  text-right font-semibold text-black"
+                          colSpan={7}
+                        >
+                          Subtotal
+                        </td>
+                        <td className="border border-gray-500 px-3 py-2  font-semibold text-black text-center">
+                          {formatCurrency(rowPrice)}
+                        </td>
+                      </tr>
+                    </Fragment>
+                  );
+                })
               ) : (
                 <tr>
-                  <td className="border border-gray-500 px-3 py-3" colSpan={7}>
+                  <td className="border border-gray-500 px-3 py-3" colSpan={8}>
                     No items available.
                   </td>
                 </tr>
@@ -422,7 +456,7 @@ export default function EstimateDetilasTableFormat() {
               <tr>
                 <td
                   className="border border-gray-500 px-3 py-3 text-center font-bold text-black"
-                  colSpan={6}
+                  colSpan={7}
                 >
                   GRAND TOTAL
                 </td>
@@ -434,28 +468,7 @@ export default function EstimateDetilasTableFormat() {
           </table>
         </div>
 
-        <div className="mt-6 text-base text-gray-700 space-y-2">
-          <p className="font-normal text-black text-xl">
-            Terms and conditions:
-          </p>
-          <p>
-            1) All deliveries of material, supplies, or equipment over roadways
-            of the drives of the premises shall not incur liability to company.
-          </p>
-          <p>
-            2) Geo paving and Sealcoating shall not be responsible for the
-            following:
-          </p>
-          <p>
-            3) Geo paving and Sealcoating will warrantee materials and
-            workmanship for 1 year
-          </p>
-          <p>
-            4) Any invoice not paid upon completion will be subject to interest
-            of 5% per month. An invoice is considered paid when Geo paving and
-            Sealcoating has payment in their possession.
-          </p>
-        </div>
+        <Conditions className="mt-8" />
       </div>
     </div>
   );

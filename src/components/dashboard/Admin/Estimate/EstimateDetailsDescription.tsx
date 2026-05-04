@@ -406,23 +406,73 @@ was previously sent.`,
           </div>
 
           {estimateItems.length > 0 ? (
-            estimateItems.map((item: any, index: number) => (
-              <div
-                key={item?.id || index}
-                className="flex justify-between gap-4 border-b border-[#e1e1e1] py-3 text-base space-y-3 leading-5 text-gray-700"
-              >
-                <div className="space-y-3">
-                  <p className="font-semibold text-black">
-                    ASPHALT PATCHING AND REPAIRS.
-                  </p>
-                  <p>Item #{index + 1}</p>
-                  <p>Quantity: {Number(item?.quantity) || 0}</p>
+            estimateItems.map((item: any, index: number) => {
+              const qty = Number(item?.quantity || 0);
+              const unit = item?.unit || "SF";
+              const rate = Number(item?.rate ?? item?.amount ?? 0);
+
+              const rawMarkUp = item?.markUp;
+              let markUpDisplay = "0%";
+              if (rawMarkUp != null) {
+                if (typeof rawMarkUp === "object") {
+                  if (rawMarkUp.percentage != null) {
+                    markUpDisplay = `${rawMarkUp.percentage}%`;
+                  } else if (rawMarkUp.amount != null) {
+                    markUpDisplay = `$${Number(rawMarkUp.amount).toFixed(2)}`;
+                  }
+                } else {
+                  markUpDisplay = `${Number(rawMarkUp) || 0}%`;
+                }
+              }
+
+              const price =
+                item?.subTotal != null ? Number(item.subTotal) : rate * qty;
+
+              return (
+                <div
+                  key={item?.id || index}
+                  className="flex flex-col md:flex-row md:justify-between gap-4 border-b border-[#e1e1e1] py-3 text-base leading-5 text-gray-700"
+                >
+                  <div className="space-y-2 w-full md:w-3/5">
+                    <p className="font-semibold text-black">
+                      {item?.itemName || "Item"}
+                    </p>
+                    {item?.description && (
+                      <p className="text-sm text-gray-600">
+                        {item.description}
+                      </p>
+                    )}
+                    <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm text-gray-700">
+                      <div>
+                        <div className="text-xs text-gray-500">Qty</div>
+                        <div className="font-medium">{qty}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-500">Unit</div>
+                        <div className="font-medium">{unit}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-500">Unit Cost</div>
+                        <div className="font-medium">${rate.toFixed(2)}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-500">Markup</div>
+                        <div className="font-medium">{markUpDisplay}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="w-full md:w-1/5 flex items-center justify-end">
+                    <div className="text-right">
+                      <div className="text-xs text-gray-500">Price</div>
+                      <div className="font-semibold text-black">
+                        ${price.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <p className="font-semibold text-black whitespace-nowrap">
-                  ${(Number(item?.subTotal) || 0).toFixed(2)}
-                </p>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="flex justify-between border-b border-[#e1e1e1] py-3 text-[10px] text-gray-700">
               <p>No items</p>

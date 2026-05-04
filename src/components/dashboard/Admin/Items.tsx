@@ -212,7 +212,7 @@ export default function Items() {
 
               <div className="text-right min-w-[120px]">
                 <p className="text-lg font-semibold text-gray-800">
-                  ${item?.markUp?.amount || 0}
+                  ${item?.rate || 0}
                 </p>
               </div>
             </div>

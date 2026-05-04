@@ -74,7 +74,7 @@ const Topbar: React.FC<{ onHamburgerClick: () => void }> = ({
         </button>
 
         <div className="flex items-center gap-6">
-          <h1 className="text-[#161616] text-lg md:text-[24px] font-bold">
+          <h1 className="text-[#161616] text-base md:text-[24px] font-bold">
             {getPageTitle()}
           </h1>
         </div>

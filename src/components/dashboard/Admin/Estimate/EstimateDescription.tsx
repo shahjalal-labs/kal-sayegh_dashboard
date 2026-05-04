@@ -156,7 +156,7 @@ export default function EstimateDescription() {
     return (
       acc +
       table.items.reduce((tAcc, item) => {
-        const rate = Number(item.rate ?? item.amount ?? item.markUp ?? 0) || 0;
+        const rate = Number(item.rate ?? item.amount ?? 0) || 0;
         const qty = Number(item.quantity) || 0;
         const base = rate * qty;
         const markupAmount = (base * (Number(item.percentage) || 0)) / 100;
@@ -219,19 +219,18 @@ export default function EstimateDescription() {
       prev.map((table) => {
         if (table.id !== activeTableId) return table;
 
-        const selectedRate =
-          Number(item?.rate ?? item?.markUp?.amount ?? item?.amount ?? 0) || 0;
+        const selectedRate = Number(item?.rate ?? item?.amount ?? 0) || 0;
 
         const newItem = {
           id: Date.now().toString(),
           description: item.description ?? "",
           itemName: item.itemName,
-          amount: item?.markUp?.amount ?? 0,
-          percentage: item?.markUp?.percentage ?? 0,
+          amount: 0,
+          percentage: 0,
           quantity: 1,
           tax: 0,
           rate: selectedRate,
-          markUp: item?.markUp?.amount ?? 0,
+          markUp: 0,
           total: 0,
           originalItem: item,
         };
@@ -380,7 +379,7 @@ export default function EstimateDescription() {
   const handleCreateEstimate = async () => {
     try {
       const calculateItemTotal = (item: any) => {
-        const rate = Number(item.rate ?? item.amount ?? item.markUp ?? 0) || 0;
+        const rate = Number(item.rate ?? item.amount ?? 0) || 0;
         const base = rate * (Number(item.quantity) || 0);
         const markupAmount = (base * (Number(item.percentage) || 0)) / 100;
         const afterMarkup = base + markupAmount;
@@ -542,7 +541,7 @@ export default function EstimateDescription() {
 
   // Helper function to calculate line item total (includes markup and tax)
   const calculateLineTotal = (item: any) => {
-    const rate = Number(item.rate ?? item.amount ?? item.markUp ?? 0) || 0;
+    const rate = Number(item.rate ?? item.amount ?? 0) || 0;
     const quantity = Number(item.quantity) || 0;
     const base = rate * quantity;
     const markupAmount = (base * (Number(item.percentage) || 0)) / 100;
@@ -552,13 +551,13 @@ export default function EstimateDescription() {
   };
 
   return (
-    <div className=" bg-gray-50 min-h-screen">
+    <div className=" bg-gray-50 min-h-screen p-4 md:p-0">
       <div className="flex  md:justify-between gap-3 mb-4">
         <Link
           href={"/admin/estimate"}
           className="flex items-center gap-2 cursor-pointer text-gray-700 hover:text-orange-500 transition"
         >
-          <ArrowLeft size={18} />
+          <ArrowLeft size={25} />
           <h2 className="text-lg font-normal hidden md:block">
             Back to Estimate
           </h2>
@@ -566,7 +565,7 @@ export default function EstimateDescription() {
         <h2 className="text-xl md:text-2xl font-normal text-center block md:hidden w-full">
           Estimates
         </h2>
-        <div className="space-x-4 hidden md:block">
+        <div className="space-x-4 hidden md:block ">
           <Link href={"/admin/estimate"}>
             <button className="px-6 py-2 border-[1px] border-primary text-primary hover:bg-primary transition-colors duration-300 hover:text-white rounded-xl ">
               Cancel
@@ -581,10 +580,10 @@ export default function EstimateDescription() {
         </div>
       </div>
 
-      <div className="md:bg-secondary bg-none border-none md:border rounded-xl md:p-6 space-y-6">
+      <div className="md:bg-secondary bg-none border-none md:border rounded-xl md:p-6 space-y-6 mt-12 md:mt-0">
         <div
           onClick={() => setOpenClientModal(true)}
-          className="border border-dashed border-primary rounded-xl p-10 flex items-center justify-center text-orange-500 cursor-pointer hover:bg-orange-50 duration-300"
+          className="border border-dashed bg-[#E279320D] border-primary rounded-xl p-10 flex items-center justify-center text-orange-500 cursor-pointer hover:bg-orange-50 duration-300"
         >
           <AiOutlineUserAdd className="mr-2 inline-block" size={20} />
           <span>Add Client</span>
@@ -858,6 +857,7 @@ export default function EstimateDescription() {
                               className="cell w-full text-center focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition p-2 "
                               placeholder="$0.00"
                               value={rate || ""}
+                              readOnly
                               onChange={(e) => {
                                 const newRate = parseFloat(e.target.value) || 0;
                                 setLineItemTables((prev) =>
@@ -971,7 +971,7 @@ export default function EstimateDescription() {
                               </p> */}
 
                               {item.description && (
-                                <p className="text-xs text-gray-500">
+                                <p className="text-base text-gray-500">
                                   {item.description}
                                 </p>
                               )}
@@ -1242,7 +1242,7 @@ export default function EstimateDescription() {
 
                   <div className="text-right min-w-[80px]">
                     <p className="font-semibold text-gray-800">
-                      ${item?.markUp?.amount || 0}
+                      ${item?.rate || 0}
                     </p>
                   </div>
                 </div>
@@ -1547,111 +1547,115 @@ export default function EstimateDescription() {
       )}
 
       {openClientModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-[90%] md:w-[700px] p-6 rounded-xl shadow-lg space-y-4">
-            <h2 className="text-lg font-semibold mb-4">Add Client</h2>
-            <p className="text-base font-normal">Basic Information</p>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-3 sm:p-4">
+          <div className="bg-white w-full max-w-[95vw] sm:max-w-[90vw] md:max-w-[700px] max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-xl shadow-lg space-y-3 sm:space-y-4">
+            <h2 className="text-xl md:text-2xl font-semibold mb-3">
+              Add Client
+            </h2>
+            <p className="text-2xl font-normal">Basic Information</p>
 
             {/* Client Name */}
             <div>
-              <label className="text-sm">Client Name</label>
+              <label className="text-base">Client Name</label>
               <input
                 name="clientName"
                 value={formData.clientName}
                 onChange={handleChange}
                 placeholder="Client Name"
-                className="w-full mt-1 border p-2 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full mt-1 border p-2 sm:p-2.5 text-sm rounded focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
             {/* Email + Phone */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
               <div>
-                <label className="text-sm">Email Address</label>
+                <label className="text-base">Email Address</label>
                 <input
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="Email Address"
-                  className="w-full mt-1 border p-2 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full mt-1 border p-2 sm:p-2.5 text-sm rounded focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 
               <div>
-                <label className="text-sm">Phone Number</label>
+                <label className="text-base">Phone Number</label>
                 <input
                   name="phoneNumber"
                   value={formData.phoneNumber}
                   onChange={handleChange}
                   placeholder="Phone Number"
-                  className="w-full mt-1 border p-2 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full mt-1 border p-2 sm:p-2.5 text-sm rounded focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
             </div>
 
-            <p className="text-base font-normal">Address Information</p>
+            <p className="text-sm sm:text-base font-normal">
+              Address Information
+            </p>
 
             {/* Address */}
             <div>
-              <label className="text-sm">Address</label>
+              <label className="text-base">Address</label>
               <input
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
                 placeholder="Address"
-                className="w-full mt-1 border p-2 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full mt-1 border p-2 sm:p-2.5 text-sm rounded focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
             {/* City + State */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
               <div>
-                <label className="text-sm">City</label>
+                <label className="text-base">City</label>
                 <input
                   name="city"
                   value={formData.city}
                   onChange={handleChange}
                   placeholder="City"
-                  className="w-full mt-1 border p-2 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full mt-1 border p-2 sm:p-2.5 text-sm rounded focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 
               <div>
-                <label className="text-sm">State</label>
+                <label className="text-base">State</label>
                 <input
                   name="state"
                   value={formData.state}
                   onChange={handleChange}
                   placeholder="State"
-                  className="w-full mt-1 border p-2 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full mt-1 border p-2 sm:p-2.5 text-sm rounded focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
             </div>
 
             {/* Zip */}
             <div>
-              <label className="text-sm">Zip</label>
+              <label className="text-base">Zip</label>
               <input
                 name="zip"
                 value={formData.zip}
                 onChange={handleChange}
                 placeholder="Zip"
-                className="w-full mt-1 border p-2 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full mt-1 border p-2 sm:p-2.5 text-sm rounded focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
             {/* Buttons */}
-            <div className="flex justify-end gap-2 mt-4">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 mt-4 sm:mt-6">
               <button
                 onClick={() => setOpenClientModal(false)}
-                className="px-8 py-2 border rounded-xl hover:text-white hover:bg-primary transition-colors duration-300"
+                className="px-4 sm:px-8 py-2 text-sm border rounded-xl hover:text-white hover:bg-primary transition-colors duration-300"
               >
                 Cancel
               </button>
 
               <button
                 onClick={() => handleCreateClient(formData)}
-                className="px-8 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors"
+                className="px-4 sm:px-8 py-2 text-sm bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors"
               >
                 Save
               </button>
