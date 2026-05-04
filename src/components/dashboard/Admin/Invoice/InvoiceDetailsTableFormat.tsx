@@ -1,7 +1,6 @@
 "use client";
 
 import paymentIcon from "@/assets/dashboard/credit-card-validation.png";
-import stars from "@/assets/dashboard/stars.png";
 import logo from "@/assets/kal-logo.png";
 import {
   useGenerateFromEstimateMutation,
@@ -302,21 +301,6 @@ export default function InvoiceDetailsTableFormat() {
         </div>
 
         <div className="flex items-center gap-3 mt-4">
-          <button
-            onClick={handleGenerateInvoice}
-            disabled={isGeneratingInvoice || !invoice?.estimateId}
-            className="group flex items-center gap-2 px-4 py-2 border border-primary text-primary rounded-lg bg-white hover:bg-primary hover:text-white duration-200 ease-in  cursor-pointer"
-          >
-            <Image
-              src={stars}
-              alt="Generate"
-              width={16}
-              height={16}
-              className="h-4 w-4 group-hover:invert-1 group-hover:brightness-200 duration-300"
-            />
-            <span>Generate Invoice</span>
-          </button>
-
           <button
             onClick={() => setIsPaymentModalOpen(true)}
             className="group flex items-center gap-2 px-4 py-2 border-primary transition-all duration-300 border text-primary rounded-lg hover:bg-primary hover:text-white ease-in"
@@ -772,21 +756,6 @@ export default function InvoiceDetailsTableFormat() {
               className="transition duration-300 group-hover:brightness-0 group-hover:invert"
             />
             Payment
-          </button>
-
-          <button
-            onClick={handleGenerateInvoice}
-            disabled={isGeneratingInvoice || !invoice?.estimateId}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-primary px-4 py-3 text-primary transition-colors hover:bg-primary hover:text-white disabled:opacity-60"
-          >
-            <Image
-              src={stars}
-              alt="Generate"
-              width={16}
-              height={16}
-              className="h-4 w-4 group-hover:invert-1 group-hover:brightness-200 duration-300"
-            />
-            Generate
           </button>
 
           <button
