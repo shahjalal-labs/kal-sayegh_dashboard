@@ -1,19 +1,96 @@
 "use client";
 
 import logo from "@/assets/kal-logo.png";
-import { useGetInvoiceByIdQuery } from "@/redux/api/admin/invoiceApi";
+import {
+  useGetInvoiceByIdQuery,
+  useSendInvoiceMailMutation,
+} from "@/redux/api/admin/invoiceApi";
 import html2pdf from "html2pdf.js";
 import Image from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { AiOutlineMail } from "react-icons/ai";
 import { FiArrowLeft, FiDownload, FiPrinter } from "react-icons/fi";
 import { ColorRing } from "react-loader-spinner";
+import { toast } from "sonner";
 
 export default function InvoiceDetailsDescription() {
   const { id } = useParams();
+  const searchParams = useSearchParams();
+  const formatParam = searchParams?.get("format");
 
-  const { data, isLoading, error } = useGetInvoiceByIdQuery(id as string);
+  const { data, isLoading, error, refetch } = useGetInvoiceByIdQuery(
+    id as string,
+  );
   const invoice = (data as any)?.result;
+
+  const clientEmail = invoice?.client?.email || "";
+
+  // email/reminder modal state
+  const [isReminderOpen, setIsReminderOpen] = useState(false);
+  const [emailInput, setEmailInput] = useState("");
+  const [emailMarkedRead, setEmailMarkedRead] = useState(false);
+  const [formData, setFormData] = useState<{
+    to: string[];
+    subject: string;
+    message: string;
+    sendMeCopy: boolean;
+  }>({
+    to: [],
+    subject: "",
+    message:
+      "We are following up to confirm whether you have had an opportunity to review the invoice that was previously sent.",
+    sendMeCopy: false,
+  });
+  const [showClientEmail, setShowClientEmail] = useState(false);
+
+  const [sendInvoiceMail, { isLoading: isSendingInvoiceEmail }] =
+    useSendInvoiceMailMutation();
+
+  // Mark email as READ when opened with format=description
+  useEffect(() => {
+    if (!id || !invoice || formatParam !== "description") return;
+    if (emailMarkedRead) return;
+
+    (async () => {
+      try {
+        const token = document.cookie
+          .split("; ")
+          .find((row) => row.startsWith("token="))
+          ?.split("=")[1];
+
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_BASE_URL_LOCAL}/invoice/update-email-sign/${id}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token && { Authorization: `Bearer ${token}` }),
+            },
+            body: JSON.stringify({ emailStatus: "READ" }),
+          },
+        );
+
+        if (response.ok) {
+          setEmailMarkedRead(true);
+          refetch();
+        }
+      } catch (err) {
+        // silently ignore errors
+      }
+    })();
+  }, [id, invoice, formatParam, emailMarkedRead, refetch]);
+
+  // when invoice loaded, set client email in recipients (keep hook order stable)
+  useEffect(() => {
+    if (!invoice || showClientEmail) return;
+    const cEmail = invoice?.client?.email;
+    if (cEmail) {
+      setFormData((prev) => ({ ...prev, to: [cEmail, ...prev.to] }));
+      setShowClientEmail(true);
+    }
+  }, [invoice, showClientEmail]);
 
   const handleDownload = () => {
     const element = document.getElementById("invoice");
@@ -98,6 +175,47 @@ export default function InvoiceDetailsDescription() {
   const isVideoUrl = (url: string) =>
     /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(url);
 
+  // add email to recipients list
+  const addRecipientEmail = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    const emails = trimmed
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const valid = emails.filter((e) => /\S+@\S+\.\S+/.test(e));
+    if (valid.length > 0) {
+      setFormData((prev) => ({ ...prev, to: [...prev.to, ...valid] }));
+      setEmailInput("");
+    }
+  };
+
+  const handleInvoiceReminder = async () => {
+    if (!invoice) return;
+    try {
+      const to = formData.to.map((s) => s.trim()).filter(Boolean);
+      await sendInvoiceMail({
+        invoiceId: invoice.id,
+        payload: {
+          to,
+          cc: [],
+          bcc: [],
+          message: formData.message,
+          sendMeCopy: formData.sendMeCopy,
+          subject: formData.subject,
+        },
+      }).unwrap();
+
+      toast.success("Invoice email sent successfully");
+      setIsReminderOpen(false);
+      setFormData({ to: [], subject: "", message: "", sendMeCopy: false });
+      setEmailInput("");
+      refetch();
+    } catch (error: any) {
+      toast.error(error?.data?.message || "Failed to send invoice email");
+    }
+  };
+
   return (
     <div className="pb-10">
       <Link
@@ -107,6 +225,23 @@ export default function InvoiceDetailsDescription() {
         <FiArrowLeft />
         Back To Invoice List Page
       </Link>
+
+      <div>
+        <button
+          onClick={() => setIsReminderOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 mt-7 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary"
+        >
+          <AiOutlineMail />
+          Email
+        </button>
+      </div>
+
+      {(emailMarkedRead ||
+        (invoice?.emailStatus || "").toString().toUpperCase() === "READ") && (
+        <div className="mt-3 text-center text-sm text-green-700 bg-green-50 rounded-md py-2 px-3">
+          ✓ Email opened
+        </div>
+      )}
 
       <div
         id="invoice"
@@ -312,6 +447,171 @@ export default function InvoiceDetailsDescription() {
           Download
         </button>
       </div>
+      {isReminderOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4"
+          onClick={(event) => {
+            event.stopPropagation();
+            setIsReminderOpen(false);
+          }}
+        >
+          <div
+            className="w-full max-w-[640px] rounded-2xl bg-white p-6 shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 className="text-xl font-semibold text-gray-900">
+              Send Payment Reminder
+            </h2>
+
+            <div className="mt-8 space-y-6">
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-900">
+                  To
+                </label>
+
+                <div className="flex min-h-[48px] w-full flex-wrap items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 focus-within:border-primary">
+                  {showClientEmail && clientEmail ? (
+                    <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm text-gray-700">
+                      <span>{clientEmail}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowClientEmail(false);
+                          setFormData((prev) => ({
+                            ...prev,
+                            to: prev.to.filter(
+                              (email) => email !== clientEmail,
+                            ),
+                          }));
+                        }}
+                        className="text-gray-400 hover:text-red-500"
+                        aria-label="Remove client email"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : null}
+
+                  {formData.to.map((email) => (
+                    <div
+                      key={email}
+                      className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm text-gray-700"
+                    >
+                      <span>{email}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            to: prev.to.filter((item) => item !== email),
+                          }));
+                        }}
+                        className="text-gray-400 hover:text-red-500"
+                        aria-label={`Remove ${email}`}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+
+                  <input
+                    type="text"
+                    placeholder="Add email..."
+                    value={emailInput}
+                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                      setEmailInput(event.target.value);
+                    }}
+                    onKeyDown={(
+                      event: React.KeyboardEvent<HTMLInputElement>,
+                    ) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        addRecipientEmail(emailInput);
+                      }
+                    }}
+                    className="flex-1 bg-transparent text-sm outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-900">
+                  Subject
+                </label>
+                <input
+                  type="text"
+                  value={formData.subject}
+                  onChange={(event) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      subject: event.target.value,
+                    }))
+                  }
+                  className="h-12 w-full rounded-xl border border-gray-200 px-4 text-sm text-gray-500 outline-none placeholder:text-gray-400 focus:border-primary"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-4">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      sendMeCopy: !prev.sendMeCopy,
+                    }))
+                  }
+                  className={`relative inline-flex h-8 w-16 items-center rounded-full px-1 transition-colors ${
+                    formData.sendMeCopy ? "bg-primary" : "bg-gray-200"
+                  }`}
+                  aria-label="Send me a copy toggle"
+                >
+                  <span
+                    className={`inline-block h-6 w-6 rounded-full bg-white shadow transition-transform ${
+                      formData.sendMeCopy ? "translate-x-8" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+                <span className="text-sm font-medium text-gray-700">
+                  Send me a copy
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-900">
+                  Message
+                </label>
+                <textarea
+                  value={formData.message}
+                  onChange={(event) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      message: event.target.value,
+                    }))
+                  }
+                  className="min-h-[120px] w-full rounded-xl border border-gray-200 px-4 py-3 text-sm leading-6 text-gray-600 outline-none focus:border-primary"
+                />
+              </div>
+            </div>
+
+            <div className="mt-10 flex items-center justify-end gap-5">
+              <button
+                type="button"
+                onClick={() => setIsReminderOpen(false)}
+                className="min-w-[112px] rounded-xl border border-primary px-6 py-3 text-base text-primary transition-colors hover:bg-primary hover:text-white"
+              >
+                Close
+              </button>
+              <button
+                onClick={handleInvoiceReminder}
+                type="button"
+                className="min-w-[112px] rounded-xl bg-primary px-6 py-3 text-base text-white transition-colors hover:opacity-90"
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

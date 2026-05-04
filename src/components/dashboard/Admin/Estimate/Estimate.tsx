@@ -401,7 +401,7 @@ export default function Estimate() {
                             {isEmailNotSent ? (
                               <button
                                 type="button"
-                                onClick={() => openEmailModal(item)}
+                              
                                 className="inline-flex items-center "
                                 aria-label="Open email"
                                 title="Open email"
@@ -661,114 +661,7 @@ export default function Estimate() {
         </div>
       </CustomModal>
 
-      <CustomModal
-        open={emailModalOpen}
-        onClose={() => {
-          setEmailModalOpen(false);
-          setSelectedEstimate(null);
-        }}
-        title="Send Estimate Email"
-        maxWidth="2xl"
-        actions={[
-          {
-            label: "Cancel",
-            variant: "secondary",
-            onClick: () => {
-              setEmailModalOpen(false);
-              setSelectedEstimate(null);
-            },
-          },
-          {
-            label: isSendingEmail ? "Sending..." : "Send Email",
-            variant: "primary",
-            disabled: isSendingEmail,
-            onClick: handleSendEstimateEmail,
-          },
-        ]}
-      >
-        <div className="space-y-5">
-          <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4">
-            <p className="text-base text-gray-500">Estimate</p>
-            <p className="text-lg font-semibold text-gray-900">
-              {selectedEstimate?.estimateName || "Untitled Estimate"}
-            </p>
-            <p className="text-base text-gray-500">
-              Client: {selectedEstimate?.client?.clientName || "-"}
-            </p>
-          </div>
-
-          <div className="grid gap-4">
-            <label className="space-y-2">
-              <span className="text-base font-medium text-gray-700">
-                To
-              </span>
-              <textarea
-                value={emailForm.to}
-                onChange={(e) =>
-                  setEmailForm((prev) => ({ ...prev, to: e.target.value }))
-                }
-                rows={2}
-                className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                placeholder="recipient@example.com, another@example.com"
-              />
-              <span className="text-base text-gray-500">
-                Separate multiple emails with commas.
-              </span>
-            </label>
-
-            <label className="space-y-2">
-              <span className="text-base font-medium text-gray-700">
-                Subject
-              </span>
-              <input
-                type="text"
-                value={emailForm.subject}
-                onChange={(e) =>
-                  setEmailForm((prev) => ({
-                    ...prev,
-                    subject: e.target.value,
-                  }))
-                }
-                className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-              />
-            </label>
-
-            <label className="space-y-2">
-              <span className="text-base font-medium text-gray-700">
-                Message
-              </span>
-              <textarea
-                value={emailForm.message}
-                onChange={(e) =>
-                  setEmailForm((prev) => ({ ...prev, message: e.target.value }))
-                }
-                rows={5}
-                className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-              />
-            </label>
-
-            <label className="flex items-center gap-3 rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-4 py-3">
-              <input
-                type="checkbox"
-                checked={emailForm.sendMeCopy}
-                onChange={(e) =>
-                  setEmailForm((prev) => ({
-                    ...prev,
-                    sendMeCopy: e.target.checked,
-                  }))
-                }
-                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-              />
-              <div>
-                <p className="text-base font-medium text-gray-800">Send me a copy</p>
-                <p className="text-base text-gray-500">
-                  Bcc and cc are intentionally sent as empty arrays.
-                </p>
-              </div>
-            </label>
-          </div>
-        </div>
-      </CustomModal>
+     
     </div>
   );
 }

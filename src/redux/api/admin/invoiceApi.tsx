@@ -52,13 +52,13 @@ const invoiceApi = baseApi.injectEndpoints({
       },
     }),
 
-   sendInvoiceMail: builder.mutation({
-  query: ({ payload, invoiceId }) => ({
-    url: `/invoice/send-email/${invoiceId}`,
-    method: "POST",
-    body: payload,
-  }),
-}),
+    sendInvoiceMail: builder.mutation({
+      query: ({ payload, invoiceId }) => ({
+        url: `/invoice/send-email/${invoiceId}`,
+        method: "POST",
+        body: payload,
+      }),
+    }),
 
     getInvoicePayments: builder.query({
       query: (invoiceId) => ({
@@ -122,9 +122,17 @@ const invoiceApi = baseApi.injectEndpoints({
       }),
     }),
 
-    Payment : builder.mutation({
+    Payment: builder.mutation({
       query: ({ invoiceId, payload }) => ({
         url: `/invoice/pay-with-stripe/${invoiceId}`,
+        method: "POST",
+        body: payload,
+      }),
+    }),
+
+    updateEmailStatus: builder.mutation({
+      query: ({ invoiceId, payload }) => ({
+        url: `/invoice/update-email-sign/${invoiceId}`,
         method: "POST",
         body: payload,
       }),
@@ -135,7 +143,7 @@ const invoiceApi = baseApi.injectEndpoints({
         url: `/invoice/public-invoice/${invoiceId}`,
         method: "GET",
       }),
-    }), 
+    }),
   }),
 });
 
@@ -151,5 +159,5 @@ export const {
   useRefundPaymentMutation,
   usePaymentMutation,
   usePublicInvoiceDetailsQuery,
-
+  useUpdateEmailStatusMutation,
 } = invoiceApi;
