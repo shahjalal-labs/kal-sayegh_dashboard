@@ -21,6 +21,13 @@ const protectedRoutes = [
   "/admin/settings",
 ];
 
+const redirectToLogin = (request: NextRequest) => {
+  const loginRoute = `${request.nextUrl.origin}/login`;
+  const res = NextResponse.redirect(new URL(loginRoute, request.url));
+  res.cookies.delete("token");
+  return res;
+};
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -36,6 +43,7 @@ export function middleware(request: NextRequest) {
     routes.some((route) => pathname.startsWith(route));
 
   const isProtectedRoute = matchRoute(protectedRoutes);
+  const isDashboard = pathname.startsWith("/dashboard") || pathname.startsWith("/admin");
 
   // 🔴 If logged in user hits login page → redirect dashboard
   if (isLoginRoute && token) {
@@ -46,11 +54,9 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL(dashboardRoute, request.url));
       }
 
-      const res = NextResponse.redirect(new URL(loginRoute, request.url));
-      res.cookies.delete("token");
-      return res;
+      return redirectToLogin(request);
     } catch {
-      return NextResponse.next();
+      return redirectToLogin(request);
     }
   }
 
@@ -59,29 +65,29 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 🔴 No token → login redirect
-  if (!token) {
-    const res = NextResponse.redirect(new URL(loginRoute, request.url));
-    res.cookies.delete("token");
-    return res;
+  // 🔴 Dashboard routes without token → redirect login immediately
+  if (isDashboard && !token) {
+    return redirectToLogin(request);
   }
 
-  // 🔐 Verify token
+  // 🔴 Protected routes without token → login redirect
+  if (!token) {
+    return redirectToLogin(request);
+  }
+
+  // 🔐 Verify token validity
   try {
     const user = jwtDecode<User>(token);
 
-    // Admin-only access
+    // Admin-only access for protected routes
     if (isAdminRole(user.role)) {
       return NextResponse.next();
     }
 
-    const res = NextResponse.redirect(new URL(loginRoute, request.url));
-    res.cookies.delete("token");
-    return res;
+    return redirectToLogin(request);
   } catch {
-    const res = NextResponse.redirect(new URL(loginRoute, request.url));
-    res.cookies.delete("token");
-    return res;
+    // Invalid or expired token
+    return redirectToLogin(request);
   }
 }
 

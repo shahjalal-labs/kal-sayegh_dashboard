@@ -5,7 +5,7 @@ import type React from "react";
 import { Eye, EyeOff } from "lucide-react";
 // import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useLoginMutation } from "@/redux/api/authApi";
 import { setUser } from "@/redux/ReduxFunction";
@@ -14,16 +14,39 @@ import Link from "next/link";
 import { useDispatch } from "react-redux";
 import { toast } from "sonner";
 import AuthLayout from "./AuthLayout";
+import { jwtDecode } from "jwt-decode";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
   const router = useRouter();
 
   const [login] = useLoginMutation();
   const dispatch = useDispatch();
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const token = Cookies.get("token");
+    if (token) {
+      try {
+        const decoded = jwtDecode<{ role: string }>(token);
+        if (decoded.role?.toLowerCase() === "admin") {
+          router.push("/admin/dashboard");
+        } else {
+          Cookies.remove("token");
+          setIsChecking(false);
+        }
+      } catch {
+        Cookies.remove("token");
+        setIsChecking(false);
+      }
+    } else {
+      setIsChecking(false);
+    }
+  }, [router]);
 
   const getLoginErrorMessage = (err: unknown) => {
     const fallbackMessage =
@@ -108,8 +131,14 @@ export default function Login() {
   };
 
   return (
-    <AuthLayout title="Login" subtitle="Let's login into your account first ">
-      <form onSubmit={handleLogin} className="space-y-6 ">
+    <>
+      {isChecking ? (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      ) : (
+        <AuthLayout title="Login" subtitle="Let's login into your account first ">
+          <form onSubmit={handleLogin} className="space-y-6 ">
         <div className="relative w-full">
           <label className="absolute -top-2 left-5 bg-secondary px-2 text-sm text-gray-600">
             Email Address
@@ -169,6 +198,8 @@ export default function Login() {
           {isLoading ? "Logging in..." : "Log in"}
         </button>
       </form>
-    </AuthLayout>
+        </AuthLayout>
+      )}
+    </>
   );
 }
