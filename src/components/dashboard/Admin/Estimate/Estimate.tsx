@@ -1,5 +1,7 @@
 "use client";
 
+import openEmail from "@/assets/dashboard/openEmail.png";
+import sentEmail from "@/assets/dashboard/sentEmail.png";
 import {
   Pagination,
   PaginationContent,
@@ -12,13 +14,14 @@ import {
   useGetAllEstimatesQuery,
   useSendEstimateMailMutation,
 } from "@/redux/api/admin/estimateApi";
-import { Check, FilePenLine, MailCheck, MailOpen, Plus, Search } from "lucide-react";
+import { Check, PenLine, Plus, Search } from "lucide-react";
+import Image from "next/image";
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ColorRing } from "react-loader-spinner";
 import { toast } from "sonner";
 import { CustomModal } from "../../../modal/CustomModal";
-import { ColorRing } from "react-loader-spinner";
 
 export default function Estimate() {
   const router = useRouter();
@@ -51,7 +54,8 @@ export default function Estimate() {
 
   const getStageLabel = (item: any) => {
     const normalizedStage = normalizeStatus(item?.stage);
-    if (normalizedStage) return normalizedStage.replace(/_/g, " ").toUpperCase();
+    if (normalizedStage)
+      return normalizedStage.replace(/_/g, " ").toUpperCase();
 
     const normalizedStatus = normalizeStatus(item?.status);
     if (normalizedStatus === "approved") return "INVOICED";
@@ -217,12 +221,50 @@ export default function Estimate() {
     setEmailForm({
       to: item?.client?.email ? item.client.email : "",
       subject: "Your Estimate  from Geo Paving and Sealcoating",
-      message:
-        "We are pleased to work with you. Please review the estimate.",
+      message: "We are pleased to work with you. Please review the estimate.",
       sendMeCopy: true,
     });
     setEmailModalOpen(true);
   };
+
+  const isEmailNotSent = (status?: string) =>
+    !status || status.toString().trim().toUpperCase() === "NOT_SENT";
+
+  const isEmailOpened = (status?: string) =>
+    status?.toString().trim().toUpperCase() === "READ";
+
+  const getEstimateEmailLabel = (status?: string) => {
+    if (isEmailNotSent(status)) return "Email Not Sent";
+    if (isEmailOpened(status)) return "Opened Email";
+    return "Email Sent";
+  };
+
+  const getEstimateEmailIcon = (status?: string) =>
+    isEmailNotSent(status) ? (
+      <Image
+        src={openEmail}
+        alt="Email not sent"
+        width={18}
+        height={18}
+        className="h-[18px] w-[18px] opacity-60"
+      />
+    ) : isEmailOpened(status) ? (
+      <Image
+        src={openEmail}
+        alt="Opened email"
+        width={18}
+        height={18}
+        className="h-[18px] w-[18px]"
+      />
+    ) : (
+      <Image
+        src={sentEmail}
+        alt="Email sent"
+        width={18}
+        height={18}
+        className="h-[18px] w-[18px]"
+      />
+    );
 
   const handleSendEstimateEmail = async () => {
     if (!selectedEstimate?.id) return;
@@ -344,223 +386,256 @@ export default function Estimate() {
             </p>
           ) : (
             groupedEntries.map((entry: any) => {
-            const [, group] = entry;
-            const month = group.label;
-            const items = group.items;
-            return (
-              <div key={month}>
-                {/* MONTH HEADER */}
-                <div className="flex justify-between border-b pb-2 mb-4">
-                  <span className="font-semibold text-xl">{month}</span>
-                  <span className="text-gray-500 hidden md:block text-xl">
-                    Total: $
-                    {items
-                      .reduce(
-                        (sum: number, i: any) => sum + (i.grandTotal || 0),
-                        0,
-                      )
-                      .toFixed(2)}
-                  </span>
-                </div>
+              const [, group] = entry;
+              const month = group.label;
+              const items = group.items;
+              return (
+                <div key={month}>
+                  {/* MONTH HEADER */}
+                  <div className="flex justify-between border-b pb-2 mb-4">
+                    <span className="font-semibold text-xl">{month}</span>
+                    <span className="text-gray-500 hidden md:block text-xl">
+                      Total: $
+                      {items
+                        .reduce(
+                          (sum: number, i: any) => sum + (i.grandTotal || 0),
+                          0,
+                        )
+                        .toFixed(2)}
+                    </span>
+                  </div>
 
-                {items.map((item: any) => {
-                  const isApproved = getEstimateStatus(item) === "approved";
-                  const stageLabel = getStageLabel(item);
-                  const stageClasses = getStageBadgeClasses(item);
-                  const emailStatus = normalizeStatus(item.emailStatus);
-                  const isEmailNotSent = emailStatus === "not_sent";
-                  const showSignedIcon = Boolean(item?.isSigned) || isApproved;
+                  {items.map((item: any) => {
+                    const isApproved = getEstimateStatus(item) === "approved";
+                    const stageLabel = getStageLabel(item);
+                    const stageClasses = getStageBadgeClasses(item);
+                    const emailStatus = item?.emailStatus;
+                    const canOpenEmailModal = isEmailNotSent(emailStatus);
 
-                  return (
-                    <div
-                      key={item.id}
-                      className="mb-4 border-b pb-4 last:border-b-0 last:pb-0 "
-                    >
-                      <div className="md:hidden rounded-2xl px-3 py-4 ">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-lg font-semibold text-gray-900 truncate">
-                              {item.estimateName || "Untitled Estimate"}
-                            </p>
-                            
+                    const hasSignedState =
+                      item?.isSigned === true ||
+                      item?.isSigned === false ||
+                      isApproved;
+                    const signedLabel =
+                      item?.isSigned === false ? "Not Signed" : "Signed";
+                    const signedIconClass =
+                      item?.isSigned === false || !isApproved
+                        ? "text-gray-500"
+                        : "text-gray-500";
+
+                    return (
+                      <div
+                        key={item.id}
+                        className="mb-4 border-b pb-4 last:border-b-0 last:pb-0 "
+                      >
+                        <div
+                          className="md:hidden rounded-2xl px-3 py-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                          onClick={() => {
+                            router.push(
+                              `/admin/estimate/${item.id}?format=${getEstimateDetailsFormat(item)}`,
+                            );
+                          }}
+                        >
+                          {/* Row 1: Name and Amount */}
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-lg font-semibold text-gray-900 truncate">
+                                {item.estimateName || "Untitled Estimate"}
+                              </p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-lg font-semibold text-gray-900">
+                                ${item.grandTotal?.toFixed(2) || "0.00"}
+                              </p>
+                            </div>
                           </div>
 
-                          <div className="text-right shrink-0">
-                            <p className="text-lg font-semibold text-gray-900">
-                              ${item.grandTotal?.toFixed(2) || "0.00"}
-                            </p>
+                          {/* Row 2: Date/Ref and Status/Indicators */}
+                          <div className="mt-3 flex items-center justify-between gap-3 text-base text-gray-500">
+                            <span className="text-sm text-gray-400 lowercase">
+                              {`${getShortMetaDate(item.createdAt || item.date)} • ${getEstimateRef(item.id)}`}
+                            </span>
+
+                            <div className="flex items-center gap-2 whitespace-nowrap flex-wrap justify-end">
+                              {/* Email Icon */}
+                              <div>
+                                {canOpenEmailModal ? (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openEmailModal(item);
+                                    }}
+                                    className="inline-flex items-center"
+                                    aria-label={getEstimateEmailLabel(
+                                      emailStatus,
+                                    )}
+                                    title={getEstimateEmailLabel(emailStatus)}
+                                  >
+                                    {getEstimateEmailIcon(emailStatus)}
+                                  </button>
+                                ) : (
+                                  <span
+                                    className="inline-flex items-center text-gray-500"
+                                    aria-label={getEstimateEmailLabel(
+                                      emailStatus,
+                                    )}
+                                    title={getEstimateEmailLabel(emailStatus)}
+                                  >
+                                    {getEstimateEmailIcon(emailStatus)}
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Signed Icon */}
+                              {hasSignedState && (
+                                <span
+                                  className={`inline-flex items-center ${signedIconClass}`}
+                                  aria-label={signedLabel}
+                                  title={signedLabel}
+                                >
+                                  <PenLine size={16} />
+                                </span>
+                              )}
+
+                              {/* Status Badge */}
+                              <span
+                                className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${stageClasses}`}
+                              >
+                                {stageLabel}
+                              </span>
+                            </div>
                           </div>
                         </div>
 
-                        <div className="mt-3 flex items-center justify-between gap-3 text-base text-gray-500">
-                          <span className="text-base text-gray-400 lowercase">
-                            {`${getShortMetaDate(item.createdAt || item.date)} • ${getEstimateRef(item.id)}`}
-                          </span>
-
-                          <div className="inline-flex items-center gap-3 whitespace-nowrap">
-                            {isEmailNotSent ? (
-                              <button
-                                type="button"
-                              
-                                className="inline-flex items-center "
-                                aria-label="Open email"
-                                title="Open email"
-                              >
-                                <MailOpen size={18} />
-                              </button>
-                            ) : isApproved ? (
-                              <span
-                                className="inline-flex items-center text-gray-500"
-                                aria-label="Email opened"
-                                title="Email opened"
-                              >
-                                <MailCheck size={18} />
+                        <div className="hidden md:flex md:flex-row md:items-start md:justify-between gap-4 md:pb-0 md:border-0">
+                          <div className="flex-1 md:flex-none md:w-[30%]">
+                            <div className="flex items-center justify-between gap-2 w-full">
+                              <span className="font-semibold text-gray-800 lg:border-b lg:border-[#52C41A]">
+                                {item.estimateName || "Untitled Estimate"}
                               </span>
-                            ) : (
-                              <span
-                                className="inline-flex items-center text-gray-500"
-                                aria-label="Email sent"
-                                title="Email sent"
-                              >
-                                <MailCheck size={18} />
+                              <span className="block md:hidden font-medium text-gray-600">
+                                ${item.grandTotal?.toFixed(2) || "0.00"}
                               </span>
-                            )}
-
-                            {showSignedIcon && (
+                            </div>
+                            <div className="flex items-center justify-between gap-4 mt-1 text-gray-800 p-2 w-full">
+                              <p className="text-base text-gray-400">
+                                {item.createdAt
+                                  ? formatDate(item.createdAt)
+                                  : item.date || "-"}
+                              </p>
                               <span
-                                className="inline-flex items-center text-gray-500"
-                                aria-label="Signed"
-                                title="Signed"
+                                className={`px-3 py-1 text-base rounded-full md:hidden block ${stageClasses}`}
                               >
-                                <FilePenLine size={15} />
+                                <span className="text-base font-medium">
+                                  {stageLabel}
+                                </span>
                               </span>
-                            )}
-
-                            <span
-                              className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${stageClasses}`}
-                            >
-                              {stageLabel}
-                            </span>
+                            </div>
                           </div>
-                        </div>
-                      </div>
 
-                      <div className="hidden md:flex md:flex-row md:items-start md:justify-between gap-4 md:pb-0 md:border-0">
-                        <div className="flex-1 md:flex-none md:w-[30%]">
-                          <div className="flex items-center justify-between gap-2 w-full">
-                            <span className="font-semibold text-gray-800 lg:border-b lg:border-[#52C41A]">
-                              {item.estimateName || "Untitled Estimate"}
-                            </span>
-                            <span className="block md:hidden font-medium text-gray-600">
-                              ${item.grandTotal?.toFixed(2) || "0.00"}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between gap-4 mt-1 text-gray-800 p-2 w-full">
-                            <p className="text-base text-gray-400">
-                              {item.createdAt
-                                ? formatDate(item.createdAt)
-                                : item.date || "-"}
-                            </p>
+                          <div className="hidden md:block">
                             <span
-                              className={`px-3 py-1 text-base rounded-full md:hidden block ${stageClasses}`}
+                              className={`px-3 py-1 text-base rounded-full ${stageClasses}`}
                             >
                               <span className="text-base font-medium">
                                 {stageLabel}
                               </span>
                             </span>
                           </div>
-                        </div>
 
-                        <div className="hidden md:block">
-                        <span
-                            className={`px-3 py-1 text-base rounded-full ${stageClasses}`}
-                        >
-                          <span className="text-base font-medium">
-                              {stageLabel}
-                          </span>
-                        </span>
-                      </div>
+                          <div className="text-base text-gray-500 max-w-xs hidden md:block md:w-[20%]">
+                            <p>{item?.client?.address}</p>
+                            <p>{item?.client?.city}</p>
+                            <p>{item?.client?.state}</p>
+                            <p>{item?.client?.zip}</p>
+                          </div>
 
-                        <div className="text-base text-gray-500 max-w-xs hidden md:block md:w-[20%]">
-                          <p>{item?.client?.address}</p>
-                          <p>{item?.client?.city}</p>
-                          <p>{item?.client?.state}</p>
-                          <p>{item?.client?.zip}</p>
-                        </div>
+                          <div className="text-left hidden md:block md:w-[15%]">
+                            <p className="font-semibold">
+                              ${item.grandTotal?.toFixed(2) || "0.00"}
+                            </p>
 
-                        <div className="text-left hidden md:block md:w-[15%]">
-                          <p className="font-semibold">
-                            ${item.grandTotal?.toFixed(2) || "0.00"}
-                          </p>
-
-                          <div className="mt-1 flex items-center gap-3 text-gray-500">
-                            {isEmailNotSent ? (
-                              <button
-                                type="button"
-                                onClick={() => openEmailModal(item)}
-                                className="inline-flex items-center gap-1  hover:text-primary/80"
-                                aria-label="Open email"
-                                title="Open email"
-                              >
-                                <MailOpen size={18} />
-                                <span className="text-base">Open Email</span>
-                              </button>
-                            ) : (
-                              <span
-                                className="inline-flex items-center gap-1"
-                                aria-label={isApproved ? "Email opened" : "Email sent"}
-                                title={isApproved ? "Email opened" : "Email sent"}
-                              >
-                                <MailCheck size={18} />
-                                <span className="text-base">
-                                  {isApproved ? "Email Opened" : "Email Sent"}
+                            <div className="mt-1 flex flex-col gap-2">
+                              <div className="flex items-center gap-3 text-gray-500">
+                                {canOpenEmailModal ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => openEmailModal(item)}
+                                    className="inline-flex items-center gap-1 "
+                                    aria-label={getEstimateEmailLabel(
+                                      emailStatus,
+                                    )}
+                                    title={getEstimateEmailLabel(emailStatus)}
+                                  >
+                                    {getEstimateEmailIcon(emailStatus)}
+                                    <span className="text-base">
+                                      {getEstimateEmailLabel(emailStatus)}
+                                    </span>
+                                  </button>
+                                ) : (
+                                  <span
+                                    className="inline-flex items-center gap-1"
+                                    aria-label={getEstimateEmailLabel(
+                                      emailStatus,
+                                    )}
+                                    title={getEstimateEmailLabel(emailStatus)}
+                                  >
+                                    {getEstimateEmailIcon(emailStatus)}
+                                    <span className="text-base">
+                                      {getEstimateEmailLabel(emailStatus)}
+                                    </span>
+                                  </span>
+                                )}
+                              </div>
+                              {hasSignedState && (
+                                <span
+                                  className={`inline-flex items-center gap-1 ${signedIconClass}`}
+                                  aria-label={signedLabel}
+                                  title={signedLabel}
+                                >
+                                  <PenLine size={15} />
+                                  <span className="text-base font-medium">
+                                    {signedLabel}
+                                  </span>
                                 </span>
-                              </span>
-                            )}
+                              )}
+                            </div>
+                          </div>
 
-                            {showSignedIcon && (
-                              <span
-                                className="inline-flex items-center"
-                                aria-label="Signed"
-                                title="Signed"
-                              >
-                                <FilePenLine size={15} />
-                              </span>
-                            )}
+                          <div className="hidden md:flex md:gap-2 md:w-[15%] md:justify-end">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                router.push(
+                                  `/admin/estimate/${item.id}?format=${getEstimateDetailsFormat(item)}`,
+                                );
+                              }}
+                              className="px-4 py-2 border border-primary text-primary rounded-lg whitespace-nowrap"
+                            >
+                              Open
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                router.push(
+                                  `/admin/edit-estimate?id=${item.id}`,
+                                );
+                              }}
+                              className="px-4 py-2 bg-primary text-secondary rounded-lg whitespace-nowrap"
+                            >
+                              Edit
+                            </button>
                           </div>
                         </div>
-
-                        <div className="hidden md:flex md:gap-2 md:w-[15%] md:justify-end">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              router.push(
-                                `/admin/estimate/${item.id}?format=${getEstimateDetailsFormat(item)}`,
-                              );
-                            }}
-                            className="px-4 py-2 border border-primary text-primary rounded-lg whitespace-nowrap"
-                          >
-                            Open
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              router.push(`/admin/edit-estimate?id=${item.id}`);
-                            }}
-                            className="px-4 py-2 bg-primary text-secondary rounded-lg whitespace-nowrap"
-                          >
-                            Edit
-                          </button>
-                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })
-        )}
-      </div>
+                    );
+                  })}
+                </div>
+              );
+            })
+          )}
+        </div>
       )}
 
       {totalPages > 1 && (
@@ -660,8 +735,6 @@ export default function Estimate() {
           ))}
         </div>
       </CustomModal>
-
-     
     </div>
   );
 }

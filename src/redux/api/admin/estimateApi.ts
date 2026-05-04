@@ -112,55 +112,20 @@ const estimateApi = baseApi.injectEndpoints({
     }),
 
     sendEstimateMail: builder.mutation({
-      query: (
-        payload:
-          | string
-          | {
-              estimateId: string;
-              to?: string[];
-              cc?: string[];
-              bcc?: string[];
-              message?: string;
-              sendMeCopy?: boolean;
-              subject?: string;
-              recipientEmail?: string;
-              data?: Record<string, any>;
-            },
-      ) => {
-        const estimateId =
-          typeof payload === "string" ? payload : payload.estimateId;
+      query: ({ estimateId, body }) => ({
+        url: `/estimate/send-email/${estimateId}`,
+        method: "POST",
+        body,
+      }),
+    }),
 
-        if (typeof payload === "string") {
-          return {
-            url: `/estimate/send-email/${estimateId}`,
-            method: "POST",
-          };
-        }
-
-        const { estimateId: _estimateId, data, recipientEmail, ...rest } = payload;
-        const flatBody = data && typeof data === "object" ? { ...data, ...rest } : rest;
-        const normalizedTo =
-          flatBody.to?.length || recipientEmail
-            ? flatBody.to?.length
-              ? flatBody.to
-              : recipientEmail
-                ? [recipientEmail]
-                : []
-            : [];
-
-        return {
-          url: `/estimate/send-email/${estimateId}`,
-          method: "POST",
-          body: {
-            ...flatBody,
-            to: normalizedTo,
-            cc: flatBody.cc || [],
-            bcc: flatBody.bcc || [],
-            email: normalizedTo[0] || recipientEmail,
-            recipientEmail: recipientEmail || normalizedTo[0],
-          },
-        };
-      },
+    updateEstimateStatus: builder.mutation({
+      query: ({ id, status }: { id: string; status: string }) => ({
+        url: `/estimate/update-status/${id}`,
+        method: "PATCH",
+        body: { status },
+      }),
+      invalidatesTags: ["estimate"],
     }),
 
     editEstimate: builder.mutation({
@@ -189,5 +154,6 @@ export const {
   useGetAllEstimatorsQuery,
   useGetAllOfficeAdministratorQuery,
   useSendEstimateMailMutation,
+  useUpdateEstimateStatusMutation,
   useEditEstimateMutation,
 } = estimateApi;

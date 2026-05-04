@@ -144,6 +144,13 @@ const invoiceApi = baseApi.injectEndpoints({
         method: "GET",
       }),
     }),
+
+    generateFromEstimate: builder.mutation({
+      query: ({ estimateId }) => ({
+        url: `/invoice/generate-from-estimate/${estimateId}`,
+        method: "POST",
+      }),
+    }),
   }),
 });
 
@@ -160,4 +167,5 @@ export const {
   usePaymentMutation,
   usePublicInvoiceDetailsQuery,
   useUpdateEmailStatusMutation,
+  useGenerateFromEstimateMutation,
 } = invoiceApi;
