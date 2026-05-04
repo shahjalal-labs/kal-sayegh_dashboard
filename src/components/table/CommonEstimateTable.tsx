@@ -91,6 +91,7 @@ export default function CommonEstimateTable({
       ...prev,
       [activeTableId]: {
         ...prev[activeTableId],
+        rate: isDeselecting ? "" : String(item?.rate ?? item?.amount ?? 0),
         quantity: isDeselecting ? "0" : "1",
       },
     }));
@@ -199,8 +200,10 @@ export default function CommonEstimateTable({
       const itemsData = items.map((item) => {
         const rate = parseFloat(rowData[item.id]?.rate || "0") || 0;
         const quantity = parseFloat(rowData[item.id]?.quantity || "0") || 0;
-        const markupPercent = selectedMarkupsByRow[item.id]?.percentage || 0;
-        const taxPercent = selectedTaxesByRow[item.id]?.percentage || 0;
+        const selectedMarkup = selectedMarkupsByRow[item.id] || null;
+        const selectedTax = selectedTaxesByRow[item.id] || null;
+        const markupPercent = selectedMarkup?.percentage || 0;
+        const taxPercent = selectedTax?.percentage || 0;
         const base = rate * quantity;
         const markupAmount = base * (markupPercent / 100);
         const subtotal = base + markupAmount;
@@ -210,7 +213,12 @@ export default function CommonEstimateTable({
 
         return {
           selectedItem: selectedItemsByTable[item.id],
+          rate,
           quantity,
+          selectedMarkup,
+          selectedTax,
+          taxPercent,
+          taxAmount: Math.round(taxAmount),
           total: roundedTotal,
         };
       });
@@ -275,9 +283,10 @@ export default function CommonEstimateTable({
               const rate = parseFloat(rowData[item.id]?.rate || "0") || 0;
               const quantity =
                 parseFloat(rowData[item.id]?.quantity || "0") || 0;
-              const markupPercent =
-                selectedMarkupsByRow[item.id]?.percentage || 0;
-              const taxPercent = selectedTaxesByRow[item.id]?.percentage || 0;
+              const selectedMarkup = selectedMarkupsByRow[item.id] || null;
+              const selectedTax = selectedTaxesByRow[item.id] || null;
+              const markupPercent = selectedMarkup?.percentage || 0;
+              const taxPercent = selectedTax?.percentage || 0;
 
               const base = rate * quantity;
               const markupAmount = base * (markupPercent / 100);
@@ -305,7 +314,9 @@ export default function CommonEstimateTable({
                           Description
                         </label>
                         <div className="flex items-center justify-between  border-b md:border-b-0 p-2 md:p-0">
-                          <span className="hidden md:inline">Description</span>
+                          <span className="hidden md:inline">
+                            {selectedItem?.itemName || "Description"}
+                          </span>
                           <span
                             onClick={() => openItemModal(item.id)}
                             className="text-orange-500 text-base cursor-pointer mt-3 md:mt-0"
@@ -324,6 +335,7 @@ export default function CommonEstimateTable({
              focus:border-primary transition p-2"
                           placeholder="$0.00"
                           value={rowData[item.id]?.rate || ""}
+                          readOnly
                           onChange={(e) =>
                             setRowData((prev) => ({
                               ...prev,
@@ -379,9 +391,7 @@ export default function CommonEstimateTable({
                           className="cell w-full"
                           placeholder="Tax"
                           value={
-                            selectedTaxesByRow[item.id]
-                              ? `${selectedTaxesByRow[item.id].percentage}%`
-                              : ""
+                            selectedTax ? `${selectedTax.percentage}%` : ""
                           }
                           readOnly
                           onClick={() => openTaxPicker(item.id)}
@@ -595,7 +605,7 @@ export default function CommonEstimateTable({
 
                   <div className="text-right min-w-[80px]">
                     <p className="font-semibold text-gray-800">
-                      ${item?.markUp?.amount || 0}
+                      ${item?.rate || 0}
                     </p>
                   </div>
                 </div>

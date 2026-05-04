@@ -1,8 +1,10 @@
 "use client";
 
 import paymentIcon from "@/assets/dashboard/credit-card-validation.png";
+import stars from "@/assets/dashboard/stars.png";
 import logo from "@/assets/kal-logo.png";
 import {
+  useGenerateFromEstimateMutation,
   useGetInvoiceByIdQuery,
   useSendReminderEmailMutation,
 } from "@/redux/api/admin/invoiceApi";
@@ -14,6 +16,7 @@ import { useState } from "react";
 import { AiOutlineMail } from "react-icons/ai";
 import { FiArrowLeft, FiDownload } from "react-icons/fi";
 import { ColorRing } from "react-loader-spinner";
+import { toast } from "sonner";
 import Swal from "sweetalert2";
 import PaymentModal from "./Payment/PaymentModal";
 
@@ -30,6 +33,9 @@ export default function InvoiceDetailsTableFormat() {
 
   const [invoiceReminder, { isLoading: isSendingReminder }] =
     useSendReminderEmailMutation();
+
+  const [generateFromEstimate, { isLoading: isGeneratingInvoice }] =
+    useGenerateFromEstimateMutation();
 
   const [formData, setFormData] = useState({
     message: "",
@@ -202,6 +208,20 @@ export default function InvoiceDetailsTableFormat() {
     }
   };
 
+  const handleGenerateInvoice = async () => {
+    if (!invoice?.estimateId) {
+      toast.error("This invoice was not created from an estimate.");
+      return;
+    }
+
+    try {
+      await generateFromEstimate({ estimateId: invoice.estimateId }).unwrap();
+      toast.success("Invoice generated successfully");
+    } catch (error) {
+      toast.error("Failed to generate invoice.");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -223,7 +243,7 @@ export default function InvoiceDetailsTableFormat() {
           className="flex items-center gap-2 hover:underline"
         >
           <FiArrowLeft />
-          Back To Invoice List Page
+          <span className="text-gray-500 ">Back To Invoice List Page</span>
         </Link>
         <p className="text-red-500">Failed to load invoice details.</p>
       </div>
@@ -237,15 +257,22 @@ export default function InvoiceDetailsTableFormat() {
 
   return (
     <div>
-      <Link
-        href="/admin/invoice"
-        className="flex items-center gap-2 hover:underline text-gray-500"
-      >
-        <FiArrowLeft />
-        Back To Invoice List Page
-      </Link>
+      <div className="text-center flex  gap-16 items-center mt-8 px-4 md:px-0">
+        <Link
+          href="/admin/invoice"
+          className="flex items-center gap-2 hover:underline text-gray-500"
+        >
+          <FiArrowLeft size={20} />
+          <span className="text-gray-500 hidden md:block">
+            Back To Invoice List Page
+          </span>
+        </Link>
+        <h1 className="text-center block  md:hidden text-2xl">
+          Invoice Details
+        </h1>
+      </div>
 
-      <div className="flex flex-col md:flex-row md:justify-between mt-7">
+      <div className="hidden md:flex md:flex-row md:justify-between mt-7 ">
         <div className="flex items-center  gap-3 mt-4">
           {/* <Link
             href={
@@ -275,6 +302,21 @@ export default function InvoiceDetailsTableFormat() {
         </div>
 
         <div className="flex items-center gap-3 mt-4">
+          <button
+            onClick={handleGenerateInvoice}
+            disabled={isGeneratingInvoice || !invoice?.estimateId}
+            className="group flex items-center gap-2 px-4 py-2 border border-primary text-primary rounded-lg bg-white hover:bg-primary hover:text-white duration-200 ease-in  cursor-pointer"
+          >
+            <Image
+              src={stars}
+              alt="Generate"
+              width={16}
+              height={16}
+              className="h-4 w-4 group-hover:invert-1 group-hover:brightness-200 duration-300"
+            />
+            <span>Generate Invoice</span>
+          </button>
+
           <button
             onClick={() => setIsPaymentModalOpen(true)}
             className="group flex items-center gap-2 px-4 py-2 border-primary transition-all duration-300 border text-primary rounded-lg hover:bg-primary hover:text-white ease-in"
@@ -560,6 +602,9 @@ export default function InvoiceDetailsTableFormat() {
                   MARKUP
                 </th>
                 <th className="border border-gray-500 px-3 py-2 font-semibold text-black">
+                  TAX
+                </th>
+                <th className="border border-gray-500 px-3 py-2 font-semibold text-black">
                   DISCOUNT
                 </th>
                 <th className="border border-gray-500 px-3 py-2 font-semibold text-black">
@@ -576,16 +621,36 @@ export default function InvoiceDetailsTableFormat() {
                       description?: string;
                       quantity?: number;
                       unit?: string;
-                      markUp?: number;
+                      markUp?:
+                        | number
+                        | { percentage?: number; amount?: number };
                       discount?: number;
                       amount?: number;
+                      rate?: number;
+                      subTotal?: number;
+                      taxPercentage?: number;
+                      tax?: { percentage?: number; amount?: number };
                     },
                     index: number,
                   ) => {
                     const qty = Number(item?.quantity || 1);
-                    const amount = Number(item?.amount || unitCost);
-                    const markUp = Number(item?.markUp || 0);
+                    const amount = Number(
+                      item?.rate ?? item?.amount ?? unitCost,
+                    );
+                    const markUp =
+                      typeof item?.markUp === "object"
+                        ? Number(
+                            item?.markUp?.percentage ||
+                              item?.markUp?.amount ||
+                              0,
+                          )
+                        : Number(item?.markUp || 0);
+                    const taxPercent =
+                      Number(
+                        item?.taxPercentage ?? item?.tax?.percentage ?? 0,
+                      ) || 0;
                     const discount = Number(item?.discount || 0);
+                    const rowPrice = Number(item?.subTotal ?? amount * qty);
 
                     return (
                       <>
@@ -615,21 +680,24 @@ export default function InvoiceDetailsTableFormat() {
                             {markUp}%
                           </td>
                           <td className="border border-gray-500 px-3 py-2 text-center">
+                            {taxPercent}%
+                          </td>
+                          <td className="border border-gray-500 px-3 py-2 text-center">
                             {discount}%
                           </td>
                           <td className="border border-gray-500 px-3 py-2 text-center font-medium ">
-                            {formatCurrency(amount * qty)}
+                            {formatCurrency(rowPrice)}
                           </td>
                         </tr>
                         <tr key={`sub-${index}`}>
                           <td
                             className="border border-gray-500 px-3 py-2  text-right font-semibold text-black"
-                            colSpan={6}
+                            colSpan={7}
                           >
                             Subtotal
                           </td>
                           <td className="border border-gray-500 px-3 py-2  font-semibold text-black text-center">
-                            {formatCurrency(amount * qty)}
+                            {formatCurrency(rowPrice)}
                           </td>
                         </tr>
                       </>
@@ -647,7 +715,7 @@ export default function InvoiceDetailsTableFormat() {
               <tr>
                 <td
                   className="border border-gray-500 px-3 py-3 text-center font-bold text-black"
-                  colSpan={6}
+                  colSpan={7}
                 >
                   GRAND TOTAL
                 </td>
@@ -680,6 +748,54 @@ export default function InvoiceDetailsTableFormat() {
             of 5% per month. An invoice is considered paid when Geo paving and
             Sealcoating has payment in their possession.
           </p>
+        </div>
+
+        <div className="md:hidden mt-6 grid grid-cols-2 gap-3">
+          <button
+            onClick={handleSendEstimateEmail}
+            disabled={isSendingReminder}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-primary px-4 py-3 text-primary transition-colors hover:bg-primary hover:text-white disabled:opacity-60"
+          >
+            <AiOutlineMail />
+            Email
+          </button>
+
+          <button
+            onClick={() => setIsPaymentModalOpen(true)}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-primary px-4 py-3 text-primary transition-colors hover:bg-primary hover:text-white"
+          >
+            <Image
+              src={paymentIcon}
+              alt="Payment"
+              width={18}
+              height={18}
+              className="transition duration-300 group-hover:brightness-0 group-hover:invert"
+            />
+            Payment
+          </button>
+
+          <button
+            onClick={handleGenerateInvoice}
+            disabled={isGeneratingInvoice || !invoice?.estimateId}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-primary px-4 py-3 text-primary transition-colors hover:bg-primary hover:text-white disabled:opacity-60"
+          >
+            <Image
+              src={stars}
+              alt="Generate"
+              width={16}
+              height={16}
+              className="h-4 w-4 group-hover:invert-1 group-hover:brightness-200 duration-300"
+            />
+            Generate
+          </button>
+
+          <button
+            onClick={handleDownload}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-white transition-colors hover:opacity-90"
+          >
+            <FiDownload />
+            Download
+          </button>
         </div>
       </div>
     </div>

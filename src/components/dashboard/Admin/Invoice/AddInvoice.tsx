@@ -212,8 +212,8 @@ export default function AddInvoice() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 ">
             {/* Left */}
             <div className="col-span-2 hidden md:block text-lg">
-              <p className="text-sm text-gray-500">United States</p>
-              <p className="text-sm text-gray-500">example03@gmail.com</p>
+              <p className="text-base text-gray-500">United States</p>
+              <p className="text-base text-gray-500">kal@geopaving.com</p>
             </div>
 
             {/* Right Form */}
