@@ -258,12 +258,12 @@ export default function Invoice() {
           />
         </div>
 
-        <div className="flex gap-4 md:gap-6 mt-8 bg-[#D8DBDF] p-2 rounded-2xl md:rounded-none">
+        <div className="flex gap-4 md:gap-6 mt-8 bg-[#D8DBDF] p-2 rounded-2xl ">
           {["active", "paid"].map((status) => (
             <button
               key={status}
               onClick={() => setActiveTab(status)}
-              className={`w-full py-3 rounded-2xl md:rounded-lg capitalize ${
+              className={`w-full py-3 rounded-2xl md:rounded-xl capitalize ${
                 activeTab === status ? "bg-white text-primary" : " "
               }`}
             >

@@ -479,7 +479,7 @@ was previously sent.`,
             </div>
           </div>
 
-          <div className="mt-9 space-y-4">
+          <div className="mt-9 space-y-4 border-t-2 border-orange-200">
             <div>
               {sideMapUrls.length > 0 && (
                 <div className="grid grid-cols-1 gap-3 mt-4">
@@ -498,7 +498,7 @@ was previously sent.`,
                           alt={`Side Map ${index + 1}`}
                           width={900}
                           height={520}
-                          className="w-full h-auto object-contain"
+                          className="w-full md:h-[700px] object-contain"
                         />
                       )}
                     </div>
@@ -506,15 +506,15 @@ was previously sent.`,
                 </div>
               )}
 
-              <div className="mt-4 border border-[#d7d7d7] bg-white">
+              <div className="mt-4 border-2 border-orange-200 bg-[#f9f9f9]">
                 <div className="grid grid-cols-1 text-base text-gray-700 md:grid-cols-3">
-                  <div className="border-b border-[#e1e1e1] p-3 md:border-b-0 md:border-r text-lg font-normal space-y-3">
+                  <div className="border-b border-[#e1e1e1] p-3 text-lg font-normal space-y-3 md:border-b-0 md:border-r-2 md:border-orange-200">
                     <Image
                       src={logo}
                       alt="Logo"
                       width={100}
                       height={52}
-                      className="mb-2 h-auto w-[76px] md:w-[200px]"
+                      className="mb-2 h-28 w-[76px] md:w-[200px]"
                     />
                     <p>Cucamonga, CA 91730</p>
                     <p>Costa Mesa, CA 92626</p>
@@ -522,12 +522,12 @@ was previously sent.`,
                     <p>Email: kal@geopaving.com</p>
                     <p>Web: www.geopaving.com</p>
                   </div>
-                  <div className="border-b border-[#e1e1e1] p-3 md:border-b-0 md:border-r text-lg font-normal space-y-2">
+                  <div className="border-b border-[#e1e1e1] p-3 text-lg font-normal space-y-2 md:border-b-0 md:border-r-2 md:border-orange-200">
                     <p>Name: {estimate?.client?.clientName || "-"}</p>
                     <p>{estimate?.client?.address || "-"}</p>
                     <p>{estimate?.client?.city || "-"}</p>
                   </div>
-                  <div className="p-3 font-normal text-lg">
+                  <div className="p-3 font-normal text-lg border-t-2 border-orange-200 md:border-t-0">
                     <p>{estimate.legendary}</p>
                   </div>
                 </div>
@@ -551,7 +551,7 @@ was previously sent.`,
                         alt={`File ${index + 1}`}
                         width={900}
                         height={520}
-                        className="w-full h-[700px] object-contain"
+                        className="w-full md:h-[700px] object-contain"
                       />
                     )}
                   </div>

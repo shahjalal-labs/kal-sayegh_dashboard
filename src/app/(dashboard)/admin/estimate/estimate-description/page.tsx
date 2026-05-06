@@ -1,9 +1,9 @@
-import EstimateDescription from "@/components/dashboard/Admin/Estimate/EstimateDescription";
+import AddEstimate from "@/components/dashboard/Admin/Estimate/AddEstimate";
 
 export default function EstimateDescriptionPage() {
   return (
     <div>
-      <EstimateDescription />
+      <AddEstimate />
     </div>
   );
 }

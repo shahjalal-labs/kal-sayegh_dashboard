@@ -225,13 +225,19 @@ export default function InvoiceDetailsDescription() {
 
   return (
     <div className="pb-10">
-      <Link
-        href="/admin/invoice"
-        className="flex items-center gap-2 hover:underline text-gray-500"
-      >
-        <FiArrowLeft />
-        Back To Invoice List Page
-      </Link>
+      <div className="flex gap-20 items-center px-4 md:px-0">
+        <Link
+          href="/admin/invoice"
+          className="flex items-center gap-2 hover:underline text-gray-500"
+        >
+          <FiArrowLeft size={25} />
+          <span className="hidden md:block"> Back To Invoice List Page</span>
+        </Link>
+
+        <h1 className="text-2xl font-bold text-center mt-4 md:hidden block">
+          Invoice Details
+        </h1>
+      </div>
 
       <div>
         <div className="hidden md:flex md:flex-row md:justify-between  ">
@@ -415,7 +421,7 @@ export default function InvoiceDetailsDescription() {
                   ))}
                 </div>
               ) : (
-                <div className="flex justify-center border-b items-center border-[#e1e1e1]  bg-orange-50 py-3 text-2xl text-center text-gray-700 h-24">
+                <div className="flex justify-center border-b items-center border-[#e1e1e1] h-[250px]  md:h-[400px] bg-[#E279320D] py-3 text-2xl text-center text-gray-700 ">
                   <p>No side map</p>
                 </div>
               )}
@@ -423,7 +429,7 @@ export default function InvoiceDetailsDescription() {
               <div className="border-2 border-orange-200 bg-[#f9f9f9] ">
                 <div className="grid grid-cols-1 md:grid-cols-3 text-base text-gray-700">
                   {/* LEFT: Company Info */}
-                  <div className="p-4 border-r-2 border-orange-200 space-y-2">
+                  <div className="p-4 md:border-r-2 border-orange-200 space-y-2">
                     <Image
                       src={logo}
                       alt="Geo Paving"
@@ -457,7 +463,7 @@ export default function InvoiceDetailsDescription() {
               </div>
             </div>
 
-            {fileUrls.length > 0 && (
+            {fileUrls.length > 0 ? (
               <div className="grid grid-cols-1 gap-3">
                 {fileUrls.map((url: string, index: number) => (
                   <div
@@ -480,13 +486,71 @@ export default function InvoiceDetailsDescription() {
                   </div>
                 ))}
               </div>
+            ) : (
+              <div className="rounded-xl  bg-[#E279320D] h-[250px] md:h-[450px] py-8 text-center text-2xl text-gray-500 flex justify-center items-center">
+                No files map
+              </div>
             )}
           </div>
         </div>
+
+        <div className="my-10 px-4">
+          <Conditions />
+        </div>
       </div>
 
-      <div className="mt-10 px-4">
-        <Conditions />
+      <div>
+        <div className="md:hidden flex flex-wrap gap-3 md:justify-between  ">
+          <div className="flex items-center  gap-3 mt-4">
+            {/* <Link
+            href={
+              editInvoiceId
+                ? `/admin/edit-invoice?id=${editInvoiceId}&format=table`
+                : "/admin/invoice"
+            }
+            onClick={() => {
+              if (typeof window !== "undefined" && editInvoiceId) {
+                localStorage.setItem("editingInvoiceId", editInvoiceId);
+              }
+            }}
+            className="flex items-center gap-2 px-4 py-2 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary"
+          >
+            <Edit size={16} />
+            Edit
+          </Link> */}
+          </div>
+
+          <div className="flex items-center gap-3 px-4">
+            <button
+              onClick={() => setIsReminderOpen(true)}
+              className="flex items-center gap-2 px-4 py-2  border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary text-sm"
+            >
+              <AiOutlineMail />
+              Email
+            </button>
+            <button
+              onClick={() => setIsPaymentModalOpen(true)}
+              className="group flex items-center gap-2 px-4 py-2 border-primary transition-all duration-300 border text-primary rounded-lg hover:bg-primary hover:text-white ease-in text-sm"
+            >
+              <Image
+                src={paymentIcon}
+                alt="Payment"
+                width={20}
+                height={20}
+                className="transition duration-300 group-hover:brightness-0 group-hover:invert"
+              />
+              Payment
+            </button>
+
+            <button
+              onClick={handleDownload}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 text-sm"
+            >
+              <FiDownload />
+              Download
+            </button>
+          </div>
+        </div>
       </div>
       {/* <div className="flex gap-3 mt-6 justify-end">
         <button

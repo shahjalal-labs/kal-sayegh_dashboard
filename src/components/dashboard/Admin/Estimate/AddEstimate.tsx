@@ -47,7 +47,7 @@ interface LineItemTable {
   items: LineItem[];
 }
 
-export default function EstimateDescription() {
+export default function AddEstimate() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [activeTableId, setActiveTableId] = useState<number | null>(null);
@@ -425,9 +425,11 @@ export default function EstimateDescription() {
       const formData = new FormData();
       formData.append("bodyData", JSON.stringify(bodyData));
 
-      const allFiles = [...sideMaps, ...images];
+      sideMaps.forEach((file) => {
+        formData.append("map", file);
+      });
 
-      allFiles.forEach((file) => {
+      images.forEach((file) => {
         formData.append("urls", file);
       });
 
