@@ -2,6 +2,7 @@
 
 import paymentIcon from "@/assets/dashboard/credit-card-validation.png";
 import logo from "@/assets/kal-logo.png";
+import Conditions from "@/components/Conditions";
 import {
   useGenerateFromEstimateMutation,
   useGetInvoiceByIdQuery,
@@ -712,26 +713,7 @@ export default function InvoiceDetailsTableFormat() {
         </div>
 
         <div className="mt-6 text-base text-gray-700 space-y-2">
-          <p className="font-normal text-black text-xl">
-            Terms and conditions:
-          </p>
-          <p>
-            1) All deliveries of material, supplies, or equipment over roadways
-            of the drives of the premises shall not incur liability to company.
-          </p>
-          <p>
-            2) Geo paving and Sealcoating shall not be responsible for the
-            following:
-          </p>
-          <p>
-            3) Geo paving and Sealcoating will warrantee materials and
-            workmanship for 1 year
-          </p>
-          <p>
-            4) Any invoice not paid upon completion will be subject to interest
-            of 5% per month. An invoice is considered paid when Geo paving and
-            Sealcoating has payment in their possession.
-          </p>
+          <Conditions />
         </div>
 
         <div className="md:hidden mt-6 grid grid-cols-2 gap-3">

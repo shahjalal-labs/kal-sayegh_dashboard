@@ -30,6 +30,7 @@ export default function AddInvoice() {
 
   const [tableData, setTableData] = useState<any>(null);
   const [tableKey, setTableKey] = useState(0);
+
   const [sideMaps, setSideMaps] = useState<File[]>([]);
   const [images, setImages] = useState<File[]>([]);
   const sideMapRef = useRef<HTMLInputElement | null>(null);
@@ -133,7 +134,11 @@ export default function AddInvoice() {
       const formPayload = new FormData();
       formPayload.append("bodyData", JSON.stringify(bodyData));
 
-      [...sideMaps, ...images].forEach((file) => {
+      sideMaps.forEach((file) => {
+        formPayload.append("map", file);
+      });
+
+      images.forEach((file) => {
         formPayload.append("urls", file);
       });
 
@@ -141,6 +146,7 @@ export default function AddInvoice() {
       const invoiceId = res?.result?.id;
 
       toast.success("Invoice has been created successfully!");
+
       setSideMaps([]);
       setImages([]);
 

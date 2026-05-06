@@ -253,68 +253,70 @@ export default function InvoiceDetailsDescription() {
               </div>
             )}
 
-            <div className="mt-9 space-y-4 ">
-              {sideMapUrls.length > 0 ? (
-                <div className=" gap-3 flex flex-col-reverse">
-                  {sideMapUrls.map((url: string, index: number) => (
-                    <div
-                      key={`side-map-${index}`}
-                      className="border border-[#dfdfdf] "
-                    >
-                      {isVideoUrl(url) ? (
-                        <video controls className="w-full h-auto rounded-sm">
-                          <source src={url} />
-                        </video>
-                      ) : (
-                        <Image
-                          src={url}
-                          alt={`Side Map ${index + 1}`}
-                          width={900}
-                          height={520}
-                          className="w-full h-auto object-contain"
-                        />
-                      )}
+            <div className="mt-16 space-y-4 border-t-2 py-2 border-orange-200">
+              <div>
+                {sideMapUrls.length > 0 ? (
+                  <div className=" gap-3 flex flex-col-reverse">
+                    {sideMapUrls.map((url: string, index: number) => (
+                      <div
+                        key={`side-map-${index}`}
+                        className="border border-[#dfdfdf] "
+                      >
+                        {isVideoUrl(url) ? (
+                          <video controls className="w-full h-auto rounded-sm">
+                            <source src={url} />
+                          </video>
+                        ) : (
+                          <Image
+                            src={url}
+                            alt={`Side Map ${index + 1}`}
+                            width={900}
+                            height={520}
+                            className="w-full h-[700px] object-contain"
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex justify-center border-b items-center border-[#e1e1e1]  bg-orange-50 py-3 text-2xl text-center text-gray-700 h-24">
+                    <p>No side map</p>
+                  </div>
+                )}
+
+                <div className="border-2 border-orange-200 bg-[#f9f9f9] ">
+                  <div className="grid grid-cols-1 md:grid-cols-3 text-base text-gray-700">
+                    {/* LEFT: Company Info */}
+                    <div className="p-4 border-r-2 border-orange-200 space-y-2">
+                      <Image
+                        src={logo}
+                        alt="Geo Paving"
+                        width={120}
+                        height={50}
+                        className="h-auto w-[120px]"
+                      />
+                      <p>Cucamonga, CA 91730</p>
+                      <p>Phone: (951) 469-7002</p>
+                      <p>Email: geopaving@gmail.com</p>
+                      <p>Web: www.geopaving.com</p>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex justify-center border-b items-center border-[#e1e1e1] py-3 text-2xl text-center text-gray-700 h-24">
-                  <p>No side map</p>
-                </div>
-              )}
 
-              <div className="border-t border-[#e5e5e5] bg-[#f9f9f9] ">
-                <div className="grid grid-cols-1 md:grid-cols-3 text-base text-gray-700">
-                  {/* LEFT: Company Info */}
-                  <div className="p-4 border-r border-[#e5e5e5] space-y-2">
-                    <Image
-                      src={logo}
-                      alt="Geo Paving"
-                      width={120}
-                      height={50}
-                      className="h-auto w-[120px]"
-                    />
-                    <p>Cucamonga, CA 91730</p>
-                    <p>Phone: (951) 469-7002</p>
-                    <p>Email: geopaving@gmail.com</p>
-                    <p>Web: www.geopaving.com</p>
-                  </div>
+                    {/* MIDDLE: Client Info */}
+                    <div className="p-4 border-r-2 border-orange-200 space-y-2">
+                      <p className="font-semibold text-gray-800">
+                        {invoice?.client?.clientName || "-"}
+                      </p>
+                      <p>{clientAddress || "-"}</p>
+                      <p>{invoice?.client?.phoneNumber || "-"}</p>
+                    </div>
 
-                  {/* MIDDLE: Client Info */}
-                  <div className="p-4 border-r border-[#e5e5e5] space-y-2">
-                    <p className="font-semibold text-gray-800">
-                      {invoice?.client?.clientName || "-"}
-                    </p>
-                    <p>{clientAddress || "-"}</p>
-                    <p>{invoice?.client?.phoneNumber || "-"}</p>
-                  </div>
-
-                  {/* RIGHT: Project Info */}
-                  <div className="p-4 space-y-2">
-                    <p className="font-semibold text-gray-800">
-                      {invoice?.invoiceName || "-"}
-                    </p>
-                    <p>{scopeSummary || "-"}</p>
+                    {/* RIGHT: Project Info */}
+                    <div className="p-4 space-y-2">
+                      <p className="font-semibold text-gray-800">
+                        {invoice?.invoiceName || "-"}
+                      </p>
+                      <p>{scopeSummary || "-"}</p>
+                    </div>
                   </div>
                 </div>
               </div>

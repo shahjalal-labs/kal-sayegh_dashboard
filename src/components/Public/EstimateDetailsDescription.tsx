@@ -116,12 +116,12 @@ export default function EstimateDetailsDescription() {
         emailStatus: "READ",
       }).unwrap();
 
-      toast.success("Estimate approved successfully");
+      toast.success("The document has been successfully signed.");
       setIsSignModalOpen(false);
       setSignerName("");
       refetch();
     } catch {
-      toast.error("Failed to approve estimate");
+      toast.error("Failed to sign estimate");
     }
   };
 
@@ -307,7 +307,7 @@ export default function EstimateDetailsDescription() {
                   </div>
                 </div>
 
-                <div className="mt-9 space-y-4">
+                <div className="mt-9 space-y-4 ">
                   {sideMapUrls.length > 0 && (
                     <div className="mt-4 grid grid-cols-1 gap-3">
                       {sideMapUrls.map((url: string, index: number) => (

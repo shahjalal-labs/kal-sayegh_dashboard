@@ -11,9 +11,13 @@ import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AiOutlineMail } from "react-icons/ai";
-import { FiArrowLeft, FiDownload, FiPrinter } from "react-icons/fi";
+import { FiArrowLeft, FiDownload } from "react-icons/fi";
 import { ColorRing } from "react-loader-spinner";
 import { toast } from "sonner";
+
+import paymentIcon from "@/assets/dashboard/credit-card-validation.png";
+import Conditions from "@/components/Conditions";
+import PaymentModal from "./Payment/PaymentModal";
 
 export default function InvoiceDetailsDescription() {
   const { id } = useParams();
@@ -24,11 +28,14 @@ export default function InvoiceDetailsDescription() {
     id as string,
   );
   const invoice = (data as any)?.result;
+  const editInvoiceId =
+    typeof id === "string" ? id : Array.isArray(id) ? id[0] : invoice?.id || "";
 
   const clientEmail = invoice?.client?.email || "";
 
   // email/reminder modal state
   const [isReminderOpen, setIsReminderOpen] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [emailInput, setEmailInput] = useState("");
   const [emailMarkedRead, setEmailMarkedRead] = useState(false);
   const [formData, setFormData] = useState<{
@@ -227,13 +234,58 @@ export default function InvoiceDetailsDescription() {
       </Link>
 
       <div>
-        <button
-          onClick={() => setIsReminderOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 mt-7 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary"
-        >
-          <AiOutlineMail />
-          Email
-        </button>
+        <div className="hidden md:flex md:flex-row md:justify-between  ">
+          <div className="flex items-center  gap-3 mt-4">
+            {/* <Link
+            href={
+              editInvoiceId
+                ? `/admin/edit-invoice?id=${editInvoiceId}&format=table`
+                : "/admin/invoice"
+            }
+            onClick={() => {
+              if (typeof window !== "undefined" && editInvoiceId) {
+                localStorage.setItem("editingInvoiceId", editInvoiceId);
+              }
+            }}
+            className="flex items-center gap-2 px-4 py-2 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary"
+          >
+            <Edit size={16} />
+            Edit
+          </Link> */}
+
+            <button
+              onClick={() => setIsReminderOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 mt-7 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary"
+            >
+              <AiOutlineMail />
+              Email
+            </button>
+          </div>
+
+          <div className="flex items-center gap-3 mt-4">
+            <button
+              onClick={() => setIsPaymentModalOpen(true)}
+              className="group flex items-center gap-2 px-4 py-2 border-primary transition-all duration-300 border text-primary rounded-lg hover:bg-primary hover:text-white ease-in"
+            >
+              <Image
+                src={paymentIcon}
+                alt="Payment"
+                width={20}
+                height={20}
+                className="transition duration-300 group-hover:brightness-0 group-hover:invert"
+              />
+              Payment
+            </button>
+
+            <button
+              onClick={handleDownload}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90"
+            >
+              <FiDownload />
+              Download
+            </button>
+          </div>
+        </div>
       </div>
 
       {(emailMarkedRead ||
@@ -322,7 +374,7 @@ export default function InvoiceDetailsDescription() {
                 key={item?.id || index}
                 className="flex justify-between gap-4 border-b border-[#e1e1e1] py-3 text-base leading-6 text-gray-700"
               >
-                <p className="max-w-[70%] font-semibold text-black">
+                <p className="max-w-[70%] font-semibold text-gray-500">
                   {item?.description || "No description"}
                 </p>
                 <p className="font-semibold text-black whitespace-nowrap">
@@ -337,68 +389,70 @@ export default function InvoiceDetailsDescription() {
             </div>
           )}
 
-          <div className="mt-9 space-y-4 ">
-            {sideMapUrls.length > 0 ? (
-              <div className=" gap-3 flex flex-col-reverse">
-                {sideMapUrls.map((url: string, index: number) => (
-                  <div
-                    key={`side-map-${index}`}
-                    className="border border-[#dfdfdf] "
-                  >
-                    {isVideoUrl(url) ? (
-                      <video controls className="w-full h-auto rounded-sm">
-                        <source src={url} />
-                      </video>
-                    ) : (
-                      <Image
-                        src={url}
-                        alt={`Side Map ${index + 1}`}
-                        width={900}
-                        height={520}
-                        className="w-full h-auto object-contain"
-                      />
-                    )}
+          <div className="mt-16 space-y-4 border-t-2 py-2 border-orange-200">
+            <div>
+              {sideMapUrls.length > 0 ? (
+                <div className=" gap-3 flex flex-col-reverse">
+                  {sideMapUrls.map((url: string, index: number) => (
+                    <div
+                      key={`side-map-${index}`}
+                      className="border border-[#dfdfdf] "
+                    >
+                      {isVideoUrl(url) ? (
+                        <video controls className="w-full h-auto rounded-sm">
+                          <source src={url} />
+                        </video>
+                      ) : (
+                        <Image
+                          src={url}
+                          alt={`Side Map ${index + 1}`}
+                          width={900}
+                          height={520}
+                          className="w-full md:h-[700px] object-contain"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex justify-center border-b items-center border-[#e1e1e1]  bg-orange-50 py-3 text-2xl text-center text-gray-700 h-24">
+                  <p>No side map</p>
+                </div>
+              )}
+
+              <div className="border-2 border-orange-200 bg-[#f9f9f9] ">
+                <div className="grid grid-cols-1 md:grid-cols-3 text-base text-gray-700">
+                  {/* LEFT: Company Info */}
+                  <div className="p-4 border-r-2 border-orange-200 space-y-2">
+                    <Image
+                      src={logo}
+                      alt="Geo Paving"
+                      width={120}
+                      height={50}
+                      className="h-auto w-[120px]"
+                    />
+                    <p>Cucamonga, CA 91730</p>
+                    <p>Phone: (951) 469-7002</p>
+                    <p>Email: geopaving@gmail.com</p>
+                    <p>Web: www.geopaving.com</p>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex justify-center border-b items-center border-[#e1e1e1] py-3 text-2xl text-center text-gray-700 h-24">
-                <p>No side map</p>
-              </div>
-            )}
 
-            <div className="border-t border-[#e5e5e5] bg-[#f9f9f9] ">
-              <div className="grid grid-cols-1 md:grid-cols-3 text-base text-gray-700">
-                {/* LEFT: Company Info */}
-                <div className="p-4 border-r border-[#e5e5e5] space-y-2">
-                  <Image
-                    src={logo}
-                    alt="Geo Paving"
-                    width={120}
-                    height={50}
-                    className="h-auto w-[120px]"
-                  />
-                  <p>Cucamonga, CA 91730</p>
-                  <p>Phone: (951) 469-7002</p>
-                  <p>Email: geopaving@gmail.com</p>
-                  <p>Web: www.geopaving.com</p>
-                </div>
+                  {/* MIDDLE: Client Info */}
+                  <div className="p-4 border-t-2 border-orange-200 md:border-t-0 md:border-r-2 space-y-2">
+                    <p className="font-semibold text-gray-800">
+                      {invoice?.client?.clientName || "-"}
+                    </p>
+                    <p>{clientAddress || "-"}</p>
+                    <p>{invoice?.client?.phoneNumber || "-"}</p>
+                  </div>
 
-                {/* MIDDLE: Client Info */}
-                <div className="p-4 border-r border-[#e5e5e5] space-y-2">
-                  <p className="font-semibold text-gray-800">
-                    {invoice?.client?.clientName || "-"}
-                  </p>
-                  <p>{clientAddress || "-"}</p>
-                  <p>{invoice?.client?.phoneNumber || "-"}</p>
-                </div>
-
-                {/* RIGHT: Project Info */}
-                <div className="p-4 space-y-2">
-                  <p className="font-semibold text-gray-800">
-                    {invoice?.invoiceName || "-"}
-                  </p>
-                  <p>{scopeSummary || "-"}</p>
+                  {/* RIGHT: Project Info */}
+                  <div className="p-4 border-t-2 border-orange-200 md:border-t-0 space-y-2">
+                    <p className="font-semibold text-gray-800">
+                      {invoice?.invoiceName || "-"}
+                    </p>
+                    <p>{scopeSummary || "-"}</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -420,7 +474,7 @@ export default function InvoiceDetailsDescription() {
                         alt={`File ${index + 1}`}
                         width={900}
                         height={520}
-                        className="w-full h-[700px] object-contain"
+                        className="w-full md:h-[700px] object-contain"
                       />
                     )}
                   </div>
@@ -430,7 +484,11 @@ export default function InvoiceDetailsDescription() {
           </div>
         </div>
       </div>
-      <div className="flex gap-3 mt-6 justify-end">
+
+      <div className="mt-10 px-4">
+        <Conditions />
+      </div>
+      {/* <div className="flex gap-3 mt-6 justify-end">
         <button
           onClick={() => window.print()}
           className="flex items-center gap-2 px-4 py-2 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary"
@@ -446,7 +504,7 @@ export default function InvoiceDetailsDescription() {
           <FiDownload />
           Download
         </button>
-      </div>
+      </div> */}
       {isReminderOpen && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4"
@@ -611,6 +669,14 @@ export default function InvoiceDetailsDescription() {
             </div>
           </div>
         </div>
+      )}
+
+      {isPaymentModalOpen && (
+        <PaymentModal
+          onClose={() => setIsPaymentModalOpen(false)}
+          invoiceId={editInvoiceId}
+          recipientEmails={invoice?.client?.email ? [invoice.client.email] : []}
+        />
       )}
     </div>
   );
