@@ -136,6 +136,25 @@ const estimateApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["estimate"],
     }),
+
+    updateEstimateSignature: builder.mutation({
+      query: ({
+        estimateId,
+        signedName,
+        emailStatus,
+      }: {
+        estimateId: string;
+        signedName?: string;
+        emailStatus?: string;
+      }) => ({
+        url: `/estimate/update-email-sign/${estimateId}`,
+        method: "PATCH",
+        body: {
+          ...(signedName ? { signedName } : {}),
+          emailStatus: emailStatus || "READ",
+        },
+      }),
+    }),
   }),
 });
 
@@ -156,4 +175,5 @@ export const {
   useSendEstimateMailMutation,
   useUpdateEstimateStatusMutation,
   useEditEstimateMutation,
+  useUpdateEstimateSignatureMutation,
 } = estimateApi;

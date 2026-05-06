@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "kal-sayegh dashboard",
-  description: "kal-sayegh dashboard",
+  title: "Geo Paving Dashboard",
+  description: "Geo Paving Dashboard",
   icons: {
     icon: logo.src,
   },

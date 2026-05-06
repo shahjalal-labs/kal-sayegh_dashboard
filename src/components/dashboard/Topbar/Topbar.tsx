@@ -1,6 +1,7 @@
 "use client";
 
 import { useMyProfileQuery } from "@/redux/api/authApi";
+import { useGetMyNotificationCountQuery } from "@/redux/api/notificationApi";
 import Cookies from "js-cookie";
 import { jwtDecode } from "jwt-decode";
 import Image from "next/image";
@@ -15,6 +16,9 @@ const Topbar: React.FC<{ onHamburgerClick: () => void }> = ({
 }) => {
   const { data: myProfileData } = useMyProfileQuery({});
   const profile = myProfileData?.result;
+
+  const { data: notifications } = useGetMyNotificationCountQuery({});
+  const unreadCount = notifications?.result?.unreadCount ?? 0;
 
   const token = Cookies.get("token");
   let decodedToken: any = null;
@@ -97,6 +101,11 @@ const Topbar: React.FC<{ onHamburgerClick: () => void }> = ({
               }`}
             >
               <MdOutlineNotifications size={25} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ">
+                  {unreadCount}
+                </span>
+              )}
             </div>
           </Link>
 

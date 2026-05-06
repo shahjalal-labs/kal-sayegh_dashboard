@@ -288,21 +288,21 @@ was previously sent.`,
                 <button
                   onClick={() => handleUpdateStatus("pending")}
                   disabled={isUpdatingStatus}
-                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#fff4ec] text-sm text-gray-700"
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#fff4ec] text-base text-gray-700"
                 >
                   Pending
                 </button>
                 <button
                   onClick={() => handleUpdateStatus("declined")}
                   disabled={isUpdatingStatus}
-                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#fff4ec] text-sm text-gray-700"
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#fff4ec] text-base text-gray-700"
                 >
                   Declined
                 </button>
                 <button
                   onClick={() => handleUpdateStatus("approved")}
                   disabled={isUpdatingStatus}
-                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#fff4ec] text-sm text-gray-700"
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#fff4ec] text-base text-gray-700"
                 >
                   Approved
                 </button>
@@ -361,18 +361,21 @@ was previously sent.`,
         </div>
 
         <div className="mt-7 grid grid-cols-1 md:grid-cols-2 gap-6 text-[10px] leading-5 text-gray-700">
-          <div className="text-base space-y-3">
+          <div className="space-y-3 text-base">
             <h2 className="text-xl font-semibold text-black">
               Geo Paving and Sealcoating
             </h2>
-            <p>9530 Juniper Crest Ct, Ste 1012 Rancho</p>
-            <p>Cucamonga, CA 91730</p>
-            <p>Phone: (626) 447-0525</p>
-            <p>
-              Email: <span className="text-black">info@geopaving.com</span>
+            <p>9650 Business Ctr. Dr. Ste.122 Rancho </p>
+            <p>Cuc. CA91730, 185 Paularino Ave # D,</p>
+            <p>Costa Mesa, CA 92626</p>
+            <p className="font-semibold">
+              Phone: <span className="font-normal">(951) 463-7002</span>
             </p>
-            <p>
-              Web: <span className="text-black">www.geopaving.com</span>
+            <p className="font-semibold">
+              Email: <span className="font-normal">kal@geopaving.com</span>
+            </p>
+            <p className="font-semibold">
+              Web: <span className="font-normal">www.geopaving.com</span>
             </p>
           </div>
 
@@ -438,35 +441,16 @@ was previously sent.`,
                       {item?.itemName || "Item"}
                     </p>
                     {item?.description && (
-                      <p className="text-sm text-gray-600">
+                      <p className="text-base text-gray-600">
                         {item.description}
                       </p>
                     )}
-                    <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm text-gray-700">
-                      <div>
-                        <div className="text-xs text-gray-500">Qty</div>
-                        <div className="font-medium">{qty}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-gray-500">Unit</div>
-                        <div className="font-medium">{unit}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-gray-500">Unit Cost</div>
-                        <div className="font-medium">${rate.toFixed(2)}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-gray-500">Markup</div>
-                        <div className="font-medium">{markUpDisplay}</div>
-                      </div>
-                    </div>
                   </div>
 
                   <div className="w-full md:w-1/5 flex items-center justify-end">
                     <div className="text-right">
-                      <div className="text-xs text-gray-500">Price</div>
                       <div className="font-semibold text-black">
-                        ${price.toFixed(2)}
+                        $ {price.toFixed(2)}
                       </div>
                     </div>
                   </div>
@@ -521,30 +505,30 @@ was previously sent.`,
                   ))}
                 </div>
               )}
+
               <div className="mt-4 border border-[#d7d7d7] bg-white">
-                <div className="grid grid-cols-1 md:grid-cols-3 text-base text-gray-700">
-                  <div className="p-3 border-b md:border-b-0 md:border-r border-[#e1e1e1]">
+                <div className="grid grid-cols-1 text-base text-gray-700 md:grid-cols-3">
+                  <div className="border-b border-[#e1e1e1] p-3 md:border-b-0 md:border-r text-lg font-normal space-y-3">
                     <Image
                       src={logo}
                       alt="Logo"
                       width={100}
                       height={52}
-                      className="h-auto w-[76px] md:w-[200px] mb-2"
+                      className="mb-2 h-auto w-[76px] md:w-[200px]"
                     />
-                    <p>GeoPaving, CA 91730</p>
-                    <p>(626) 447-0525</p>
-                    <p>www.geopaving.com</p>
+                    <p>Cucamonga, CA 91730</p>
+                    <p>Costa Mesa, CA 92626</p>
+                    <p>Phone: (951) 463-7002</p>
+                    <p>Email: kal@geopaving.com</p>
+                    <p>Web: www.geopaving.com</p>
                   </div>
-                  <div className="p-3 border-b md:border-b-0 md:border-r border-[#e1e1e1]">
+                  <div className="border-b border-[#e1e1e1] p-3 md:border-b-0 md:border-r text-lg font-normal space-y-2">
                     <p>Name: {estimate?.client?.clientName || "-"}</p>
                     <p>{estimate?.client?.address || "-"}</p>
                     <p>{estimate?.client?.city || "-"}</p>
                   </div>
-                  <div className="p-3">
-                    <p>Project: Asphalt</p>
-                    <p>Repairing in route</p>
-                    <p>Cracking, sealing</p>
-                    <p>Striping and sweeping</p>
+                  <div className="p-3 font-normal text-lg">
+                    <p>{estimate.legendary}</p>
                   </div>
                 </div>
               </div>
@@ -643,21 +627,21 @@ was previously sent.`,
                 <button
                   onClick={() => handleUpdateStatus("pending")}
                   disabled={isUpdatingStatus}
-                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#fff4ec] text-sm text-gray-700"
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#fff4ec] text-base text-gray-700"
                 >
                   Pending
                 </button>
                 <button
                   onClick={() => handleUpdateStatus("declined")}
                   disabled={isUpdatingStatus}
-                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#fff4ec] text-sm text-gray-700"
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#fff4ec] text-base text-gray-700"
                 >
                   Declined
                 </button>
                 <button
                   onClick={() => handleUpdateStatus("approved")}
                   disabled={isUpdatingStatus}
-                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#fff4ec] text-sm text-gray-700"
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#fff4ec] text-base text-gray-700"
                 >
                   Approved
                 </button>
@@ -710,13 +694,13 @@ was previously sent.`,
 
             <div className="mt-8 space-y-6">
               <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-900">
+                <label className="block text-base font-medium text-gray-900">
                   To
                 </label>
 
                 <div className="flex min-h-[48px] w-full flex-wrap items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 focus-within:border-primary">
                   {showClientEmail && estimate?.client?.email ? (
-                    <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm text-gray-700">
+                    <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-base text-gray-700">
                       <span>{estimate.client.email}</span>
                       <button
                         type="button"
@@ -740,7 +724,7 @@ was previously sent.`,
                   {formData.to.map((email) => (
                     <div
                       key={email}
-                      className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm text-gray-700"
+                      className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-base text-gray-700"
                     >
                       <span>{email}</span>
                       <button
@@ -772,13 +756,13 @@ was previously sent.`,
                         addRecipientEmail(emailInput);
                       }
                     }}
-                    className="flex-1 bg-transparent text-sm outline-none"
+                    className="flex-1 bg-transparent text-base outline-none"
                   />
                 </div>
               </div>
 
               <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-900">
+                <label className="block text-base font-medium text-gray-900">
                   Subject
                 </label>
                 <input
@@ -790,7 +774,7 @@ was previously sent.`,
                       subject: event.target.value,
                     }))
                   }
-                  className="h-12 w-full rounded-xl border border-gray-200 px-4 text-sm text-gray-500 outline-none placeholder:text-gray-400 focus:border-primary"
+                  className="h-12 w-full rounded-xl border border-gray-200 px-4 text-base text-gray-500 outline-none placeholder:text-gray-400 focus:border-primary"
                 />
               </div>
 
@@ -814,13 +798,13 @@ was previously sent.`,
                     }`}
                   />
                 </button>
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-base font-medium text-gray-700">
                   Send me a copy
                 </span>
               </div>
 
               <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-900">
+                <label className="block text-base font-medium text-gray-900">
                   Message
                 </label>
                 <textarea
@@ -831,7 +815,7 @@ was previously sent.`,
                       message: event.target.value,
                     }))
                   }
-                  className="min-h-[120px] w-full rounded-xl border border-gray-200 px-4 py-3 text-sm leading-6 text-gray-600 outline-none focus:border-primary"
+                  className="min-h-[120px] w-full rounded-xl border border-gray-200 px-4 py-3 text-base leading-6 text-gray-600 outline-none focus:border-primary"
                 />
               </div>
             </div>

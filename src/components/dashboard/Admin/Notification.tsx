@@ -1,11 +1,27 @@
 "use client";
 
-import { useGetMyNotificationsQuery } from "@/redux/api/notificationApi";
+import {
+  useGetMyNotificationsQuery,
+  useReadAllNotificationsMutation,
+} from "@/redux/api/notificationApi";
+import { formatDistanceToNow } from "date-fns";
 import { Bell, Clock, CreditCard, Eye, User } from "lucide-react";
 import { ColorRing } from "react-loader-spinner";
 
 export default function Notification() {
   const { data, isLoading, error } = useGetMyNotificationsQuery({});
+
+  const [readAllNotifications] = useReadAllNotificationsMutation();
+
+  const handleReadAllNotifications = async () => {
+    await readAllNotifications({ isRead: true });
+  };
+
+  // use date-fns for human-readable relative times
+  // e.g. "5 minutes ago", "2 months ago"
+  // formatDistanceToNow returns phrases like "about 1 hour" so add suffix
+  const getRelativeTime = (date: Date) =>
+    formatDistanceToNow(date, { addSuffix: true });
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -36,12 +52,11 @@ export default function Notification() {
         id: item.id,
         title: item.title,
         description: item.body,
-        time: date.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
+        time: getRelativeTime(date),
         type: item.type,
         createdAt: item.createdAt,
+        // normalize read flag from backend (support multiple possible field names)
+        isRead: item.isRead ?? item.read ?? item.is_read ?? false,
       };
 
       if (!grouped[dayName]) {
@@ -83,16 +98,29 @@ export default function Notification() {
       <div className="mx-auto p-4">
         {hasData ? (
           Object.entries(groupedNotifications).map(([day, items]) => (
-            <div key={day} className="mb-6">
-              <h2 className="text-sm font-semibold uppercase tracking-wide px-4 mb-3">
-                {day}
-              </h2>
+            <div key={day} className="">
+              <div className="flex justify-between items-center py-3">
+                <h2 className="text-xl font-semibold uppercase tracking-wide px-4 ">
+                  {day}
+                </h2>
+                <button
+                  type="button"
+                  onClick={handleReadAllNotifications}
+                  className="bg-primary hover:opacity-90 text-white px-4 py-2 rounded-lg"
+                >
+                  Read All
+                </button>
+              </div>
 
               <div className="space-y-5">
                 {items.map((notification: any) => (
                   <div
                     key={notification.id}
-                    className="bg-[#E279320D] hover:bg-[#a843000d] rounded-2xl p-4 transition-colors cursor-pointer border border-gray-100"
+                    className={`rounded-2xl p-4 transition-colors cursor-pointer border border-gray-100 ${
+                      notification.isRead
+                        ? "bg-secondary"
+                        : "bg-[#E279320D] hover:bg-[#a843000d]"
+                    }`}
                   >
                     <div className="flex gap-3">
                       <div className="rounded-full p-2 h-16 w-16 flex items-center justify-center bg-primary text-secondary">
@@ -100,15 +128,15 @@ export default function Notification() {
                       </div>
 
                       <div className="flex-1">
-                        <p className="font-medium text-gray-900 text-sm">
+                        <p className="font-medium text-gray-900 text-base">
                           {notification.title}
                         </p>
-                        <p className="text-sm text-gray-600 mt-0.5">
+                        <p className="text-base text-gray-600 mt-0.5">
                           {notification.description}
                         </p>
 
                         <div className="mt-2">
-                          <span className="text-xs text-gray-400">
+                          <span className="text-base text-gray-400">
                             {notification.time}
                           </span>
                         </div>

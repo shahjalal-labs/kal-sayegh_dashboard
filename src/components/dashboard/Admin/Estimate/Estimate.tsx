@@ -188,10 +188,18 @@ export default function Estimate() {
   );
 
   const getEstimateDetailsFormat = (item: any) => {
-    const formatValue =
-      item?.detailsFormat || item?.format || item?.viewFormat || "description";
+    const storedFormat =
+      typeof window !== "undefined"
+        ? localStorage.getItem("estimateDetailsFormat")
+        : null;
 
-    return formatValue === "table" ? "table" : "description";
+    return (
+      item?.detailsFormat ||
+      item?.format ||
+      item?.viewFormat ||
+      storedFormat ||
+      "description"
+    );
   };
 
   const getStatusBadgeClasses = (status?: string) => {
