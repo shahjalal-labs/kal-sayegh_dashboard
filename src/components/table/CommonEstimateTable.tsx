@@ -200,22 +200,33 @@ export default function CommonEstimateTable({
       const itemsData = items.map((item) => {
         const rate = parseFloat(rowData[item.id]?.rate || "0") || 0;
         const quantity = parseFloat(rowData[item.id]?.quantity || "0") || 0;
-        const selectedMarkup = selectedMarkupsByRow[item.id] || null;
+        const selectedItem = selectedItemsByTable[item.id];
         const selectedTax = selectedTaxesByRow[item.id] || null;
-        const markupPercent = selectedMarkup?.percentage || 0;
+
+        // Extract markup: use percentage if available, otherwise amount
+        const markupValue =
+          selectedItem?.markUp?.percentage != null
+            ? selectedItem.markUp.percentage
+            : selectedItem?.markUp?.amount || 0;
+        const isMarkupPercentage = selectedItem?.markUp?.percentage != null;
+
         const taxPercent = selectedTax?.percentage || 0;
         const base = rate * quantity;
-        const markupAmount = base * (markupPercent / 100);
+        const markupAmount = isMarkupPercentage
+          ? base * (markupValue / 100)
+          : markupValue;
         const subtotal = base + markupAmount;
         const taxAmount = subtotal * (taxPercent / 100);
         const total = subtotal + taxAmount;
         const roundedTotal = Math.round(total);
 
         return {
-          selectedItem: selectedItemsByTable[item.id],
+          selectedItem,
           rate,
           quantity,
-          selectedMarkup,
+          selectedMarkup: selectedItem?.markUp
+            ? { ...selectedItem.markUp, isPercentage: isMarkupPercentage }
+            : null,
           selectedTax,
           taxPercent,
           taxAmount: Math.round(taxAmount),
@@ -255,7 +266,6 @@ export default function CommonEstimateTable({
     items,
     rowData,
     selectedItemsByTable,
-    selectedMarkupsByRow,
     selectedTaxesByRow,
     summaryMarkup,
     summaryDiscount,
@@ -283,13 +293,21 @@ export default function CommonEstimateTable({
               const rate = parseFloat(rowData[item.id]?.rate || "0") || 0;
               const quantity =
                 parseFloat(rowData[item.id]?.quantity || "0") || 0;
-              const selectedMarkup = selectedMarkupsByRow[item.id] || null;
               const selectedTax = selectedTaxesByRow[item.id] || null;
-              const markupPercent = selectedMarkup?.percentage || 0;
+
+              // Extract markup: use percentage if available, otherwise amount
+              const markupValue =
+                selectedItem?.markUp?.percentage != null
+                  ? selectedItem.markUp.percentage
+                  : selectedItem?.markUp?.amount || 0;
+              const isMarkupPercentage =
+                selectedItem?.markUp?.percentage != null;
               const taxPercent = selectedTax?.percentage || 0;
 
               const base = rate * quantity;
-              const markupAmount = base * (markupPercent / 100);
+              const markupAmount = isMarkupPercentage
+                ? base * (markupValue / 100)
+                : markupValue;
               const subtotal = base + markupAmount;
               const taxAmount = subtotal * (taxPercent / 100);
               const total = subtotal + taxAmount;
@@ -326,7 +344,7 @@ export default function CommonEstimateTable({
                         </div>
                       </div>
 
-                      <div className="md:col-span-1 p-2 border-r   md:border-r border-b md:border-b-0  md:p-0">
+                      <div className="md:col-span-1 p-2 border-r   md:border-r border-b md:border-b-0  md:p-0 flex items-center">
                         <label className="block md:hidden text-basefont-medium mb-1">
                           Rate
                         </label>
@@ -347,23 +365,24 @@ export default function CommonEstimateTable({
                           }
                         />
                       </div>
-                      <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0  md:p-0">
-                        <label className="block md:hidden text-sm font-medium mb-1">
+                      <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0  md:p-0 flex items-center">
+                        <label className="block md:hidden text-sm font-medium mb-1  ">
                           Markup
                         </label>
                         <input
-                          className="cell cursor-pointer bg-white/90 w-full"
+                          className="cell bg-white/90 w-full p-2 hover:cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary transition"
                           placeholder="Markup"
                           value={
-                            selectedMarkupsByRow[item.id]
-                              ? `${selectedMarkupsByRow[item.id].percentage}% `
-                              : ""
+                            selectedItem?.markUp?.percentage != null
+                              ? `${selectedItem.markUp.percentage}%`
+                              : selectedItem?.markUp?.amount
+                                ? `$${selectedItem.markUp.amount}`
+                                : ""
                           }
                           readOnly
-                          onClick={() => openMarkupPicker(item.id)}
                         />
                       </div>
-                      <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0  md:p-0">
+                      <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0  md:p-0 flex items-center">
                         <label className="block md:hidden text-sm font-medium mb-1">
                           Quantity
                         </label>
@@ -383,12 +402,12 @@ export default function CommonEstimateTable({
                           }
                         />
                       </div>
-                      <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0  md:p-0">
+                      <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0  md:p-0 flex items-center">
                         <label className="block md:hidden text-sm font-medium mb-1">
                           Tax
                         </label>
                         <input
-                          className="cell w-full"
+                          className="cell w-full p-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary transition bg-white/90"
                           placeholder="Tax"
                           value={
                             selectedTax ? `${selectedTax.percentage}%` : ""
@@ -397,7 +416,7 @@ export default function CommonEstimateTable({
                           onClick={() => openTaxPicker(item.id)}
                         />
                       </div>
-                      <div className="md:col-span-1 p-2">
+                      <div className="md:col-span-1 p-2 flex items-center">
                         <label className="block md:hidden text-sm font-medium mb-1">
                           Total
                         </label>
@@ -456,15 +475,24 @@ export default function CommonEstimateTable({
                 {(() => {
                   let sum = 0;
                   items.forEach((item) => {
+                    const selectedItem = selectedItemsByTable[item.id];
                     const rate = parseFloat(rowData[item.id]?.rate || "0") || 0;
                     const quantity =
                       parseFloat(rowData[item.id]?.quantity || "0") || 0;
-                    const markupPercent =
-                      selectedMarkupsByRow[item.id]?.percentage || 0;
+
+                    // Extract markup: use percentage if available, otherwise amount
+                    const markupValue =
+                      selectedItem?.markUp?.percentage != null
+                        ? selectedItem.markUp.percentage
+                        : selectedItem?.markUp?.amount || 0;
+                    const isMarkupPercentage =
+                      selectedItem?.markUp?.percentage != null;
                     const taxPercent =
                       selectedTaxesByRow[item.id]?.percentage || 0;
                     const base = rate * quantity;
-                    const markupAmount = base * (markupPercent / 100);
+                    const markupAmount = isMarkupPercentage
+                      ? base * (markupValue / 100)
+                      : markupValue;
                     const subtotal = base + markupAmount;
                     const taxAmount = subtotal * (taxPercent / 100);
                     const total = subtotal + taxAmount;
@@ -512,15 +540,24 @@ export default function CommonEstimateTable({
                 {(() => {
                   let subtotal = 0;
                   items.forEach((item) => {
+                    const selectedItem = selectedItemsByTable[item.id];
                     const rate = parseFloat(rowData[item.id]?.rate || "0") || 0;
                     const quantity =
                       parseFloat(rowData[item.id]?.quantity || "0") || 0;
-                    const markupPercent =
-                      selectedMarkupsByRow[item.id]?.percentage || 0;
+
+                    // Extract markup: use percentage if available, otherwise amount
+                    const markupValue =
+                      selectedItem?.markUp?.percentage != null
+                        ? selectedItem.markUp.percentage
+                        : selectedItem?.markUp?.amount || 0;
+                    const isMarkupPercentage =
+                      selectedItem?.markUp?.percentage != null;
                     const taxPercent =
                       selectedTaxesByRow[item.id]?.percentage || 0;
                     const base = rate * quantity;
-                    const markupAmount = base * (markupPercent / 100);
+                    const markupAmount = isMarkupPercentage
+                      ? base * (markupValue / 100)
+                      : markupValue;
                     const itemSubtotal = base + markupAmount;
                     const taxAmount = itemSubtotal * (taxPercent / 100);
                     const total = itemSubtotal + taxAmount;

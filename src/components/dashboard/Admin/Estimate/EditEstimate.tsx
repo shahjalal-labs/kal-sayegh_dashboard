@@ -26,8 +26,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GoPlus } from "react-icons/go";
 import { LuMapPin } from "react-icons/lu";
-import { toast } from "sonner";
 import { ColorRing } from "react-loader-spinner";
+import { toast } from "sonner";
 
 interface LineItem {
   id: string;
@@ -137,6 +137,7 @@ export default function EditEstimate() {
     date: "",
     endDate: "",
     poNumber: "",
+    legendary: "",
     items: [] as any[],
     additionalMarkUp: 0,
     grandTotal: 0,
@@ -777,7 +778,7 @@ export default function EditEstimate() {
         date: estimateForm.date,
         endDate: estimateForm.endDate,
         poNumber: estimateForm.poNumber,
-
+        legendary: estimateForm.legendary,
         items: submittedItems,
 
         additionalMarkUp: Math.round(markupAmount),
@@ -877,7 +878,8 @@ export default function EditEstimate() {
   };
 
   if (isEstimateLoading) {
-    return  <div className="flex items-center justify-center h-64">
+    return (
+      <div className="flex items-center justify-center h-64">
         <ColorRing
           visible={true}
           height="70"
@@ -885,6 +887,7 @@ export default function EditEstimate() {
           colors={["#e15b64", "#f47e60", "#f8b26a", "#abbd81", "#849b87"]}
         />
       </div>
+    );
   }
 
   if (!estimateId) {
@@ -1125,6 +1128,21 @@ export default function EditEstimate() {
               className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
+        </div>
+
+        <div>
+          <label className="text-base text-gray-600">Legendary</label>
+          <input
+            placeholder="Legendary"
+            value={estimateForm.legendary}
+            onChange={(e) =>
+              setEstimateForm((prev) => ({
+                ...prev,
+                legendary: e.target.value,
+              }))
+            }
+            className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary"
+          />
         </div>
 
         <div>
