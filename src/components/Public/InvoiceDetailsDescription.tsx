@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import { FiArrowLeft, FiDownload, FiPrinter } from "react-icons/fi";
 import { ColorRing } from "react-loader-spinner";
 import { toast } from "sonner";
+import Conditions from "../Conditions";
 
 const StripeCheckoutModal = dynamic(
   () => import("@/components/Public/StripeCheckoutModal"),
@@ -149,10 +150,7 @@ export default function InvoiceDetailsDescription() {
   return (
     <div className="flex flex-col lg:flex-row lg:justify-between  container mx-auto my-20 gap-10">
       <div className="pb-10">
-        <div
-          id="invoice"
-          className="mt-4 bg-secondary rounded-2xl p-4 md:p-6 py-9"
-        >
+        <div id="invoice" className="mt-4 bg-secondary  p-4 md:p-6 py-9">
           {(emailMarkedRead ||
             (invoice?.emailStatus || "").toString().toUpperCase() ===
               "READ") && (
@@ -279,7 +277,7 @@ export default function InvoiceDetailsDescription() {
                     ))}
                   </div>
                 ) : (
-                  <div className="flex justify-center border-b items-center border-[#e1e1e1]  bg-orange-50 py-3 text-2xl text-center text-gray-700 h-24">
+                  <div className="flex justify-center border-b items-center border-2 border-orange-200 h-[250px]  md:h-[350px] bg-[#f9f9f9] py-3 text-2xl text-center text-gray-700 ">
                     <p>No side map</p>
                   </div>
                 )}
@@ -321,7 +319,7 @@ export default function InvoiceDetailsDescription() {
                 </div>
               </div>
 
-              {fileUrls.length > 0 && (
+              {fileUrls.length > 0 ? (
                 <div className="grid grid-cols-1 gap-3">
                   {fileUrls.map((url: string, index: number) => (
                     <div
@@ -344,10 +342,19 @@ export default function InvoiceDetailsDescription() {
                     </div>
                   ))}
                 </div>
+              ) : (
+                <div className="flex justify-center  items-center border-2 border-orange-200 h-[200px] md:h-[350px] bg-[#f9f9f9] py-3 text-2xl text-center text-gray-700 ">
+                  <p>No files</p>
+                </div>
               )}
             </div>
           </div>
+
+          <div className="mt-10">
+            <Conditions />
+          </div>
         </div>
+
         <div className="flex gap-3 mt-6 justify-end">
           <button
             onClick={() => window.print()}
@@ -408,7 +415,7 @@ export default function InvoiceDetailsDescription() {
 
           {/* Checkout Options */}
           {!showStripeModal && (
-            <div className="pt-6 bg-[#F8F9F5] -mx-8 px-16 w-[calc(100%+64px)] pb-8 text-center">
+            <div className="pt-6 bg-[#F8F9F5]  w-[calc(100%)] pb-8 text-center">
               <p className="text-center  text-xl font-semibold mb-4 uppercase">
                 CHECKOUT OPTIONS
               </p>

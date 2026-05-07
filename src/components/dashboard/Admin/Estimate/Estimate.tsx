@@ -706,10 +706,10 @@ export default function Estimate() {
             onClick: () => {
               if (selected === "description") {
                 localStorage.setItem("estimateDetailsFormat", "description");
-                router.push("/admin/estimate/estimate-description");
+                router.push("/admin/estimate/add-estimate");
               } else if (selected === "table") {
                 localStorage.setItem("estimateDetailsFormat", "table");
-                router.push("/admin/estimate/estimate-description");
+                router.push("/admin/estimate/add-estimate");
               } else {
                 toast.error("Please select an option first!");
               }

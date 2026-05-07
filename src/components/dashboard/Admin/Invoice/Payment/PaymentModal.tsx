@@ -97,8 +97,11 @@ const PaymentModal = ({
 
   const [showClientEmail, setShowClientEmail] = useState(true);
 
+  const defaultReminderMessage =
+    "We are following up to confirm whether you have had an opportunity to review the invoice that was previously sent.";
+
   const [formData, setFormData] = useState({
-    message: "",
+    message: defaultReminderMessage,
     sendMeCopy: false,
     subject: "",
     to: [] as string[],
@@ -137,6 +140,13 @@ const PaymentModal = ({
     return numericAmount;
   })();
 
+  const amountPlaceholder =
+    recordPaymentForm.amountMode === "$"
+      ? "$"
+      : recordPaymentForm.amountMode === "%"
+        ? "Amount"
+        : "Full amount";
+
   const handleClose = () => {
     setShowPaymentList(false);
     setActiveMenuId(null);
@@ -167,7 +177,7 @@ const PaymentModal = ({
       toast.success("Invoice reminder sent successfully");
 
       setFormData({
-        message: "",
+        message: defaultReminderMessage,
         sendMeCopy: false,
         subject: "",
         to: [],
@@ -821,6 +831,7 @@ const PaymentModal = ({
                   <input
                     type="text"
                     value={recordPaymentForm.amount}
+                    placeholder={amountPlaceholder}
                     onChange={(e) =>
                       setRecordPaymentForm((prev) => ({
                         ...prev,
@@ -836,6 +847,7 @@ const PaymentModal = ({
                         setRecordPaymentForm((prev) => ({
                           ...prev,
                           amountMode: "$",
+                          amount: "",
                         }))
                       }
                       className={`border-r border-gray-300 px-4 text-sm font-semibold ${recordPaymentForm.amountMode === "$" ? "text-white bg-primary" : "text-gray-500"}`}
@@ -848,6 +860,7 @@ const PaymentModal = ({
                         setRecordPaymentForm((prev) => ({
                           ...prev,
                           amountMode: "%",
+                          amount: "",
                         }))
                       }
                       className={`border-r border-gray-300 px-4 text-sm ${recordPaymentForm.amountMode === "%" ? "text-white bg-primary" : "text-gray-500"}`}

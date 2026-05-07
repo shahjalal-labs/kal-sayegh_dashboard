@@ -22,6 +22,8 @@ import PaymentModal from "./Payment/PaymentModal";
 
 export default function InvoiceDetailsTableFormat() {
   const { id } = useParams();
+  const defaultReminderMessage =
+    "We are following up to confirm whether you have had an opportunity to review the invoice that was previously sent.";
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isReminderOpen, setIsReminderOpen] = useState(false);
   const [showClientEmail, setShowClientEmail] = useState(true);
@@ -38,7 +40,7 @@ export default function InvoiceDetailsTableFormat() {
     useGenerateFromEstimateMutation();
 
   const [formData, setFormData] = useState({
-    message: "",
+    message: defaultReminderMessage,
     sendMeCopy: false,
     subject: "",
     to: [] as string[],
@@ -60,6 +62,15 @@ export default function InvoiceDetailsTableFormat() {
     });
 
     setEmailInput("");
+  };
+
+  const handleRecipientKeyDown = (
+    event: React.KeyboardEvent<HTMLInputElement>,
+  ) => {
+    if (event.key === "Enter" || event.key === ",") {
+      event.preventDefault();
+      addRecipientEmail(emailInput);
+    }
   };
 
   const formatCurrency = (value: number) =>
@@ -190,7 +201,7 @@ export default function InvoiceDetailsTableFormat() {
       });
 
       setFormData({
-        message: "",
+        message: defaultReminderMessage,
         sendMeCopy: false,
         subject: "",
         to: [],
@@ -350,7 +361,7 @@ export default function InvoiceDetailsTableFormat() {
 
                 <div className="flex min-h-[48px] w-full flex-wrap items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 focus-within:border-primary">
                   {showClientEmail && clientEmail ? (
-                    <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm text-gray-700">
+                    <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm text-gray-700">
                       <span>{clientEmail}</span>
                       <button
                         type="button"
@@ -374,7 +385,7 @@ export default function InvoiceDetailsTableFormat() {
                   {formData.to.map((email) => (
                     <div
                       key={email}
-                      className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm text-gray-700"
+                      className="inline-flex max-w-full items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm text-gray-700"
                     >
                       <span>{email}</span>
                       <button
@@ -395,19 +406,12 @@ export default function InvoiceDetailsTableFormat() {
 
                   <input
                     type="text"
-                    placeholder="Add email..."
+                    placeholder="Type email and press Enter"
                     value={emailInput}
                     onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                       setEmailInput(event.target.value);
                     }}
-                    onKeyDown={(
-                      event: React.KeyboardEvent<HTMLInputElement>,
-                    ) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        addRecipientEmail(emailInput);
-                      }
-                    }}
+                    onKeyDown={handleRecipientKeyDown}
                     className="flex-1 bg-transparent text-sm outline-none"
                   />
                 </div>

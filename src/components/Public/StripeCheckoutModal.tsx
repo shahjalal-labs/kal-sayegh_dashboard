@@ -1,20 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { loadStripe } from "@stripe/stripe-js";
+import { usePaymentIntentMutation } from "@/redux/api/admin/invoiceApi";
 import {
   Elements,
   PaymentElement,
-  useStripe,
   useElements,
+  useStripe,
 } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { usePaymentMutation } from "@/redux/api/admin/invoiceApi";
-import { useParams } from "next/navigation";
 
 const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "",
 );
+
+/* ---------------- CHECKOUT FORM ---------------- */
 
 function CheckoutForm({
   invoiceId,
@@ -25,31 +26,27 @@ function CheckoutForm({
 }) {
   const stripe = useStripe();
   const elements = useElements();
-  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const [payment] = usePaymentMutation();
+  const [createIntent] = usePaymentIntentMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!stripe || !elements) return;
+    if (!stripe || !elements || loading) return;
 
-    setSubmitting(true);
+    setLoading(true);
 
     try {
-      // Submit elements first to validate
       const { error: submitError } = await elements.submit();
 
       if (submitError) {
-        toast.error(submitError.message || "Form submission failed");
+        toast.error(submitError.message || "Validation failed");
         return;
       }
 
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
-        confirmParams: {
-          return_url: `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/invoice/${invoiceId}`,
-        },
         redirect: "if_required",
       });
 
@@ -58,124 +55,105 @@ function CheckoutForm({
         return;
       }
 
-      if (paymentIntent) {
-        const paymentMethodId =
-          typeof paymentIntent.payment_method === "string"
-            ? paymentIntent.payment_method
-            : paymentIntent.payment_method?.id;
-
-        if (paymentMethodId) {
-          const paymentResponse = await payment({
-            invoiceId,
-            payload: {
-              paymentMethodId,
-            },
-          }).unwrap();
-
-          if (paymentResponse?.success) {
-            toast.success("Payment successful");
-            onClose();
-          } else {
-            toast.error(paymentResponse?.message || "Payment failed");
-          }
-        } else {
-          toast.success("Payment successful");
-          onClose();
-        }
+      if (paymentIntent?.status === "succeeded") {
+        toast.success("Payment successful 🎉");
+        onClose();
       }
     } catch (err: any) {
-      toast.error(err?.message || "Payment error");
+      toast.error(err?.message || "Error");
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="p-4 bg-white rounded">
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <div className="rounded-lg bg-white p-4 border">
         <PaymentElement />
       </div>
 
       <button
         type="submit"
-        disabled={submitting || !stripe}
-        className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={!stripe || loading}
+        className="w-full bg-primary text-white py-3 rounded-lg"
       >
-        {submitting ? "Processing…" : "Pay Now"}
+        {loading ? "Processing..." : "Pay Now"}
       </button>
     </form>
   );
 }
 
+/* ---------------- MAIN MODAL ---------------- */
+
 export default function StripeCheckoutModal({
   invoiceId,
   onClose,
 }: {
-  invoiceId?: string;
+  invoiceId: string;
   onClose: () => void;
 }) {
-  const params = useParams();
-  const resolvedInvoiceId = invoiceId || (params?.id as string);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [createIntent] = usePaymentIntentMutation();
+
   useEffect(() => {
-    let mounted = true;
-
-    if (!resolvedInvoiceId) {
-      toast.error("Invoice id missing");
-      setLoading(false);
-      return () => {
-        mounted = false;
-      };
-    }
-
-    async function createPaymentIntent() {
+    const init = async () => {
       try {
-        const res = await fetch(`/api/invoice/pay-with-stripe/${resolvedInvoiceId}`, {
-          method: "POST",
-        });
+        const res = await createIntent({ invoiceId }).unwrap();
 
-        const paymentResponse = await res.json();
-        const clientSecret = paymentResponse?.clientSecret || paymentResponse?.result?.clientSecret;
+        const secret = res?.result?.clientSecret;
 
-        if (clientSecret) {
-          if (mounted) setClientSecret(clientSecret);
-        } else {
-          toast.error(paymentResponse?.error || "Failed to create payment intent");
+        if (!secret) {
+          toast.error("Client secret missing");
+          return;
         }
+
+        setClientSecret(secret);
       } catch (err: any) {
-        toast.error(err?.message || "Payment intent error");
+        toast.error(
+          err?.data?.message || err?.message || "Intent creation failed",
+        );
       } finally {
-        if (mounted) setLoading(false);
+        setLoading(false);
       }
-    }
-
-    createPaymentIntent();
-
-    return () => {
-      mounted = false;
     };
-  }, [resolvedInvoiceId]);
 
-  if (!clientSecret) return null;
+    init();
+  }, [invoiceId, createIntent]);
+
+  if (loading) {
+    return (
+      <div className="py-10 text-center text-gray-500">
+        Creating payment intent...
+      </div>
+    );
+  }
+
+  // ❗ CRITICAL FIX: prevent Elements mount before clientSecret
+  if (!clientSecret) {
+    return (
+      <div className="py-10 text-center text-red-500">
+        Payment initialization failed
+      </div>
+    );
+  }
 
   return (
-    <div className="mt-6 relative">
-      <div className="bg-[#F8F9F5]  shadow-lg p-8 rounded-b-2xl">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg text-gray-500 font-semibold">Payment Method</h3>
-         
-        </div>
+    <div className="mt-6">
+      <div className="bg-[#F8F9F5] shadow-lg p-8 rounded-b-2xl">
+        <h3 className="text-lg font-semibold mb-6 text-gray-600">
+          Payment Method
+        </h3>
 
         <Elements
           stripe={stripePromise}
-           options={{
-    clientSecret,
-    appearance: { theme: "stripe" },
-  }}
+          options={{
+            clientSecret,
+            appearance: { theme: "stripe" },
+          }}
         >
-          <CheckoutForm invoiceId={resolvedInvoiceId!} onClose={onClose} />
+          <CheckoutForm invoiceId={invoiceId} onClose={onClose} />
         </Elements>
       </div>
     </div>

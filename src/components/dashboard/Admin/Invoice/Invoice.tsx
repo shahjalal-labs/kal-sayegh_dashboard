@@ -323,7 +323,14 @@ export default function Invoice() {
                       key={item.id}
                       className="mb-3 border-b pb-3 last:border-b-0 last:pb-0 "
                     >
-                      <div className="md:hidden px-2 py-3">
+                      <div
+                        className="md:hidden px-2 py-3 cursor-pointer hover:bg-gray-50 rounded transition-colors"
+                        onClick={() =>
+                          router.push(
+                            `/admin/invoice/${item.id}?format=${localStorage.getItem("invoiceDetailsFormat") === "table" ? "table" : "description"}`,
+                          )
+                        }
+                      >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
                             <p className="text-lg font-semibold leading-tight text-gray-900">

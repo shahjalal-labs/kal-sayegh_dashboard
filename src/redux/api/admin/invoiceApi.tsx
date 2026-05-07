@@ -122,13 +122,13 @@ const invoiceApi = baseApi.injectEndpoints({
       }),
     }),
 
-    Payment: builder.mutation({
-      query: ({ invoiceId, payload }) => ({
-        url: `/invoice/pay-with-stripe/${invoiceId}`,
-        method: "POST",
-        body: payload,
-      }),
-    }),
+    // Payment: builder.mutation({
+    //   query: ({ invoiceId, payload }) => ({
+    //     url: `/invoice/pay-with-stripe/${invoiceId}`,
+    //     method: "POST",
+    //     body: payload,
+    //   }),
+    // }),
 
     updateEmailStatus: builder.mutation({
       query: ({ invoiceId, payload }) => ({
@@ -151,6 +151,13 @@ const invoiceApi = baseApi.injectEndpoints({
         method: "POST",
       }),
     }),
+
+    paymentIntent: builder.mutation({
+      query: ({ invoiceId }) => ({
+        url: `/invoice/create-payment-intent/${invoiceId}`,
+        method: "POST",
+      }),
+    }),
   }),
 });
 
@@ -164,8 +171,8 @@ export const {
   useGetInvoiceDetailsQuery,
   useInvoiceManualPaymentMutation,
   useRefundPaymentMutation,
-  usePaymentMutation,
   usePublicInvoiceDetailsQuery,
   useUpdateEmailStatusMutation,
   useGenerateFromEstimateMutation,
+  usePaymentIntentMutation,
 } = invoiceApi;

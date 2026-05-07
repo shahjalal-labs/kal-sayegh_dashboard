@@ -510,7 +510,7 @@ was previously sent.`,
                 </p>
               )}
 
-              <div className="border-2 border-t-0 border-orange-200 bg-[#f9f9f9]">
+              <div className="border-2 border-orange-200 bg-[#f9f9f9]">
                 <div className="grid grid-cols-1 text-base text-gray-700 md:grid-cols-3">
                   <div className="border-b border-[#e1e1e1] p-3 text-lg font-normal space-y-3 md:border-b-0 md:border-r-2 md:border-orange-200">
                     <Image
@@ -526,7 +526,7 @@ was previously sent.`,
                     <p>Email: kal@geopaving.com</p>
                     <p>Web: www.geopaving.com</p>
                   </div>
-                  <div className="border-t-2 border-orange-200 p-3 text-lg font-normal space-y-2 md:border-b-0 md:border-r-2 md:border-orange-200">
+                  <div className="p-3 text-lg font-normal space-y-2 md:border-b-0 md:border-r-2 md:border-orange-200">
                     <p>Name: {estimate?.client?.clientName || "-"}</p>
                     <p>{estimate?.client?.address || "-"}</p>
                     <p>{estimate?.client?.city || "-"}</p>
