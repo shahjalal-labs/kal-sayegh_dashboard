@@ -202,13 +202,19 @@ export default function CommonEstimateTable({
         const quantity = parseFloat(rowData[item.id]?.quantity || "0") || 0;
         const selectedItem = selectedItemsByTable[item.id];
         const selectedTax = selectedTaxesByRow[item.id] || null;
+        const selectedMarkup = selectedMarkupsByRow[item.id];
 
-        // Extract markup: use percentage if available, otherwise amount
-        const markupValue =
-          selectedItem?.markUp?.percentage != null
+        // Extract markup: use admin-selected markup first, then item default
+        const markupValue = selectedMarkup
+          ? selectedMarkup.percentage != null
+            ? selectedMarkup.percentage
+            : selectedMarkup.amount || 0
+          : selectedItem?.markUp?.percentage != null
             ? selectedItem.markUp.percentage
             : selectedItem?.markUp?.amount || 0;
-        const isMarkupPercentage = selectedItem?.markUp?.percentage != null;
+        const isMarkupPercentage = selectedMarkup
+          ? selectedMarkup.percentage != null
+          : selectedItem?.markUp?.percentage != null;
 
         const taxPercent = selectedTax?.percentage || 0;
         const base = rate * quantity;
@@ -266,6 +272,7 @@ export default function CommonEstimateTable({
     items,
     rowData,
     selectedItemsByTable,
+    selectedMarkupsByRow,
     selectedTaxesByRow,
     summaryMarkup,
     summaryDiscount,
@@ -294,14 +301,19 @@ export default function CommonEstimateTable({
               const quantity =
                 parseFloat(rowData[item.id]?.quantity || "0") || 0;
               const selectedTax = selectedTaxesByRow[item.id] || null;
+              const selectedMarkup = selectedMarkupsByRow[item.id];
 
-              // Extract markup: use percentage if available, otherwise amount
-              const markupValue =
-                selectedItem?.markUp?.percentage != null
+              // Extract markup: use admin-selected markup first, then item default
+              const markupValue = selectedMarkup
+                ? selectedMarkup.percentage != null
+                  ? selectedMarkup.percentage
+                  : selectedMarkup.amount || 0
+                : selectedItem?.markUp?.percentage != null
                   ? selectedItem.markUp.percentage
                   : selectedItem?.markUp?.amount || 0;
-              const isMarkupPercentage =
-                selectedItem?.markUp?.percentage != null;
+              const isMarkupPercentage = selectedMarkup
+                ? selectedMarkup.percentage != null
+                : selectedItem?.markUp?.percentage != null;
               const taxPercent = selectedTax?.percentage || 0;
 
               const base = rate * quantity;
@@ -373,13 +385,18 @@ export default function CommonEstimateTable({
                           className="cell bg-white/90 w-full p-2 hover:cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary transition"
                           placeholder="Markup"
                           value={
-                            selectedItem?.markUp?.percentage != null
-                              ? `${selectedItem.markUp.percentage}%`
-                              : selectedItem?.markUp?.amount
-                                ? `$${selectedItem.markUp.amount}`
-                                : ""
+                            selectedMarkupsByRow[item.id]
+                              ? selectedMarkupsByRow[item.id].percentage
+                                ? `${selectedMarkupsByRow[item.id].percentage}%`
+                                : `$${selectedMarkupsByRow[item.id].amount}`
+                              : selectedItem?.markUp?.percentage != null
+                                ? `${selectedItem.markUp.percentage}%`
+                                : selectedItem?.markUp?.amount
+                                  ? `$${selectedItem.markUp.amount}`
+                                  : ""
                           }
                           readOnly
+                          onClick={() => openMarkupPicker(item.id)}
                         />
                       </div>
                       <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0  md:p-0 flex items-center">
@@ -479,14 +496,19 @@ export default function CommonEstimateTable({
                     const rate = parseFloat(rowData[item.id]?.rate || "0") || 0;
                     const quantity =
                       parseFloat(rowData[item.id]?.quantity || "0") || 0;
+                    const selectedMarkup = selectedMarkupsByRow[item.id];
 
-                    // Extract markup: use percentage if available, otherwise amount
-                    const markupValue =
-                      selectedItem?.markUp?.percentage != null
+                    // Extract markup: use admin-selected markup first, then item default
+                    const markupValue = selectedMarkup
+                      ? selectedMarkup.percentage != null
+                        ? selectedMarkup.percentage
+                        : selectedMarkup.amount || 0
+                      : selectedItem?.markUp?.percentage != null
                         ? selectedItem.markUp.percentage
                         : selectedItem?.markUp?.amount || 0;
-                    const isMarkupPercentage =
-                      selectedItem?.markUp?.percentage != null;
+                    const isMarkupPercentage = selectedMarkup
+                      ? selectedMarkup.percentage != null
+                      : selectedItem?.markUp?.percentage != null;
                     const taxPercent =
                       selectedTaxesByRow[item.id]?.percentage || 0;
                     const base = rate * quantity;
@@ -544,14 +566,19 @@ export default function CommonEstimateTable({
                     const rate = parseFloat(rowData[item.id]?.rate || "0") || 0;
                     const quantity =
                       parseFloat(rowData[item.id]?.quantity || "0") || 0;
+                    const selectedMarkup = selectedMarkupsByRow[item.id];
 
-                    // Extract markup: use percentage if available, otherwise amount
-                    const markupValue =
-                      selectedItem?.markUp?.percentage != null
+                    // Extract markup: use admin-selected markup first, then item default
+                    const markupValue = selectedMarkup
+                      ? selectedMarkup.percentage != null
+                        ? selectedMarkup.percentage
+                        : selectedMarkup.amount || 0
+                      : selectedItem?.markUp?.percentage != null
                         ? selectedItem.markUp.percentage
                         : selectedItem?.markUp?.amount || 0;
-                    const isMarkupPercentage =
-                      selectedItem?.markUp?.percentage != null;
+                    const isMarkupPercentage = selectedMarkup
+                      ? selectedMarkup.percentage != null
+                      : selectedItem?.markUp?.percentage != null;
                     const taxPercent =
                       selectedTaxesByRow[item.id]?.percentage || 0;
                     const base = rate * quantity;
