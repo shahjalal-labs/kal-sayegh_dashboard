@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LiaEditSolid } from "react-icons/lia";
 import { RiFolderDownloadLine } from "react-icons/ri";
+import { ColorRing } from "react-loader-spinner";
 import { CustomModal } from "../../modal/CustomModal";
 import CreateJobForm from "../CreateJobForm";
 import CreateOffice from "../CreateOffice";
@@ -136,11 +137,14 @@ export default function OfficeAdministration() {
   const [isOpen, setIsOpen] = useState(false);
   const [updateJobRequest] = useUpdateJobRequestMutation();
 
-  const { data } = useGetOfficesQuery({});
+  const { data, isLoading: officesLoading } = useGetOfficesQuery({});
   const offices = data?.result || [];
 
-  const { data: allJobsData, refetch: refetchAllJobs } =
-    useGetAllJobRequestsQuery({});
+  const {
+    data: allJobsData,
+    isLoading: jobsLoading,
+    refetch: refetchAllJobs,
+  } = useGetAllJobRequestsQuery({});
 
   const allJobs =
     allJobsData?.result?.flatMap((office: any) =>
@@ -258,86 +262,99 @@ export default function OfficeAdministration() {
           />
         </CustomModal>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4  md:gap-8">
-          {offices?.map((office: any) => (
-            <div key={office.id} className="space-y-4">
-              <div className="flex items-center justify-between pb-4 gap-4 ">
-                <h2 className="font-normal text-gray-800 bg-white shadow-md border md:pr-14 pl-3 px-2 py-1 md:py-3 text-sm md:text-base rounded-md md:rounded-xl ">
-                  {office.name}
-                </h2>
+        {officesLoading || jobsLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <ColorRing
+              visible={true}
+              height="70"
+              width="70"
+              colors={["#e15b64", "#f47e60", "#f8b26a", "#abbd81", "#849b87"]}
+            />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4  md:gap-8">
+            {offices?.map((office: any) => (
+              <div key={office.id} className="space-y-4">
+                <div className="flex items-center justify-between pb-4 gap-4 ">
+                  <h2 className="font-normal text-gray-800 bg-white shadow-md border md:pr-14 pl-3 px-2 py-1 md:py-3 text-sm md:text-base rounded-md md:rounded-xl ">
+                    {office.name}
+                  </h2>
 
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setOpenModal(true)}
-                    className="px-2 py-1 md:px-4 md:py-3 bg-primary text-secondary text-xs md:text-base font-medium rounded-md md:rounded-xl hover:bg-primary/90 transition-colors flex items-center gap-2"
-                  >
-                    <span>+ New Job Request</span>
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setOpenModal(true)}
+                      className="px-2 py-1 md:px-4 md:py-3 bg-primary text-secondary text-xs md:text-base font-medium rounded-md md:rounded-xl hover:bg-primary/90 transition-colors flex items-center gap-2"
+                    >
+                      <span>+ New Job Request</span>
+                    </button>
 
-                  <button className="p-1 md:p-3 rounded-lg shadow-lg bg-white text-gray-500 border">
-                    <RiFolderDownloadLine size={25} />
-                  </button>
+                    <button className="p-1 md:p-3 rounded-lg shadow-lg bg-white text-gray-500 border">
+                      <RiFolderDownloadLine size={25} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-7 ">
+                  {allJobs.length > 0 ? (
+                    allJobs.map((job: JobItem) => (
+                      <div
+                        key={job.id}
+                        className="flex items-center justify-between md:py-6 md:px-4 bg-[#F7F8F8] border border-orange-100 rounded-2xl hover:bg-gray-50 transition cursor-pointer p-2"
+                        onClick={() => handleJobClick(job)}
+                      >
+                        <div className="flex flex-col md:flex-row items-start md:items-center gap-3 flex-1">
+                          <div
+                            className={`w-3 h-3 rounded-full ${
+                              job.status === "NEW"
+                                ? "bg-red-500"
+                                : "bg-green-500"
+                            }`}
+                          />
+
+                          <div>
+                            <p className="text-sm md:text-lg font-medium text-gray-900">
+                              {job.title}
+                            </p>
+                            <p className="text-xs md:text-base text-gray-500">
+                              {new Date(job.date).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex-col items-end gap-3 flex">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedJob(job);
+                              setOpenEditModal(true);
+                            }}
+                            className="text-gray-400 hover:text-gray-600"
+                          >
+                            <LiaEditSolid size={25} />
+                          </button>
+
+                          <div
+                            className={`px-4 py-2 mt-1 rounded-lg text-white text-xs ${
+                              job.status === "NEW"
+                                ? "bg-[#D40C1A] hover:bg-red-600 cursor-pointer"
+                                : "bg-green-500 cursor-not-allowed"
+                            }`}
+                          >
+                            {job.status}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="py-6 px-4 bg-[#F7F8F8] border border-orange-100 rounded-2xl text-center text-gray-500">
+                      No job requests found.
+                    </div>
+                  )}
                 </div>
               </div>
-
-              <div className="space-y-7 ">
-                {allJobs.length > 0 ? (
-                  allJobs.map((job: JobItem) => (
-                    <div
-                      key={job.id}
-                      className="flex items-center justify-between md:py-6 md:px-4 bg-[#F7F8F8] border border-orange-100 rounded-2xl hover:bg-gray-50 transition cursor-pointer p-2"
-                      onClick={() => handleJobClick(job)}
-                    >
-                      <div className="flex flex-col md:flex-row items-start md:items-center gap-3 flex-1">
-                        <div
-                          className={`w-3 h-3 rounded-full ${
-                            job.status === "NEW" ? "bg-red-500" : "bg-green-500"
-                          }`}
-                        />
-
-                        <div>
-                          <p className="text-sm md:text-lg font-medium text-gray-900">
-                            {job.title}
-                          </p>
-                          <p className="text-xs md:text-base text-gray-500">
-                            {new Date(job.date).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex-col items-end gap-3 flex">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedJob(job);
-                            setOpenEditModal(true);
-                          }}
-                          className="text-gray-400 hover:text-gray-600"
-                        >
-                          <LiaEditSolid size={25} />
-                        </button>
-
-                        <div
-                          className={`px-4 py-2 mt-1 rounded-lg text-white text-xs ${
-                            job.status === "NEW"
-                              ? "bg-[#D40C1A] hover:bg-red-600 cursor-pointer"
-                              : "bg-green-500 cursor-not-allowed"
-                          }`}
-                        >
-                          {job.status}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="py-6 px-4 bg-[#F7F8F8] border border-orange-100 rounded-2xl text-center text-gray-500">
-                    No job requests found.
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

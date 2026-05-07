@@ -199,13 +199,13 @@ export default function EstimateDetilasTableFormat() {
     <div>
       <Link
         href="/admin/estimate"
-        className="flex items-center gap-2 hover:underline text-gray-500"
+        className="flex items-center gap-2 hover:underline text-gray-500 mt-6"
       >
         <FiArrowLeft />
         Back To Estimate List Page
       </Link>
 
-      <div className="flex flex-col md:flex-row md:justify-between mt-7">
+      <div className="md:flex flex-col md:flex-row md:justify-between mt-7  hidden ">
         <div className="flex items-center  gap-3 mt-4">
           <Link
             href={
@@ -469,6 +469,51 @@ export default function EstimateDetilasTableFormat() {
         </div>
 
         <Conditions className="mt-8" />
+
+        <div className="flex flex-col md:flex-row md:justify-between mt-7 md:hidden">
+          <div className="flex items-center  gap-3 mt-4">
+            <Link
+              href={
+                editEstimateId
+                  ? `/admin/edit-estimate?id=${editEstimateId}&format=table`
+                  : "/admin/estimate"
+              }
+              onClick={() => {
+                if (typeof window !== "undefined" && editEstimateId) {
+                  localStorage.setItem("editingEstimateId", editEstimateId);
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary"
+            >
+              <Edit size={16} />
+              Edit
+            </Link>
+
+            <button
+              onClick={handleSendEstimateEmail}
+              disabled={isSendingMail}
+              className="flex items-center gap-2 px-4 py-2 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary"
+            >
+              <AiOutlineMail />
+              Email
+            </button>
+          </div>
+
+          <div className="flex items-center gap-3 mt-4 ">
+            <button className="flex items-center gap-2 px-4 py-2 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary">
+              <WandSparkles size={16} />
+              Generate Invoice
+            </button>
+
+            <button
+              onClick={handleDownload}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90"
+            >
+              <FiDownload />
+              Download
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

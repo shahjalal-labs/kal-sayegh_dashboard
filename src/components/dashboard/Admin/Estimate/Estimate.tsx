@@ -32,7 +32,7 @@ export default function Estimate() {
   const [activeTab, setActiveTab] = useState("pending");
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
-  const pageSize = 6;
+  const pageSize = 20;
   const { data, isLoading, refetch } = useGetAllEstimatesQuery({});
   const estimates = data?.result?.data || [];
 

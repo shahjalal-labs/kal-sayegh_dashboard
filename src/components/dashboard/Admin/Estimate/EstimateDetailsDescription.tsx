@@ -216,7 +216,7 @@ was previously sent.`,
 
   return (
     <div className="pb-10 mt-4">
-      <div className="flex items-center justify-between w-full px-4">
+      <div className="flex items-center justify-between w-full px-4 md:px-0">
         <Link
           href="/admin/estimate"
           className="flex items-center gap-2 hover:underline text-gray-500"
@@ -481,7 +481,7 @@ was previously sent.`,
 
           <div className="mt-9 space-y-4 border-t-2 border-orange-200">
             <div>
-              {sideMapUrls.length > 0 && (
+              {sideMapUrls.length > 0 ? (
                 <div className="grid grid-cols-1 gap-3 mt-4">
                   {sideMapUrls.map((url: string, index: number) => (
                     <div
@@ -504,9 +504,13 @@ was previously sent.`,
                     </div>
                   ))}
                 </div>
+              ) : (
+                <p className="text-center text-gray-500 mt-4 h-[200px] md:h-[350px] flex items-center justify-center bg-[#f9f9f9] border-2 border-orange-200">
+                  No side maps available
+                </p>
               )}
 
-              <div className="mt-4 border-2 border-orange-200 bg-[#f9f9f9]">
+              <div className="border-2 border-t-0 border-orange-200 bg-[#f9f9f9]">
                 <div className="grid grid-cols-1 text-base text-gray-700 md:grid-cols-3">
                   <div className="border-b border-[#e1e1e1] p-3 text-lg font-normal space-y-3 md:border-b-0 md:border-r-2 md:border-orange-200">
                     <Image
@@ -522,7 +526,7 @@ was previously sent.`,
                     <p>Email: kal@geopaving.com</p>
                     <p>Web: www.geopaving.com</p>
                   </div>
-                  <div className="border-b border-[#e1e1e1] p-3 text-lg font-normal space-y-2 md:border-b-0 md:border-r-2 md:border-orange-200">
+                  <div className="border-t-2 border-orange-200 p-3 text-lg font-normal space-y-2 md:border-b-0 md:border-r-2 md:border-orange-200">
                     <p>Name: {estimate?.client?.clientName || "-"}</p>
                     <p>{estimate?.client?.address || "-"}</p>
                     <p>{estimate?.client?.city || "-"}</p>
@@ -534,7 +538,7 @@ was previously sent.`,
               </div>
             </div>
 
-            {fileUrls.length > 0 && (
+            {fileUrls.length > 0 ? (
               <div className="grid grid-cols-1 gap-3">
                 {fileUrls.map((url: string, index: number) => (
                   <div
@@ -557,6 +561,10 @@ was previously sent.`,
                   </div>
                 ))}
               </div>
+            ) : (
+              <p className="text-center text-gray-500 mt-4 h-[200px] md:h-[350px] flex items-center justify-center bg-[#f9f9f9] border-2 border-orange-200">
+                No files available
+              </p>
             )}
           </div>
         </div>

@@ -13,10 +13,11 @@ import {
   useGetAllInvoiceQuery,
   useUpdateEmailStatusMutation,
 } from "@/redux/api/admin/invoiceApi";
-import { Check, Plus, Search } from "lucide-react";
+import { Check, PencilLine, PenLine, Plus, Search } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ColorRing } from "react-loader-spinner";
 import { toast } from "sonner";
 
 import openEmail from "@/assets/dashboard/openEmail.png";
@@ -29,9 +30,13 @@ export default function Invoice() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("active");
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 20;
 
-  const { data: invoicesData, refetch } = useGetAllInvoiceQuery({
+  const {
+    data: invoicesData,
+    isLoading,
+    refetch,
+  } = useGetAllInvoiceQuery({
     limit: pageSize,
     page,
     searchTerm: searchTerm,
@@ -178,6 +183,10 @@ export default function Invoice() {
     return "bg-gray-100 text-gray-600";
   };
 
+  const getSignedStatusLabel = (isSigned?: boolean) => {
+    return isSigned ? "Signed" : "Not Signed";
+  };
+
   const getDisplayDate = (dateString?: string) => {
     if (!dateString) return "-";
     const date = new Date(dateString);
@@ -274,7 +283,16 @@ export default function Invoice() {
       </div>
 
       <div className="md:space-y-6 ">
-        {groupedEntries.length === 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <ColorRing
+              visible={true}
+              height="70"
+              width="70"
+              colors={["#e15b64", "#f47e60", "#f8b26a", "#abbd81", "#849b87"]}
+            />
+          </div>
+        ) : groupedEntries.length === 0 ? (
           <p className="text-center text-gray-400">
             No {activeTab} invoices found
           </p>
@@ -326,35 +344,45 @@ export default function Invoice() {
                             {getDisplayDate(item.createdAt || item.date)}
                           </p>
 
-                          <div className="flex shrink-0 items-center gap-3">
-                            {isEmailNotSent(item.emailStatus) ? (
-                              <button
-                                type="button"
-                                className={`inline-flex items-center ${getInvoiceEmailTextClass(item.emailStatus)}`}
-                                aria-label={getInvoiceEmailLabel(
-                                  item.emailStatus,
-                                )}
-                                title={getInvoiceEmailLabel(item.emailStatus)}
-                              >
-                                {getInvoiceEmailIcon(item.emailStatus)}
-                              </button>
-                            ) : (
-                              <span
-                                className={`inline-flex items-center ${getInvoiceEmailTextClass(item.emailStatus)}`}
-                                aria-label={getInvoiceEmailLabel(
-                                  item.emailStatus,
-                                )}
-                                title={getInvoiceEmailLabel(item.emailStatus)}
-                              >
-                                {getInvoiceEmailIcon(item.emailStatus)}
-                              </span>
-                            )}
+                          <div>
+                            <div className="gap-2 flex ">
+                              {isEmailNotSent(item.emailStatus) ? (
+                                <button
+                                  type="button"
+                                  className={`inline-flex items-center ${getInvoiceEmailTextClass(item.emailStatus)}`}
+                                  aria-label={getInvoiceEmailLabel(
+                                    item.emailStatus,
+                                  )}
+                                  title={getInvoiceEmailLabel(item.emailStatus)}
+                                >
+                                  {getInvoiceEmailIcon(item.emailStatus)}
+                                </button>
+                              ) : (
+                                <span
+                                  className={`inline-flex items-center ${getInvoiceEmailTextClass(item.emailStatus)}`}
+                                  aria-label={getInvoiceEmailLabel(
+                                    item.emailStatus,
+                                  )}
+                                  title={getInvoiceEmailLabel(item.emailStatus)}
+                                >
+                                  {getInvoiceEmailIcon(item.emailStatus)}
+                                </span>
+                              )}
 
-                            <span
-                              className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold ${getInvoiceStatusClasses(item)}`}
-                            >
-                              {getInvoiceStatusLabel(item)}
-                            </span>
+                              <span
+                                className={`inline-flex rounded-full px-2.5 py-1 text-base font-semibold ${getInvoiceStatusClasses(item)}`}
+                              >
+                                {getInvoiceStatusLabel(item)}
+                              </span>
+                            </div>
+                            <div>
+                              <span
+                                className={`rounded-full text-base font-normal text-gray-400 flex gap-2 items-center `}
+                              >
+                                <PencilLine size={16} />
+                                {getSignedStatusLabel(item.isSigned)}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -419,9 +447,18 @@ export default function Invoice() {
                               {getInvoiceEmailLabel(item.emailStatus)}
                             </p>
                           )}
+
+                          <div className="hidden md:flex md:gap-2  md:items-center md:justify-start">
+                            <span
+                              className={`text-base text-gray-400 flex gap-2 items-center `}
+                            >
+                              <PenLine size={16} />{" "}
+                              {getSignedStatusLabel(item.isSigned)}
+                            </span>
+                          </div>
                         </div>
 
-                        <div className="hidden md:flex md:gap-2 md:w-[15%] md:justify-end">
+                        <div className="hidden md:flex md:gap-2 md:w-[10%] md:justify-end">
                           <button
                             type="button"
                             onClick={() =>
