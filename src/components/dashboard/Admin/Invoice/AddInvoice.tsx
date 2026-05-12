@@ -6,6 +6,7 @@ import {
   useGetMyClientsQuery,
 } from "@/redux/api/admin/estimateApi";
 import { useCreateInvoiceMutation } from "@/redux/api/admin/invoiceApi";
+import { table } from "console";
 import { ArrowLeft, MapPin, Upload } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -29,6 +30,7 @@ export default function AddInvoice() {
   });
 
   const [tableData, setTableData] = useState<any>(null);
+  console.log("table data", tableData);
   const [tableKey, setTableKey] = useState(0);
 
   const [sideMaps, setSideMaps] = useState<File[]>([]);
@@ -104,6 +106,12 @@ export default function AddInvoice() {
     const selectedItems = tableData.items.filter(
       (item: any) => item.selectedItem,
     );
+
+    if (selectedItems.length === 0) {
+      toast.error("Please add and select at least one invoice item.");
+      return;
+    }
+
     const hasInvalidQuantity = selectedItems.some(
       (item: any) => (parseFloat(item.quantity) || 0) <= 0,
     );

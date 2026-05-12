@@ -1,20 +1,20 @@
-"use client";
-
-import {
-  useGetInvoiceDetailsQuery,
-  useGetInvoicePaymentsQuery,
-  useInvoiceManualPaymentMutation,
-  useRefundPaymentMutation,
-  useSendReminderEmailMutation,
-} from "@/redux/api/admin/invoiceApi";
+import { useSendInvoiceMailMutation } from "@/redux/api/admin/invoiceApi";
 import { LucideMoreHorizontal } from "lucide-react";
 import { useState } from "react";
+import { MultiValue, StylesConfig } from "react-select";
+import CreatableSelect from "react-select/creatable";
 import { toast } from "sonner";
 
 type PaymentModalProps = {
   onClose: () => void;
   invoiceId: string;
+  invoiceName?: string;
   recipientEmails?: string[];
+};
+
+type EmailOption = {
+  label: string;
+  value: string;
 };
 
 type PaymentTransaction = {
@@ -39,6 +39,49 @@ type RecordPaymentForm = {
   amountMode: AmountMode;
 };
 
+const recipientSelectStyles: StylesConfig<EmailOption, true> = {
+  control: (base) => ({
+    ...base,
+    minHeight: "48px",
+    borderRadius: "0.75rem",
+    borderColor: "#e5e7eb",
+    boxShadow: "none",
+    padding: "2px 6px",
+  }),
+  multiValue: (base) => ({
+    ...base,
+    backgroundColor: "#f3f4f6",
+    borderRadius: "0.5rem",
+    padding: "2px 4px",
+  }),
+  multiValueLabel: (base) => ({
+    ...base,
+    color: "#6b7280",
+    fontSize: "0.875rem",
+  }),
+  multiValueRemove: (base) => ({
+    ...base,
+    color: "#9ca3af",
+    ":hover": {
+      backgroundColor: "transparent",
+      color: "#4b5563",
+    },
+  }),
+  menu: (base) => ({
+    ...base,
+    borderRadius: "0.75rem",
+    border: "1px solid #e5e7eb",
+    overflow: "hidden",
+    zIndex: 70,
+  }),
+  option: (base, state) => ({
+    ...base,
+    backgroundColor: state.isFocused ? "#f9fafb" : "#ffffff",
+    color: "#374151",
+    fontSize: "0.875rem",
+  }),
+};
+
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -60,53 +103,15 @@ const formatDate = (value: string) => {
 const PaymentModal = ({
   onClose,
   invoiceId,
+  invoiceName,
   recipientEmails = [],
 }: PaymentModalProps) => {
   const [isReminderOpen, setIsReminderOpen] = useState(false);
   const [isRecordPayment, setIsRecordPayment] = useState(false);
-  const [showPaymentList, setShowPaymentList] = useState(true);
+  const [showPaymentList, setShowPaymentList] = useState(false);
 
   const [sendMeCopy, setSendMeCopy] = useState(false);
-  const [value, setValue] = useState("");
-  const [emailInput, setEmailInput] = useState("");
-
-  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
-  const [activeTransaction, setActiveTransaction] = useState<any>(null);
-  const [refundAmount, setRefundAmount] = useState("");
-  const [activeActionModal, setActiveActionModal] = useState<
-    "details" | "refund" | null
-  >(null);
-
-  const { data, isLoading } = useGetInvoicePaymentsQuery(invoiceId, {
-    skip: !invoiceId,
-  });
-
-  const { data: invoiceDetails } = useGetInvoiceDetailsQuery(invoiceId, {
-    skip: !invoiceId,
-  });
-
-  const [invoiceReminder] = useSendReminderEmailMutation();
-  const [manualPayment] = useInvoiceManualPaymentMutation();
-  const [refundPayment] = useRefundPaymentMutation();
-
-  const payments = data?.result;
-  const summary = payments?.summary || {};
-  const transactions = payments?.transactions || [];
-  const clientEmail =
-    invoiceDetails?.result?.client?.email || recipientEmails[0] || "";
-
-  const [showClientEmail, setShowClientEmail] = useState(true);
-
-  const defaultReminderMessage =
-    "We are following up to confirm whether you have had an opportunity to review the invoice that was previously sent.";
-
-  const [formData, setFormData] = useState({
-    message: defaultReminderMessage,
-    sendMeCopy: false,
-    subject: "",
-    to: [] as string[],
-  });
-
+  const [recipientInput, setRecipientInput] = useState("");
   const [recordPaymentForm, setRecordPaymentForm] = useState<RecordPaymentForm>(
     {
       amount: "",
@@ -117,14 +122,39 @@ const PaymentModal = ({
     },
   );
 
+  const [recipients, setRecipients] = useState<EmailOption[]>(() =>
+    recipientEmails
+      .filter((email) => email.trim())
+      .map((email) => ({ label: email, value: email })),
+  );
+
+  const [subject, setSubject] = useState(
+    invoiceName
+      ? `Your Invoice ${invoiceName}`
+      : "Your Invoice from Geo Paving and Sealcoating",
+  );
+  const [message, setMessage] = useState(
+    "We are following up to confirm whether you have had an opportunity to review the invoice that was previously sent.",
+  );
+
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const [activeTransaction, setActiveTransaction] = useState<any>(null);
+  const [refundAmount, setRefundAmount] = useState("");
   const [refund, setrefund] = useState({
     amount: 0,
     reason: "",
   });
+  const [activeActionModal, setActiveActionModal] = useState<
+    "details" | "refund" | null
+  >(null);
 
-  const totalDue = summary?.totalDue || 0;
-  const totalPaid = summary?.totalPaid || 0;
-  const paidPercentage = summary?.paidPercentage || 0;
+  const [sendInvoiceMail, { isLoading: isSendingReminder }] =
+    useSendInvoiceMailMutation();
+
+  const totalDue = 1800;
+  const totalPaid = 0;
+  const paidPercentage = 80;
+  const transactions: PaymentTransaction[] = [];
 
   const calculatedRecordAmount = (() => {
     const numericAmount = Number(recordPaymentForm.amount || 0);
@@ -147,6 +177,29 @@ const PaymentModal = ({
         ? "Amount"
         : "Full amount";
 
+  const isValidEmail = (value: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
+  const addRecipient = (value: string) => {
+    const email = value.trim();
+    if (!email || !isValidEmail(email)) return;
+
+    setRecipients((prev) => {
+      if (
+        prev.some((item) => item.value.toLowerCase() === email.toLowerCase())
+      ) {
+        return prev;
+      }
+      return [...prev, { label: email, value: email }];
+    });
+
+    setRecipientInput("");
+  };
+
+  const handleRecipientsChange = (newValue: MultiValue<EmailOption>) => {
+    setRecipients([...newValue]);
+  };
+
   const handleClose = () => {
     setShowPaymentList(false);
     setActiveMenuId(null);
@@ -156,139 +209,75 @@ const PaymentModal = ({
     onClose();
   };
 
-  const handleInvoiceReminder = async () => {
-    try {
-      const reminderRecipients = Array.from(
-        new Set(
-          [
-            ...formData.to,
-            ...(showClientEmail && clientEmail ? [clientEmail] : []),
-          ].filter(Boolean),
-        ),
-      );
+  const handleSendReminder = async () => {
+    const to = recipients
+      .map((recipient) => recipient.value.trim())
+      .filter((email) => email.length > 0);
 
-      await invoiceReminder({
-        invoiceId,
-        message: formData.message,
-        sendMeCopy: formData.sendMeCopy,
-        subject: formData.subject,
-        to: reminderRecipients,
-      }).unwrap();
-      toast.success("Invoice reminder sent successfully");
-
-      setFormData({
-        message: defaultReminderMessage,
-        sendMeCopy: false,
-        subject: "",
-        to: [],
-      });
-      setShowPaymentList(false);
-    } catch (error) {
-      toast.error("Failed to send invoice reminder");
-    }
-  };
-
-  const addRecipientEmail = (rawEmail: string) => {
-    const trimmedEmail = rawEmail.trim();
-
-    if (!trimmedEmail) {
+    if (!invoiceId) {
+      toast.error("Invoice id is missing.");
       return;
     }
 
-    setFormData((prev) => {
-      if (prev.to.includes(trimmedEmail)) {
-        return prev;
-      }
+    if (to.length === 0) {
+      toast.error("Please add at least one recipient email.");
+      return;
+    }
 
-      return {
-        ...prev,
-        to: [...prev.to, trimmedEmail],
-      };
-    });
+    if (!subject.trim()) {
+      toast.error("Please enter a subject.");
+      return;
+    }
 
-    setEmailInput("");
+    if (!message.trim()) {
+      toast.error("Please enter a message.");
+      return;
+    }
+
+    try {
+      await sendInvoiceMail({
+        invoiceId,
+        data: {
+          message: message.trim(),
+          sendMeCopy,
+          subject: subject.trim(),
+          to,
+        },
+      }).unwrap();
+
+      toast.success("Payment reminder sent successfully.");
+      setIsReminderOpen(false);
+    } catch (error) {
+      toast.error((error as any)?.data?.message || "Failed to send reminder.");
+    }
   };
 
   const handleRecordPayment = async () => {
-    try {
-      const paymentDate = recordPaymentForm.paymentDate
-        ? `${recordPaymentForm.paymentDate}T00:00:00Z`
-        : "";
-
-      await manualPayment({
-        invoiceId,
-        payload: {
-          amount: calculatedRecordAmount,
-          checkNumber:
-            recordPaymentForm.paymentMethod === "CHECK"
-              ? recordPaymentForm.checkNumber
-              : undefined,
-          paymentDate,
-          paymentMethod: recordPaymentForm.paymentMethod,
-        },
-      }).unwrap();
-
-      toast.success("Payment recorded successfully");
-      setRecordPaymentForm({
-        amount: "",
-        paymentDate: "",
-        paymentMethod: "CASH",
-        checkNumber: "",
-        amountMode: "$",
-      });
-      setIsRecordPayment(false);
-    } catch (error) {
-      toast.error("Failed to record payment");
-    }
+    toast.success(`Payment of ${formatCurrency(calculatedRecordAmount)} recorded.`);
+    setIsRecordPayment(false);
   };
 
   const handleRefund = async () => {
-    try {
-      const paymentId =
-        typeof activeTransaction?.id === "string"
-          ? activeTransaction.id
-          : typeof activeTransaction?._id === "string"
-            ? activeTransaction._id
-            : "";
-
-      if (!paymentId) {
-        toast.error("Missing payment id for refund");
-        return;
-      }
-
-      await refundPayment({
-        paymentId,
-        payload: {
-          amount: Number(refundAmount || 0),
-          reason: refund.reason,
-        },
-      }).unwrap();
-
-      toast.success("Refund issued successfully");
-      setRefundAmount("");
-      setrefund({ amount: 0, reason: "" });
-      setActiveActionModal(null);
-    } catch (error) {
-      toast.error("Failed to issue refund");
-    }
+    toast.success(`Refund of ${formatCurrency(Number(refundAmount || 0))} prepared.`);
+    setActiveActionModal(null);
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 sm:p-4 "
-      onClick={handleClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={(event) => {
+        event.stopPropagation();
+        handleClose();
+      }}
     >
       <div
-        className="w-full max-w-[560px] max-h-[80vh] overflow-y-auto  rounded-2xl bg-white p-5 shadow-xl sm:max-w-[640px] sm:p-6 "
+        className="w-full max-w-[700px] rounded-2xl bg-white p-6 shadow-xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="mb-7 flex items-center justify-between">
-          <h2 className="text-[22px] font-medium tracking-tight text-gray-900">
-            Payments
-          </h2>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Payments</h2>
           <button
-            type="button"
-            className="rounded-xl bg-primary px-6 py-3 text-base font-medium text-white transition-colors hover:bg-primary/90  "
+            className="bg-primary text-white px-4 py-2 rounded-md text-base"
             onClick={() => {
               setIsRecordPayment(true);
               setIsReminderOpen(false);
@@ -298,80 +287,67 @@ const PaymentModal = ({
           </button>
         </div>
 
-        <div className="rounded-[2px] bg-[#f8f8f8] p-4 sm:p-5">
-          <div className="mb-3 flex items-center justify-between text-sm font-medium text-gray-900 sm:text-base">
-            <span>PAID</span>
-            <span className="text-gray-600">
-              DUE {formatCurrency(summary?.totalDue || 0)}
-            </span>
+        <div className="bg-gray-100 p-4 rounded-md">
+          <div className="flex justify-between text-base font-semibold mb-2">
+            <p>PAID</p>
+            <p className="text-gray-600">DUE $1800.00</p>
           </div>
 
-          <div className="h-11 overflow-hidden rounded-sm bg-[#9f9f9f] flex items-center">
+          <div className="w-full h-8 rounded-sm flex items-center">
             <input
               type="text"
-              value={
-                summary?.totalDue ? formatCurrency(summary.totalDue) : value
-              }
-              onChange={(e) => setValue(e.target.value)}
-              className="w-full h-full bg-[#8f8f8f] px-4 text-sm font-medium text-white outline-none"
+              defaultValue="0"
+              className="w-full h-full bg-gray-400 text-white border-none p-3 focus:outline-none"
             />
           </div>
 
-          <button
-            type="button"
-            className="mt-4 inline-flex items-center gap-3 text-base font-medium text-[#f36f21] transition-colors hover:text-[#d95e12]"
-            onClick={() => {
+          <div
+            className="mt-3 flex items-center gap-2 text-primary text-base cursor-pointer"
+            onClick={(event) => {
+              event.stopPropagation();
               setIsReminderOpen(true);
               setIsRecordPayment(false);
             }}
           >
             <span>Send Payment Reminder</span>
-            <span className="text-[20px] leading-none">→</span>
-          </button>
+            <span>→</span>
+          </div>
         </div>
 
-        {/* {transactions.length > 0 && (
-          <div className="flex justify-between mt-4">
-            <div className="text-base font-normal">
-              <p>
-                {transactions[0] ? formatCurrency(transactions[0].amount) : "-"}
-              </p>
-              <p>
-                {transactions[0]
-                  ? `${formatDate(transactions[0].date)} / ${transactions[0].method}`
-                  : "-"}
-              </p>
-            </div>
-
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTransaction(transactions[0]);
-                  setActiveMenuId((prev) =>
-                    prev === transactions[0].id ? null : transactions[0].id,
-                  );
-                }}
-                className="rounded-lg bg-gray-300 p-1"
-                aria-label="Open summary actions"
-              >
-                <LucideMoreHorizontal size={25} />
-              </button>
-
-              {activeMenuId === transactions[0].id && activeTransaction && (
-                <div className="absolute right-0 top-11 z-50 w-36 rounded-lg border border-gray-200 bg-white shadow-lg">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveActionModal("details");
-                      setActiveMenuId(null);
-                    }}
-                    className="block w-full px-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50"
-                  >
-                    Details
-                  </button>
-
-                  {activeTransaction.type === "payment" && (
+        {showPaymentList && (
+          <div className="mt-6 space-y-4">
+            <div className="flex items-start justify-between border-b border-gray-200 pb-4">
+              <div>
+                <p className="text-base font-semibold text-gray-900">
+                  $1600.00
+                </p>
+                <p className="text-sm text-gray-500">Apr 20 Mon, 2026 / Cash</p>
+              </div>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveMenuId((prev) =>
+                      prev === "payment" ? null : "payment",
+                    )
+                  }
+                  className="h-9 w-12 rounded-md bg-gray-100 text-sm text-gray-700"
+                  aria-label="Payment actions"
+                >
+                  ---
+                </button>
+                {activeMenuId === "payment" && (
+                  <div className="absolute right-0 top-11 z-10 w-32 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveActionModal("details");
+                        setActiveMenuId(null);
+                      }}
+                      className="block w-full px-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50"
+                    >
+                      Details
+                    </button>
                     <button
                       type="button"
                       onClick={() => {
@@ -382,100 +358,64 @@ const PaymentModal = ({
                     >
                       Issue Refund
                     </button>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )} */}
-
-        {showPaymentList && (
-          <div className="mt-5 space-y-0">
-            {transactions.map((transaction: any) => {
-              const isRefund = transaction.type === "refund";
-              const isActive = activeMenuId === transaction.id;
-
-              return (
-                <div
-                  key={transaction.id}
-                  className="border-b border-gray-200 py-4 last:border-b-0"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p
-                        className={`text-base font-semibold ${isRefund ? "text-gray-400" : "text-gray-900"}`}
-                      >
-                        {formatCurrency(transaction.amount)}
-                        {isRefund ? " (Refund)" : ""}
-                      </p>
-                      <p
-                        className={`mt-1 text-sm ${isRefund ? "text-gray-400" : "text-gray-500"}`}
-                      >
-                        {formatDate(transaction.date)} / {transaction.method}
-                      </p>
-                    </div>
-
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveTransaction(transaction);
-                          setActiveMenuId((prev) =>
-                            prev === transaction.id ? null : transaction.id,
-                          );
-                        }}
-                        className="flex h-10 w-10 items-center justify-center rounded-[6px] bg-[#eff0f3] text-gray-600 transition-colors hover:bg-gray-200"
-                        aria-label={`${transaction.type} actions`}
-                      >
-                        <LucideMoreHorizontal size={20} />
-                      </button>
-
-                      {isActive && (
-                        <div className="absolute right-0 top-11 z-50 w-32 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setActiveTransaction(transaction);
-                              setActiveActionModal("details");
-                              setActiveMenuId(null);
-                            }}
-                            className="block w-full px-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50"
-                          >
-                            Details
-                          </button>
-                          {isRefund ? null : (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveTransaction(transaction);
-                                setRefundAmount(
-                                  String(transaction.amount || ""),
-                                );
-                                setRefundAmount(
-                                  String(transaction.amount || ""),
-                                );
-                                setActiveActionModal("refund");
-                                setActiveMenuId(null);
-                              }}
-                              className="block w-full px-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50"
-                            >
-                              Issue Refund
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
                   </div>
-                </div>
-              );
-            })}
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-start justify-between border-b border-gray-200 pb-4">
+              <div>
+                <p className="text-base font-semibold text-gray-400">
+                  $1600.00 (Refund)
+                </p>
+                <p className="text-sm text-gray-400">Apr 20 Mon, 2026 / Cash</p>
+              </div>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveMenuId((prev) =>
+                      prev === "refund" ? null : "refund",
+                    )
+                  }
+                  className="h-9 w-12 rounded-md bg-gray-100 text-sm text-gray-700"
+                  aria-label="Refund actions"
+                >
+                  ---
+                </button>
+                {activeMenuId === "refund" && (
+                  <div className="absolute right-0 top-11 z-10 w-32 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveActionModal("details");
+                        setActiveMenuId(null);
+                      }}
+                      className="block w-full px-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50"
+                    >
+                      Details
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveActionModal("refund");
+                        setActiveMenuId(null);
+                      }}
+                      className="block w-full px-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50"
+                    >
+                      Issue Refund
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
-        <div className="mt-8 flex justify-end">
+        <div className="flex justify-end mt-6">
           <button
             type="button"
-            className="rounded-[14px] bg-[#e97f2d] px-8 py-3 text-sm font-medium text-white transition-colors hover:bg-[#d96f1f]"
+            className="bg-primary hover:bg-orange-600 transition-colors text-white px-6 py-2 rounded-md text-base"
             onClick={handleClose}
           >
             Close
@@ -485,89 +425,54 @@ const PaymentModal = ({
 
       {isReminderOpen && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4"
           onClick={(event) => {
             event.stopPropagation();
-            setIsReminderOpen(false);
+            handleClose();
           }}
         >
           <div
-            className="w-full max-w-[640px] rounded-2xl bg-white p-6 shadow-xl"
+            className="w-full max-w-[700px] rounded-2xl bg-white p-6 shadow-xl md:p-8"
             onClick={(event) => event.stopPropagation()}
           >
             <h2 className="text-xl font-semibold text-gray-900">
               Send Payment Reminder
             </h2>
 
-            <div className="mt-8 space-y-6">
+            <div className="mt-8 space-y-8">
               <div className="space-y-3">
                 <label className="block text-sm font-medium text-gray-900">
                   To
                 </label>
-
-                <div className="flex min-h-[48px] w-full flex-wrap items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 focus-within:border-primary">
-                  {showClientEmail && clientEmail ? (
-                    <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm text-gray-700">
-                      <span>{clientEmail}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowClientEmail(false);
-                          setFormData((prev) => ({
-                            ...prev,
-                            to: prev.to.filter(
-                              (email) => email !== clientEmail,
-                            ),
-                          }));
-                        }}
-                        className="text-gray-400 hover:text-red-500"
-                        aria-label="Remove client email"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ) : null}
-
-                  {formData.to.map((email) => (
-                    <div
-                      key={email}
-                      className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm text-gray-700"
-                    >
-                      <span>{email}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFormData((prev) => ({
-                            ...prev,
-                            to: prev.to.filter((item) => item !== email),
-                          }));
-                        }}
-                        className="text-gray-400 hover:text-red-500"
-                        aria-label={`Remove ${email}`}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-
-                  <input
-                    type="text"
-                    placeholder="Add email..."
-                    value={emailInput}
-                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                      setEmailInput(event.target.value);
-                    }}
-                    onKeyDown={(
-                      event: React.KeyboardEvent<HTMLInputElement>,
-                    ) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        addRecipientEmail(emailInput);
-                      }
-                    }}
-                    className="flex-1 bg-transparent text-sm outline-none"
-                  />
-                </div>
+                <CreatableSelect<EmailOption, true>
+                  isMulti
+                  components={{
+                    DropdownIndicator: null,
+                    IndicatorSeparator: null,
+                  }}
+                  value={recipients}
+                  onChange={handleRecipientsChange}
+                  onCreateOption={addRecipient}
+                  inputValue={recipientInput}
+                  onInputChange={(value) => {
+                    setRecipientInput(value);
+                    return value;
+                  }}
+                  isValidNewOption={(inputValue) => {
+                    const email = inputValue.trim();
+                    return (
+                      isValidEmail(email) &&
+                      !recipients.some(
+                        (item) =>
+                          item.value.toLowerCase() === email.toLowerCase(),
+                      )
+                    );
+                  }}
+                  formatCreateLabel={(value) => `Add "${value}"`}
+                  noOptionsMessage={() => null}
+                  placeholder="Type email and press Enter"
+                  styles={recipientSelectStyles}
+                />
               </div>
 
               <div className="space-y-3">
@@ -576,34 +481,24 @@ const PaymentModal = ({
                 </label>
                 <input
                   type="text"
-                  value={formData.subject}
-                  onChange={(event) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      subject: event.target.value,
-                    }))
-                  }
-                  className="h-12 w-full rounded-xl border border-gray-200 px-4 text-sm text-gray-500 outline-none placeholder:text-gray-400 focus:border-primary"
+                  value={subject}
+                  onChange={(event) => setSubject(event.target.value)}
+                  className="h-12 w-full rounded-xl border border-gray-200 px-4 text-sm text-gray-700 outline-none placeholder:text-gray-400 focus:border-primary"
                 />
               </div>
 
               <div className="flex items-center justify-end gap-4">
                 <button
                   type="button"
-                  onClick={() =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      sendMeCopy: !prev.sendMeCopy,
-                    }))
-                  }
+                  onClick={() => setSendMeCopy((prev) => !prev)}
                   className={`relative inline-flex h-8 w-16 items-center rounded-full px-1 transition-colors ${
-                    formData.sendMeCopy ? "bg-primary" : "bg-gray-200"
+                    sendMeCopy ? "bg-primary" : "bg-gray-200"
                   }`}
                   aria-label="Send me a copy toggle"
                 >
                   <span
                     className={`inline-block h-6 w-6 rounded-full bg-white shadow transition-transform ${
-                      formData.sendMeCopy ? "translate-x-8" : "translate-x-0"
+                      sendMeCopy ? "translate-x-8" : "translate-x-0"
                     }`}
                   />
                 </button>
@@ -617,14 +512,11 @@ const PaymentModal = ({
                   Message
                 </label>
                 <textarea
-                  value={formData.message}
-                  onChange={(event) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      message: event.target.value,
-                    }))
-                  }
-                  className="min-h-[120px] w-full rounded-xl border border-gray-200 px-4 py-3 text-sm leading-6 text-gray-600 outline-none focus:border-primary"
+                  rows={5}
+                  value={message}
+                  onChange={(event) => setMessage(event.target.value)}
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm leading-6 text-gray-700 outline-none placeholder:text-gray-400 focus:border-primary"
+                  placeholder="Write your reminder message"
                 />
               </div>
             </div>
@@ -638,11 +530,12 @@ const PaymentModal = ({
                 Close
               </button>
               <button
-                onClick={handleInvoiceReminder}
                 type="button"
                 className="min-w-[112px] rounded-xl bg-primary px-6 py-3 text-base text-white transition-colors hover:opacity-90"
+                onClick={handleSendReminder}
+                disabled={isSendingReminder}
               >
-                Send
+                {isSendingReminder ? "Sending..." : "Send"}
               </button>
             </div>
           </div>

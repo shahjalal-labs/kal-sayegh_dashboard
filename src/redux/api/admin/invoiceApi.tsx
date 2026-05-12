@@ -53,110 +53,29 @@ const invoiceApi = baseApi.injectEndpoints({
     }),
 
     sendInvoiceMail: builder.mutation({
-      query: ({ payload, invoiceId }) => ({
-        url: `/invoice/send-email/${invoiceId}`,
-        method: "POST",
-        body: payload,
-      }),
-    }),
-
-    getInvoicePayments: builder.query({
-      query: (invoiceId) => ({
-        url: `/invoice/payments/${invoiceId}`,
-        method: "GET",
-      }),
-    }),
-
-    sendReminderEmail: builder.mutation({
-      query: (payload) => {
-        const normalizedPayload =
-          payload && typeof payload === "object"
-            ? payload
-            : { invoiceId: payload };
-
-        const rawInvoiceId =
-          normalizedPayload.invoiceId ??
-          normalizedPayload.id ??
-          normalizedPayload._id;
-
+      query: (
+        payload:
+          | string
+          | {
+              invoiceId: string;
+              data?: {
+                message: string;
+                sendMeCopy: boolean;
+                subject: string;
+                to: string[];
+              };
+            },
+      ) => {
         const invoiceId =
-          typeof rawInvoiceId === "string" || typeof rawInvoiceId === "number"
-            ? String(rawInvoiceId)
-            : String(rawInvoiceId?.id ?? rawInvoiceId?._id ?? "");
-
-        const {
-          invoiceId: _invoiceId,
-          id: _id,
-          _id: _rawId,
-          ...body
-        } = normalizedPayload;
+          typeof payload === "string" ? payload : payload.invoiceId;
+        const data = typeof payload === "string" ? undefined : payload.data;
 
         return {
           url: `/invoice/send-email/${invoiceId}`,
           method: "POST",
-          body,
+          body: data,
         };
       },
-    }),
-
-    getInvoiceDetails: builder.query({
-      query: (invoiceId) => ({
-        url: `/invoice/details/${invoiceId}`,
-        method: "GET",
-      }),
-    }),
-
-    invoiceManualPayment: builder.mutation({
-      query: ({ invoiceId, payload }) => ({
-        url: `/invoice/record-payment/${invoiceId}`,
-        method: "POST",
-        body: payload,
-      }),
-    }),
-
-    refundPayment: builder.mutation({
-      query: ({ paymentId, payload }) => ({
-        url: `/invoice/refund-payment/${paymentId}`,
-        method: "POST",
-        body: payload,
-      }),
-    }),
-
-    // Payment: builder.mutation({
-    //   query: ({ invoiceId, payload }) => ({
-    //     url: `/invoice/pay-with-stripe/${invoiceId}`,
-    //     method: "POST",
-    //     body: payload,
-    //   }),
-    // }),
-
-    updateEmailStatus: builder.mutation({
-      query: ({ invoiceId, payload }) => ({
-        url: `/invoice/update-email-sign/${invoiceId}`,
-        method: "POST",
-        body: payload,
-      }),
-    }),
-
-    publicInvoiceDetails: builder.query({
-      query: (invoiceId) => ({
-        url: `/invoice/public-invoice/${invoiceId}`,
-        method: "GET",
-      }),
-    }),
-
-    generateFromEstimate: builder.mutation({
-      query: ({ estimateId }) => ({
-        url: `/invoice/generate-from-estimate/${estimateId}`,
-        method: "POST",
-      }),
-    }),
-
-    paymentIntent: builder.mutation({
-      query: ({ invoiceId }) => ({
-        url: `/invoice/create-payment-intent/${invoiceId}`,
-        method: "POST",
-      }),
     }),
   }),
 });
@@ -166,13 +85,4 @@ export const {
   useGetAllInvoiceQuery,
   useGetInvoiceByIdQuery,
   useSendInvoiceMailMutation,
-  useGetInvoicePaymentsQuery,
-  useSendReminderEmailMutation,
-  useGetInvoiceDetailsQuery,
-  useInvoiceManualPaymentMutation,
-  useRefundPaymentMutation,
-  usePublicInvoiceDetailsQuery,
-  useUpdateEmailStatusMutation,
-  useGenerateFromEstimateMutation,
-  usePaymentIntentMutation,
 } = invoiceApi;

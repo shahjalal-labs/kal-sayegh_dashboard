@@ -4,9 +4,8 @@ import paymentIcon from "@/assets/dashboard/credit-card-validation.png";
 import logo from "@/assets/kal-logo.png";
 import Conditions from "@/components/Conditions";
 import {
-  useGenerateFromEstimateMutation,
   useGetInvoiceByIdQuery,
-  useSendReminderEmailMutation,
+  useSendInvoiceMailMutation,
 } from "@/redux/api/admin/invoiceApi";
 import html2pdf from "html2pdf.js";
 import Image from "next/image";
@@ -33,11 +32,8 @@ export default function InvoiceDetailsTableFormat() {
   const invoice = (data as any)?.result;
   const clientEmail = invoice?.client?.email || "";
 
-  const [invoiceReminder, { isLoading: isSendingReminder }] =
-    useSendReminderEmailMutation();
-
-  const [generateFromEstimate, { isLoading: isGeneratingInvoice }] =
-    useGenerateFromEstimateMutation();
+  const [sendInvoiceMail, { isLoading: isSendingReminder }] =
+    useSendInvoiceMailMutation();
 
   const [formData, setFormData] = useState({
     message: defaultReminderMessage,
@@ -185,12 +181,14 @@ export default function InvoiceDetailsTableFormat() {
         return;
       }
 
-      await invoiceReminder({
+      await sendInvoiceMail({
         invoiceId: editInvoiceId,
-        message: formData.message,
-        sendMeCopy: formData.sendMeCopy,
-        subject: formData.subject,
-        to: reminderRecipients,
+        data: {
+          message: formData.message,
+          sendMeCopy: formData.sendMeCopy,
+          subject: formData.subject,
+          to: reminderRecipients,
+        },
       }).unwrap();
 
       await Swal.fire({
@@ -216,20 +214,6 @@ export default function InvoiceDetailsTableFormat() {
         icon: "error",
         confirmButtonText: "OK",
       });
-    }
-  };
-
-  const handleGenerateInvoice = async () => {
-    if (!invoice?.estimateId) {
-      toast.error("This invoice was not created from an estimate.");
-      return;
-    }
-
-    try {
-      await generateFromEstimate({ estimateId: invoice.estimateId }).unwrap();
-      toast.success("Invoice generated successfully");
-    } catch (error) {
-      toast.error("Failed to generate invoice.");
     }
   };
 
@@ -500,6 +484,7 @@ export default function InvoiceDetailsTableFormat() {
         <PaymentModal
           onClose={() => setIsPaymentModalOpen(false)}
           invoiceId={editInvoiceId}
+          invoiceName={invoice?.invoiceName}
           recipientEmails={invoice?.client?.email ? [invoice.client.email] : []}
         />
       )}
