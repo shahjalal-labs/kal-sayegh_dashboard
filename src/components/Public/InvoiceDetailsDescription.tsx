@@ -154,7 +154,7 @@ export default function InvoiceDetailsDescription() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row lg:justify-between  container mx-auto my-20 gap-10">
+    <div className="flex flex-col lg:flex-row lg:justify-between  w-11/12 mx-auto my-12 gap-10">
       <div className="pb-10">
         <div id="invoice" className="mt-4 bg-secondary  p-4 md:p-6 py-9">
           {(emailMarkedRead ||
@@ -380,7 +380,7 @@ export default function InvoiceDetailsDescription() {
         </div>
       </div>
 
-      <div className="w-[350px] lg:w-[400px] 2xl:w-[550px]  rounded-t-2xl">
+      <div className="w-[350px] lg:w-[900px]  rounded-t-2xl">
         <div className="shadow-md rounded-2xl bg-secondary">
           {/* Invoice Number */}
           <div className="bg-secondary  p-8  top-6 h-fit  mt-4">

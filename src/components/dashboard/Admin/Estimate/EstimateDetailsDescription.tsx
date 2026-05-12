@@ -486,7 +486,7 @@ was previously sent.`,
                   {sideMapUrls.map((url: string, index: number) => (
                     <div
                       key={`side-map-${index}`}
-                      className="border border-[#dfdfdf] bg-white p-2"
+                      className="border-2 border-orange-200 bg-white p-2"
                     >
                       {isVideoUrl(url) ? (
                         <video controls className="w-full h-auto rounded-sm">
@@ -498,7 +498,7 @@ was previously sent.`,
                           alt={`Side Map ${index + 1}`}
                           width={900}
                           height={520}
-                          className="w-full md:h-[700px] object-contain"
+                          className="w-full md:h-[700px] object-contain "
                         />
                       )}
                     </div>
@@ -510,7 +510,7 @@ was previously sent.`,
                 </p>
               )}
 
-              <div className="border-2 border-orange-200 bg-[#f9f9f9]">
+              <div className="border-2 border-t-0 border-orange-200 bg-[#f9f9f9]">
                 <div className="grid grid-cols-1 text-base text-gray-700 md:grid-cols-3">
                   <div className="border-b border-[#e1e1e1] p-3 text-lg font-normal space-y-3 md:border-b-0 md:border-r-2 md:border-orange-200">
                     <Image
@@ -543,7 +543,7 @@ was previously sent.`,
                 {fileUrls.map((url: string, index: number) => (
                   <div
                     key={`file-${index}`}
-                    className="border border-[#dfdfdf] bg-white p-2"
+                    className="border-2 border-orange-200 bg-white p-2"
                   >
                     {isVideoUrl(url) ? (
                       <video controls className="w-full h-auto rounded-sm">

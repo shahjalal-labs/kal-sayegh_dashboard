@@ -11,6 +11,12 @@ import {
   MarkupModalContent,
 } from "@/components/modal/PopUp";
 import {
+  useAddContractMutation,
+  useDeleteContractMutation,
+  useGetAllContractsQuery,
+  useUpdateContractMutation,
+} from "@/redux/api/admin/contractApi";
+import {
   useCreateClientMutation,
   useCreateEstimateMutation,
   useCreateMarkupMutation,
@@ -20,35 +26,20 @@ import {
   useGetAllTaxesQuery,
   useGetMyClientsQuery,
 } from "@/redux/api/admin/estimateApi";
+import { FormatType, LineItemTable } from "@/types/estimate.type";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { CiEdit } from "react-icons/ci";
 import { GoPlus } from "react-icons/go";
 import { LuMapPin } from "react-icons/lu";
+import { RiDeleteBin4Line } from "react-icons/ri";
 import { toast } from "sonner";
-
-// Add these interfaces
-interface LineItem {
-  id: string;
-  description: string;
-  itemName: string;
-  markUp: number;
-  quantity: number;
-  tax: number;
-  total: number;
-  originalItem?: any;
-  percentage: number;
-  amount: number;
-  rate: number; // Added rate field
-}
-
-interface LineItemTable {
-  id: number;
-  items: LineItem[];
-}
+import Swal from "sweetalert2";
 
 export default function AddEstimate() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
   const [activeTableId, setActiveTableId] = useState<number | null>(null);
   const [itemModalOpen, setItemModalOpen] = useState(false);
@@ -66,6 +57,16 @@ export default function AddEstimate() {
   const [addTax, setAddTax] = useState(false);
   const [activeMarkupItem, setActiveMarkupItem] = useState<any>(null);
   const [openCreateMarkupModal, setOpenCreateMarkupModal] = useState(false);
+  const [addContractModalOpen, setAddContractModalOpen] = useState(false);
+  const [newContract, setNewContract] = useState({
+    title: "",
+    description: "",
+  });
+  const [editContract, setEditContract] = useState<{
+    id: string | null;
+    title: string;
+    description: string;
+  }>({ id: null, title: "", description: "" });
 
   const openItemModal = (tableId: number) => {
     setActiveTableId(tableId);
@@ -119,12 +120,53 @@ export default function AddEstimate() {
     endDate: "",
     poNumber: "",
     legendary: "",
-    items: [] as any[],
+    contractId: "",
+    format: "" as FormatType | "",
+    clientSign: true,
+    mySign: true,
+    coverPaymentProcessingFee: true,
+    isOnlinePayment: true,
+    noteForClient: "",
+    privateNote: "",
+    items: [] as LineItemTable[],
     additionalMarkUp: 0,
     grandTotal: 0,
     discountAmount: 0,
     depositAmount: 0,
   });
+
+  useEffect(() => {
+    try {
+      const param = searchParams?.get("format") || "";
+      let normalized = String(param).toUpperCase();
+
+      if (!normalized) {
+        const fromStorage =
+          typeof window !== "undefined"
+            ? localStorage.getItem("estimateDetailsFormat")
+            : null;
+        if (fromStorage) {
+          const s = String(fromStorage).toUpperCase();
+          if (s === "TABLE" || s === "DESCRIPTION" || s === "IMAGE_PDF")
+            normalized = s;
+        }
+      }
+
+      if (
+        normalized === "TABLE" ||
+        normalized === "DESCRIPTION" ||
+        normalized === "IMAGE_PDF"
+      ) {
+        setEstimateForm((prev) => ({
+          ...prev,
+          format: normalized as FormatType,
+        }));
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [searchParams]);
+
   const [markup, setMarkup] = useState<number | null>(null);
   const [discount, setDiscount] = useState<number | null>(null);
   const [deposit, setDeposit] = useState<number | null>(null);
@@ -137,8 +179,20 @@ export default function AddEstimate() {
   const [lineItemTables, setLineItemTables] = useState<LineItemTable[]>([]);
   const [addMarkUp, setAddMarkUp] = useState(false);
 
-  const [createClient, { isLoading }] = useCreateClientMutation();
+  const [createClient] = useCreateClientMutation();
   const [createEstimate] = useCreateEstimateMutation();
+  const [addContract, { isLoading: isAddingContract }] =
+    useAddContractMutation();
+  const { data: allContracts, refetch: refetchContracts } =
+    useGetAllContractsQuery({});
+  const contracts = allContracts?.result?.data ?? [];
+  const selectedContractTitle =
+    contracts.find(
+      (contractItem: any) => contractItem.id === estimateForm.contractId,
+    )?.title ?? "";
+
+  const [updateContract] = useUpdateContractMutation();
+  const [deleteContract] = useDeleteContractMutation();
 
   const { data } = useGetMyClientsQuery({});
   const myClients = data?.result;
@@ -378,6 +432,36 @@ export default function AddEstimate() {
 
   const handleCreateEstimate = async () => {
     try {
+      const clientId = selectedClient?.id || estimateForm.clientId;
+      let format = estimateForm.format;
+
+      // fallback: read the format saved by the previous page (Estimate.tsx)
+      if (!format) {
+        try {
+          const stored =
+            typeof window !== "undefined"
+              ? localStorage.getItem("estimateDetailsFormat")
+              : null;
+          if (stored) {
+            const s = String(stored).toUpperCase();
+            if (s === "TABLE" || s === "DESCRIPTION" || s === "IMAGE_PDF")
+              format = s as FormatType;
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      if (!clientId) {
+        toast.error("Please select a client before creating the estimate.");
+        return;
+      }
+
+      if (!estimateForm.contractId) {
+        toast.error("Please select a contract before creating the estimate.");
+        return;
+      }
+
       const calculateItemTotal = (item: any) => {
         const rate = Number(item.rate ?? item.amount ?? 0) || 0;
         const base = rate * (Number(item.quantity) || 0);
@@ -386,6 +470,44 @@ export default function AddEstimate() {
         const taxAmount = (afterMarkup * (Number(item.tax) || 0)) / 100;
         return afterMarkup + taxAmount;
       };
+
+      const resolveLineItemId = (item: any) => {
+        return (
+          item?.originalItem?._id ||
+          item?.originalItem?.id ||
+          item?.originalItem?.itemId ||
+          item?.originalItem?.item?._id ||
+          item?.originalItem?.item?.id ||
+          item?.itemId ||
+          item?.item?._id ||
+          item?.item?.id ||
+          ""
+        );
+      };
+
+      const submittedItems = lineItemTables.flatMap((table) =>
+        table.items
+          .filter((item) => Number(item.quantity) > 0)
+          .map((item) => ({
+            id: String(resolveLineItemId(item)),
+            quantity: Number(item.quantity) || 0,
+            subTotal: Math.round(calculateItemTotal(item)),
+          })),
+      );
+
+      if (!submittedItems.length) {
+        toast.error(
+          "Please add at least one item before creating the estimate.",
+        );
+        return;
+      }
+
+      if (submittedItems.some((item) => !item.id)) {
+        toast.error(
+          "Please reselect the item from the Item List and try again.",
+        );
+        return;
+      }
 
       const markupAmount = selectedMarkup
         ? (grandSubtotal * selectedMarkup.percentage) / 100
@@ -401,24 +523,26 @@ export default function AddEstimate() {
 
       const bodyData = {
         estimateName: estimateForm.estimateName,
-        clientId: selectedClient?.id,
+        clientId,
         date: estimateForm.date,
         endDate: estimateForm.endDate,
-        poNumber: estimateForm.poNumber,
+        // poNumber: estimateForm.poNumber,
         legendary: estimateForm.legendary,
+        contractId: estimateForm.contractId,
+        clientSign: estimateForm.clientSign,
+        mySign: estimateForm.mySign,
+        coverPaymentProcessingFee: estimateForm.coverPaymentProcessingFee,
+        isOnlinePayment: estimateForm.isOnlinePayment,
+        noteForClient: estimateForm.noteForClient,
+        privateNote: estimateForm.privateNote,
 
-        items: lineItemTables.flatMap((table) =>
-          table.items.map((item) => ({
-            id: item.originalItem?._id || item.originalItem?.id,
-            quantity: Number(item.quantity) || 0,
-            subTotal: Math.round(calculateItemTotal(item)),
-          })),
-        ),
+        items: submittedItems,
 
         additionalMarkUp: Math.round(markupAmount),
         discountAmount: Math.round(discountAmountCalc),
         depositAmount: Math.round(depositAmountCalc),
 
+        format,
         grandTotal: Math.round(calculateFinalTotal()),
       };
 
@@ -446,6 +570,14 @@ export default function AddEstimate() {
         endDate: "",
         poNumber: "",
         legendary: "",
+        contractId: "",
+        format: "" as FormatType | "",
+        clientSign: true,
+        mySign: true,
+        coverPaymentProcessingFee: true,
+        isOnlinePayment: true,
+        noteForClient: "",
+        privateNote: "",
         items: [],
         additionalMarkUp: 0,
         grandTotal: 0,
@@ -467,20 +599,27 @@ export default function AddEstimate() {
       if (sideMapRef.current) sideMapRef.current.value = "";
       if (imageRef.current) imageRef.current.value = "";
 
-      const storedFormat =
-        typeof window !== "undefined"
-          ? localStorage.getItem("estimateDetailsFormat")
-          : null;
-      const format = storedFormat === "table" ? "table" : "description";
-
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("estimateDetailsFormat");
-      }
-
-      router.push(`/admin/estimate/${estimateId}?format=${format}`);
+      router.push(
+        `/admin/estimate/${estimateId}?format=${format.toLowerCase()}`,
+      );
     } catch (err: any) {
       console.error("Estimate creation error:", err);
-      toast.error(err?.data?.message || "Failed to create estimate");
+      try {
+        const data = err?.data || err?.response?.data;
+        if (data) {
+          console.error("Create estimate response:", data);
+          if (data.errors) {
+            console.error("Validation errors:", data.errors);
+            toast.error(data.message || "Validation failed");
+          } else {
+            toast.error(data.message || "Failed to create estimate");
+          }
+        } else {
+          toast.error(err?.message || "Failed to create estimate");
+        }
+      } catch (e) {
+        toast.error("Failed to create estimate");
+      }
     }
   };
 
@@ -538,6 +677,100 @@ export default function AddEstimate() {
     } catch (error) {
       console.error(error);
       toast.error("Failed to create tax");
+    }
+  };
+
+  const handleCreateContract = async () => {
+    try {
+      if (!newContract.title.trim() || !newContract.description.trim()) {
+        toast.error("Please fill both contract fields");
+        return;
+      }
+
+      const res = await addContract({
+        title: newContract.title.trim(),
+        description: newContract.description.trim(),
+      }).unwrap();
+
+      toast.success("Contract created successfully");
+
+      const newContractId =
+        res?.result?.id || res?.result?._id || res?.id || res?._id || "";
+
+      if (newContractId) {
+        setEstimateForm((prev) => ({
+          ...prev,
+          contractId: newContractId,
+        }));
+      }
+
+      setNewContract({ title: "", description: "" });
+
+      await refetchContracts();
+      setAddContractModalOpen(false);
+    } catch (error) {
+      console.error("Failed to create contract:", error);
+      toast.error("Failed to create contract");
+    }
+  };
+
+  const handleDeleteContract = async (contractId: any) => {
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "You won't be able to recover this contract!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, delete it!",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await deleteContract(contractId).unwrap();
+
+      Swal.fire({
+        title: "Deleted!",
+        text: "Contract deleted successfully.",
+        icon: "success",
+        timer: 2000,
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Yes, delete it!",
+      });
+    } catch (error) {
+      console.error("Failed to delete contract:", error);
+
+      Swal.fire({
+        title: "Error!",
+        text: "Failed to delete contract.",
+        icon: "error",
+        background: "#ffffff",
+      });
+    } finally {
+      await refetchContracts();
+    }
+  };
+
+  const handleUpdateContract = async () => {
+    if (!editContract.id) return;
+
+    try {
+      await updateContract({
+        contractId: editContract.id,
+        title: editContract.title,
+        description: editContract.description,
+      }).unwrap();
+
+      toast.success("Contract updated successfully");
+      setEditContract({ id: null, title: "", description: "" });
+      await refetchContracts();
+      setAddContractModalOpen(false);
+    } catch (error) {
+      console.error("Failed to update contract:", error);
+      toast.error("Failed to update contract");
     }
   };
 
@@ -785,6 +1018,95 @@ export default function AddEstimate() {
         </div>
 
         <div>
+          <label className="text-base text-gray-600">Contract </label>
+          <input
+            onClick={() => setAddContractModalOpen(true)}
+            placeholder="Contract "
+            value={selectedContractTitle}
+            readOnly
+            className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+        </div>
+
+        {/* Sign Buttons */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() =>
+              setEstimateForm((prev) => ({
+                ...prev,
+                clientSign: !prev.clientSign,
+              }))
+            }
+            className={`flex items-center justify-between rounded-xl border px-4 py-3 transition ${
+              estimateForm.clientSign
+                ? "border-primary bg-orange-50"
+                : "border-gray-200 bg-white"
+            }`}
+          >
+            <span className="text-sm font-medium text-gray-700">
+              Client Sign
+            </span>
+            <span
+              className={`flex h-6 w-11 items-center rounded-full p-1 transition ${
+                estimateForm.clientSign ? "bg-primary" : "bg-gray-300"
+              }`}
+            >
+              <span
+                className={`h-4 w-4 rounded-full bg-white transition ${
+                  estimateForm.clientSign ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              setEstimateForm((prev) => ({
+                ...prev,
+                mySign: !prev.mySign,
+              }))
+            }
+            className={`flex items-center justify-between rounded-xl border px-4 py-3 transition ${
+              estimateForm.mySign
+                ? "border-primary bg-orange-50"
+                : "border-gray-200 bg-white"
+            }`}
+          >
+            <span className="text-sm font-medium text-gray-700">My Sign</span>
+            <span
+              className={`flex h-6 w-11 items-center rounded-full p-1 transition ${
+                estimateForm.mySign ? "bg-primary" : "bg-gray-300"
+              }`}
+            >
+              <span
+                className={`h-4 w-4 rounded-full bg-white transition ${
+                  estimateForm.mySign ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </span>
+          </button>
+        </div>
+
+        <div>
+          <label className="text-base text-gray-600">Note for Client</label>
+          <textarea
+            placeholder="Enter a note for the client..."
+            value={estimateForm.noteForClient}
+            onChange={(e) =>
+              setEstimateForm((prev) => ({
+                ...prev,
+                noteForClient: e.target.value,
+              }))
+            }
+            className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+        </div>
+
+        <div>
+          {/* Format is provided from the estimate page; selector removed */}
+
           {lineItemTables.map((table, index) => (
             <div key={table.id} className="mt-3 w-full">
               <div className="mt-8">
@@ -1180,6 +1502,85 @@ export default function AddEstimate() {
               <span className="text-orange-500 font-bold text-lg">
                 ${calculateFinalTotal().toFixed(2)}
               </span>
+            </div>
+
+            <div className="pt-5 space-y-3">
+              <h2 className="text-lg font-bold text-gray-900 border-b pb-2">
+                {" "}
+                Online Payment
+              </h2>
+              <div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setEstimateForm((prev) => ({
+                      ...prev,
+                      isOnlinePayment: !prev.isOnlinePayment,
+                    }))
+                  }
+                  className={`flex items-center justify-between gap-10   w-full`}
+                >
+                  <span className="text-lg  font-semibold text-title">
+                    Stripe
+                  </span>
+                  <span
+                    className={`flex h-6 w-11 items-center rounded-full p-1 transition ${
+                      estimateForm.isOnlinePayment
+                        ? "bg-primary"
+                        : "bg-gray-300"
+                    }`}
+                  >
+                    <span
+                      className={`h-4 w-4 rounded-full bg-white transition ${
+                        estimateForm.isOnlinePayment
+                          ? "translate-x-5"
+                          : "translate-x-0"
+                      }`}
+                    />
+                  </span>
+                </button>
+                <p className="text-base ">
+                  Accept Debit/Credit, Apple pay, Google pay Stripe Link or Bank
+                  Transfer(ACH)
+                </p>
+              </div>
+
+              <div className="pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setEstimateForm((prev) => ({
+                      ...prev,
+                      coverPaymentProcessingFee:
+                        !prev.coverPaymentProcessingFee,
+                    }))
+                  }
+                  className={`flex items-center justify-between gap-10  w-full`}
+                >
+                  <span className="text-lg  font-semibold text-title">
+                    Cover Payment Processing Fee
+                  </span>
+                  <span
+                    className={`flex h-6 w-11 items-center rounded-full p-1 transition ${
+                      estimateForm.coverPaymentProcessingFee
+                        ? "bg-primary"
+                        : "bg-gray-300"
+                    }`}
+                  >
+                    <span
+                      className={`h-4 w-4 rounded-full bg-white transition ${
+                        estimateForm.coverPaymentProcessingFee
+                          ? "translate-x-5"
+                          : "translate-x-0"
+                      }`}
+                    />
+                  </span>
+                </button>
+                <p className="text-base ">
+                  Applies a markup to cover your processing fee
+                </p>
+                <p>Note: This is not visible to your client </p>
+              </div>
             </div>
           </div>
         </div>
@@ -1790,6 +2191,214 @@ export default function AddEstimate() {
               >
                 Done
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {addContractModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-[980px] overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-start justify-between border-b border-gray-200 bg-gradient-to-r from-orange-50 to-white px-5 py-4">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Select Contract
+                </h2>
+                <p className="text-sm text-gray-500">
+                  Create a new contract or choose one from the list below.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setAddContractModalOpen(false)}
+                className="h-9 w-9 rounded-full border border-gray-200 text-gray-500 transition hover:border-red-200 hover:text-red-500"
+                aria-label="Close contract modal"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="grid gap-5 p-5 md:grid-cols-[1fr_1.2fr]">
+              <div className="space-y-4 rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Contract Title
+                  </label>
+                  <input
+                    type="text"
+                    value={
+                      editContract.id ? editContract.title : newContract.title
+                    }
+                    onChange={(e) =>
+                      editContract.id
+                        ? setEditContract((prev) => ({
+                            ...prev,
+                            title: e.target.value,
+                          }))
+                        : setNewContract((prev) => ({
+                            ...prev,
+                            title: e.target.value,
+                          }))
+                    }
+                    placeholder="e.g. Contract title 2"
+                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Contract Description
+                  </label>
+                  <textarea
+                    value={
+                      editContract.id
+                        ? editContract.description
+                        : newContract.description
+                    }
+                    onChange={(e) =>
+                      editContract.id
+                        ? setEditContract((prev) => ({
+                            ...prev,
+                            description: e.target.value,
+                          }))
+                        : setNewContract((prev) => ({
+                            ...prev,
+                            description: e.target.value,
+                          }))
+                    }
+                    placeholder="Describe the contract terms"
+                    rows={8}
+                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  {editContract.id ? (
+                    <>
+                      <button
+                        onClick={handleUpdateContract}
+                        className="flex-1 rounded-xl bg-primary px-4 py-3 font-medium text-white transition hover:bg-primary/90"
+                      >
+                        Update Contract
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          setEditContract({
+                            id: null,
+                            title: "",
+                            description: "",
+                          })
+                        }
+                        className="flex-1 rounded-xl border bg-white px-4 py-3 font-medium text-gray-700"
+                      >
+                        Cancel Edit
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={handleCreateContract}
+                      disabled={isAddingContract}
+                      className="w-full rounded-xl bg-primary px-4 py-3 font-medium text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      {isAddingContract ? "Saving..." : "Save Contract"}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-gray-200 bg-white p-4">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-base font-semibold text-gray-900">
+                    All Contracts
+                  </h3>
+                  <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-medium text-primary">
+                    {contracts.length} total
+                  </span>
+                </div>
+
+                <div className="max-h-[520px] space-y-3 overflow-y-auto pr-1">
+                  {contracts.length > 0 ? (
+                    contracts.map((contractItem: any) => {
+                      const isSelected =
+                        estimateForm.contractId === contractItem.id;
+
+                      return (
+                        <button
+                          key={contractItem.id}
+                          type="button"
+                          onClick={() => {
+                            setEstimateForm((prev) => ({
+                              ...prev,
+                              contractId: contractItem.id,
+                            }));
+                            setAddContractModalOpen(false);
+                          }}
+                          className={`w-full rounded-2xl border p-4 text-left transition ${
+                            isSelected
+                              ? "border-primary bg-orange-50"
+                              : "border-gray-200 hover:border-orange-300 hover:bg-orange-50/60"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="space-y-1">
+                              <p className="text-sm font-semibold text-gray-900">
+                                {contractItem.title}
+                              </p>
+                              <p className="text-sm leading-6 text-gray-600">
+                                {contractItem.description}
+                              </p>
+                            </div>
+
+                            <div className="flex  items-center gap-2 ">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteContract(contractItem.id);
+                                }}
+                                className=""
+                                aria-label={`Delete ${contractItem.title}`}
+                              >
+                                <RiDeleteBin4Line
+                                  size={20}
+                                  className="text-red-500 hover:text-red-600"
+                                />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditContract({
+                                    id: contractItem.id,
+                                    title: contractItem.title || "",
+                                    description: contractItem.description || "",
+                                  });
+                                }}
+                                className=""
+                                aria-label={`Edit ${contractItem.title}`}
+                              >
+                                <CiEdit
+                                  size={25}
+                                  className="text-blue-600 hover:text-blue-700"
+                                />
+                              </button>
+
+                              {isSelected && (
+                                <span className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-white">
+                                  Selected
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <div className="flex min-h-[180px] items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-gray-50 text-sm text-gray-400">
+                      No contracts found
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
