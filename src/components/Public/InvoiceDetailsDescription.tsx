@@ -28,6 +28,10 @@ export default function InvoiceDetailsDescription() {
     id as string,
   );
   const invoice = (data as any)?.result;
+  const publicInvoiceId =
+    (typeof invoice?.id === "string" && invoice.id) ||
+    (typeof invoice?._id === "string" && invoice._id) ||
+    (typeof id === "string" ? id : "");
 
   const searchParams = useSearchParams();
   const formatParam = searchParams?.get("format");
@@ -143,7 +147,7 @@ export default function InvoiceDetailsDescription() {
     /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(url);
 
   const handleProceedToCheckout = () => {
-    if (!invoice?.id) return toast.error("Invoice id missing");
+    if (!publicInvoiceId) return toast.error("Invoice id missing");
     setShowStripeModal(true);
   };
 
@@ -428,9 +432,9 @@ export default function InvoiceDetailsDescription() {
               </button>
             </div>
           )}
-          {showStripeModal && invoice?.id && (
+          {showStripeModal && publicInvoiceId && (
             <StripeCheckoutModal
-              invoiceId={invoice.id}
+              invoiceId={publicInvoiceId}
               onClose={() => setShowStripeModal(false)}
             />
           )}

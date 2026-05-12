@@ -8,27 +8,28 @@ import {
   useStripe,
 } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "",
 );
 
+const paymentIntentRequestCache = new Map<
+  string,
+  Promise<string | null>
+>();
+
 /* ---------------- CHECKOUT FORM ---------------- */
 
 function CheckoutForm({
-  invoiceId,
   onClose,
 }: {
-  invoiceId: string;
   onClose: () => void;
 }) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
-
-  const [createIntent] = usePaymentIntentMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,28 +95,69 @@ export default function StripeCheckoutModal({
 }) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const requestVersionRef = useRef(0);
 
   const [createIntent] = usePaymentIntentMutation();
 
   useEffect(() => {
+    if (!invoiceId) {
+      setLoading(false);
+      toast.error("Invoice id missing");
+      return;
+    }
+
+    setLoading(true);
+    setClientSecret(null);
+    const currentRequestVersion = ++requestVersionRef.current;
+
     const init = async () => {
       try {
-        const res = await createIntent({ invoiceId }).unwrap();
+        let secretPromise = paymentIntentRequestCache.get(invoiceId);
 
-        const secret = res?.result?.clientSecret;
+        if (!secretPromise) {
+          secretPromise = createIntent({ invoiceId })
+            .unwrap()
+            .then((res) => {
+              return (
+                res?.result?.clientSecret ||
+                res?.result?.client_secret ||
+                res?.clientSecret ||
+                res?.client_secret ||
+                null
+              );
+            })
+            .catch((err: any) => {
+              paymentIntentRequestCache.delete(invoiceId);
+              throw err;
+            });
+
+          paymentIntentRequestCache.set(invoiceId, secretPromise);
+        }
+
+        const secret = await secretPromise;
+
+        if (currentRequestVersion !== requestVersionRef.current) {
+          return;
+        }
 
         if (!secret) {
           toast.error("Client secret missing");
+          paymentIntentRequestCache.delete(invoiceId);
           return;
         }
 
         setClientSecret(secret);
       } catch (err: any) {
+        if (currentRequestVersion !== requestVersionRef.current) {
+          return;
+        }
         toast.error(
           err?.data?.message || err?.message || "Intent creation failed",
         );
       } finally {
-        setLoading(false);
+        if (currentRequestVersion === requestVersionRef.current) {
+          setLoading(false);
+        }
       }
     };
 
@@ -153,7 +195,7 @@ export default function StripeCheckoutModal({
             appearance: { theme: "stripe" },
           }}
         >
-          <CheckoutForm invoiceId={invoiceId} onClose={onClose} />
+          <CheckoutForm onClose={onClose} />
         </Elements>
       </div>
     </div>
