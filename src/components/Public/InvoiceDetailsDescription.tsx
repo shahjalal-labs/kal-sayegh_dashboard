@@ -32,6 +32,8 @@ export default function InvoiceDetailsDescription() {
     (typeof invoice?.id === "string" && invoice.id) ||
     (typeof invoice?._id === "string" && invoice._id) ||
     (typeof id === "string" ? id : "");
+  const amountDue = Number(invoice?.payments?.amountDue) || 0;
+  const hasDueAmount = amountDue > 0;
 
   const searchParams = useSearchParams();
   const formatParam = searchParams?.get("format");
@@ -407,18 +409,13 @@ export default function InvoiceDetailsDescription() {
                 DEPOSIT AMOUNT DUE
               </p>
               <p className="text-4xl font-bold text-black">
-                $
-                {(
-                  Number(invoice?.payments?.amountDue) ||
-                  subtotal ||
-                  0
-                ).toFixed(2)}
+                ${amountDue.toFixed(2)}
               </p>
             </div>
           </div>
 
           {/* Checkout Options */}
-          {!showStripeModal && (
+          {!showStripeModal && hasDueAmount && (
             <div className="pt-6 bg-[#F8F9F5]  w-[calc(100%)] pb-8 text-center">
               <p className="text-center  text-xl font-semibold mb-4 uppercase">
                 CHECKOUT OPTIONS
@@ -432,7 +429,7 @@ export default function InvoiceDetailsDescription() {
               </button>
             </div>
           )}
-          {showStripeModal && publicInvoiceId && (
+          {showStripeModal && publicInvoiceId && hasDueAmount && (
             <StripeCheckoutModal
               invoiceId={publicInvoiceId}
               onClose={() => setShowStripeModal(false)}
