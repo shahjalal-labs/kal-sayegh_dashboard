@@ -1,21 +1,5 @@
-import EstimateDetailsDescription from "@/components/dashboard/Admin/Estimate/EstimateDetailsDescription";
-import EstimateDetilasTableFormat from "@/components/dashboard/Admin/Estimate/EstimateDetilasTableFormat";
+import EstimateDetails from "@/components/dashboard/Admin/Estimate/EstimateDetails";
 
-type EstimateDetailsPageProps = {
-  searchParams: Promise<{
-    format?: string;
-  }>;
-};
-
-export default async function EstimateDetailsPage({
-  searchParams,
-}: EstimateDetailsPageProps) {
-  const params = await searchParams;
-  const format = params?.format;
-
-  if (format === "table") {
-    return <EstimateDetilasTableFormat />;
-  }
-
-  return <EstimateDetailsDescription />;
+export default function EstimateDetailsPage() {
+  return <EstimateDetails />;
 }

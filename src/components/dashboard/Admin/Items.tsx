@@ -6,8 +6,11 @@ import {
   useCreateMarkupMutation,
   useCreateTaxMutation,
   useGetAllItemsQuery,
+  useGetAllMarkupsQuery,
   useGetAllTaxesQuery,
 } from "@/redux/api/admin/estimateApi";
+import { Check } from "lucide-react";
+import Image from "next/image";
 import { useState } from "react";
 import { GoPlus } from "react-icons/go";
 import { ColorRing } from "react-loader-spinner";
@@ -16,9 +19,19 @@ import { toast } from "sonner";
 export default function Items() {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const [formatModalOpen, setFormatModalOpen] = useState(false);
+  const [selectedFormat, setSelectedFormat] = useState("");
+  const [selectedMarkupIds, setSelectedMarkupIds] = useState<string[]>([]);
+
+  const formatOptions = [
+    { id: "DESCRIPTION", label: "Description" },
+    { id: "TABLE", label: "Table Format" },
+    { id: "IMAGE_PDF", label: "Image PDF Format" },
+  ];
   const [addItem] = useCreateItemMutation();
 
   const [selectedTaxes, setSelectedTaxes] = useState<string[]>([]);
+  const [itemImages, setItemImages] = useState<File[]>([]);
 
   const { data, isLoading } = useGetAllItemsQuery({});
   const items = data?.result ?? [];
@@ -26,6 +39,9 @@ export default function Items() {
   const { data: allTax } = useGetAllTaxesQuery({});
 
   const taxes = allTax?.result;
+
+  const { data: allMarkup, refetch: refetchMarkups } = useGetAllMarkupsQuery();
+  const markups = allMarkup?.result ?? [];
 
   const [createTax] = useCreateTaxMutation();
 
@@ -50,8 +66,16 @@ export default function Items() {
     rate: "",
     description: "",
     notes: "",
-    markUpId: "",
+    format: "",
   });
+
+  const toggleMarkup = (id: string) => {
+    setSelectedMarkupIds((prev) =>
+      prev.includes(id)
+        ? prev.filter((markupId) => markupId !== id)
+        : [...prev, id],
+    );
+  };
 
   const toggleTax = (id: string) => {
     setSelectedTaxes((prev) =>
@@ -94,6 +118,7 @@ export default function Items() {
       };
 
       await createMarkup(payload).unwrap();
+      await refetchMarkups();
 
       setMarkupOpen(false);
       setMarkupForm({
@@ -108,19 +133,28 @@ export default function Items() {
 
   const handleAddItem = async () => {
     try {
+      const formData = new FormData();
       const finalPayload: any = {
         itemName: form.itemName,
         rate: Number(form.rate),
         description: form.description,
         notes: form.notes,
         taxes: selectedTaxes,
+        format: form.format,
       };
 
-      if (form.markUpId?.trim()) {
-        finalPayload.markUpId = form.markUpId;
+      if (selectedMarkupIds.length > 0) {
+        finalPayload.markUpIds = selectedMarkupIds;
+        finalPayload.markUpId = selectedMarkupIds[0];
       }
 
-      await addItem(finalPayload).unwrap();
+      formData.append("bodyData", JSON.stringify(finalPayload));
+
+      itemImages.forEach((file) => {
+        formData.append("itemImages", file);
+      });
+
+      await addItem(formData).unwrap();
 
       toast.success("Item Created Successfully");
       setOpen(false);
@@ -130,11 +164,13 @@ export default function Items() {
         rate: "",
         description: "",
         notes: "",
-        markUpId: "",
+        format: "",
       });
 
-      // reset taxes
+      // reset taxes, markups, and images
       setSelectedTaxes([]);
+      setSelectedMarkupIds([]);
+      setItemImages([]);
     } catch (error) {
       toast.error("Item Created Failed!");
       console.log(error);
@@ -174,7 +210,7 @@ export default function Items() {
 
           {/* ADD BUTTON */}
           <button
-            onClick={() => setOpen(true)}
+            onClick={() => setFormatModalOpen(true)}
             className="bg-primary hover:bg-primary/80 text-white px-5 py-2 rounded-xl transition-colors text-base md:text-lg"
           >
             + Add Item
@@ -208,6 +244,12 @@ export default function Items() {
                     Taxes: {item.taxes.map((t: any) => t.name).join(", ")}
                   </p>
                 )}
+
+                {item.format && (
+                  <p className="text-base text-gray-400">
+                    Format: {item.format}
+                  </p>
+                )}
               </div>
 
               <div className="text-right min-w-[120px]">
@@ -221,6 +263,63 @@ export default function Items() {
           <p className="p-6 text-center text-2xl">No items found</p>
         )}
       </div>
+
+      {/* FORMAT MODAL */}
+      <CustomModal
+        open={formatModalOpen}
+        onClose={() => setFormatModalOpen(false)}
+        title="Select Format"
+        actions={[
+          {
+            label: "Close",
+            variant: "secondary",
+            onClick: () => setFormatModalOpen(false),
+          },
+          {
+            label: "Add Line",
+            variant: "primary",
+            onClick: () => {
+              if (!selectedFormat) {
+                toast.error("Please select a format");
+                return;
+              }
+
+              setForm((prev) => ({
+                ...prev,
+                format: selectedFormat,
+              }));
+
+              setFormatModalOpen(false);
+              setOpen(true);
+            },
+          },
+        ]}
+      >
+        <div className="space-y-3">
+          {formatOptions.map((item) => (
+            <div
+              key={item.id}
+              onClick={() => setSelectedFormat(item.id)}
+              className={`flex items-center justify-between border rounded-xl p-4 cursor-pointer transition ${
+                selectedFormat === item.id
+                  ? "border-primary bg-orange-50"
+                  : "border-gray-200"
+              }`}
+            >
+              <p className="font-medium">{item.label}</p>
+
+              <div className="w-5 h-5 flex items-center justify-center">
+                {selectedFormat === item.id && (
+                  <Check
+                    className="text-white bg-primary rounded-full p-1"
+                    size={20}
+                  />
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </CustomModal>
 
       {/* MODAL */}
       <CustomModal
@@ -290,6 +389,77 @@ export default function Items() {
           </div>
 
           <div>
+            <label>Item Images</label>
+            <div className="border-2 border-dashed rounded-xl py-7 p-4 text-center cursor-pointer hover:bg-orange-50 transition">
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={(e) => {
+                  const files = Array.from(e.target.files || []);
+                  setItemImages((prev) => [...prev, ...files]);
+                  e.target.value = "";
+                }}
+                className="hidden"
+                id="itemImageInput"
+              />
+              <label htmlFor="itemImageInput" className="cursor-pointer block">
+                <p className="font-medium text-gray-700">
+                  Click to upload or drag images
+                </p>
+                <p className="text-sm text-gray-500">
+                  PNG, JPG, GIF up to 10MB
+                </p>
+              </label>
+            </div>
+
+            {itemImages.length > 0 && (
+              <div className="mt-3">
+                <p className="text-sm font-medium mb-3">
+                  Selected Images: {itemImages.length}
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {itemImages.map((file, idx) => (
+                    <div key={idx} className="relative group">
+                      <Image
+                        src={URL.createObjectURL(file)}
+                        alt={`Preview ${idx}`}
+                        width={200}
+                        height={200}
+                        className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setItemImages((prev) =>
+                            prev.filter((_, i) => i !== idx),
+                          )
+                        }
+                        className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h2 className="text-lg font-semibold mb-3">Taxes</h2>
             {taxes?.map((tax: any) => {
               const isSelected = selectedTaxes.includes(tax.id);
 
@@ -323,7 +493,7 @@ export default function Items() {
             })}
             <div
               onClick={() => setTaxOpen(true)}
-              className="flex items-center gap-2 border-b p-4"
+              className="flex items-center gap-2 border-b py-4"
             >
               <GoPlus
                 size={30}
@@ -332,14 +502,67 @@ export default function Items() {
               <span className="text-[#DC4D32]"> Add New Tax</span>
             </div>
 
-            <div className="flex justify-between border-b p-4">
-              <p>Markup</p>{" "}
+            <div className="flex justify-between border-b my-4 pb-5">
+              <p className="text-2xl">Markup</p>{" "}
               <button
                 onClick={() => setMarkupOpen(true)}
-                className="text-primary"
+                className="text-primary text-2xl"
               >
                 Add
               </button>
+            </div>
+          </div>
+
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold mb-3"> All Markup</h2>
+              {selectedMarkupIds.length > 0 && (
+                <p className="mt-2 text-sm text-gray-500">
+                  Selected {selectedMarkupIds.length} markup&apos;s
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2 ">
+              {markups.length > 0 ? (
+                markups.map((markup: any) => {
+                  const isSelected = selectedMarkupIds.includes(markup.id);
+
+                  return (
+                    <div
+                      key={markup.id}
+                      className="flex justify-between items-center p-3 rounded mb-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-gray-800 ">
+                          {markup.name}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {markup.percentage != null
+                            ? `${markup.percentage}%`
+                            : `$ ${Number(markup.amount || 0).toFixed(2)}`}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => toggleMarkup(markup.id)}
+                        className={`w-12 h-6 flex items-center rounded-full p-1 transition ${
+                          isSelected ? "bg-orange-500" : "bg-gray-300"
+                        }`}
+                      >
+                        <div
+                          className={`w-4 h-4 bg-white rounded-full shadow-md transform transition ${
+                            isSelected ? "translate-x-6" : "translate-x-0"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-sm text-gray-500">No markups found.</p>
+              )}
             </div>
           </div>
         </div>
@@ -403,7 +626,7 @@ export default function Items() {
           },
         ]}
       >
-        <div className="space-y-4">
+        <div className="space-y-5 ">
           <input
             name="name"
             placeholder="Markup Name"

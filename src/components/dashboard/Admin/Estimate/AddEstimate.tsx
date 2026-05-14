@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Minus, Plus, Upload } from "lucide-react";
+import { ArrowLeft, Check, Minus, Plus, Upload } from "lucide-react";
 import Link from "next/link";
 import { AiOutlineUserAdd } from "react-icons/ai";
 
@@ -115,6 +115,7 @@ export default function AddEstimate() {
 
   const [estimateForm, setEstimateForm] = useState({
     estimateName: "",
+    estimateNumber: "",
     clientId: "",
     date: "",
     endDate: "",
@@ -122,6 +123,8 @@ export default function AddEstimate() {
     legendary: "",
     contractId: "",
     format: "" as FormatType | "",
+    isAutoInvoice: true,
+    isGroupingEnabled: true,
     clientSign: true,
     mySign: true,
     coverPaymentProcessingFee: true,
@@ -178,6 +181,19 @@ export default function AddEstimate() {
 
   const [lineItemTables, setLineItemTables] = useState<LineItemTable[]>([]);
   const [addMarkUp, setAddMarkUp] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [selected, setSelected] = useState<string>("");
+
+  const mapSelectedToFormat = (sel: string) => {
+    switch ((sel || "").toLowerCase()) {
+      case "table":
+        return "TABLE" as FormatType;
+      case "upload":
+        return "IMAGE_PDF" as FormatType;
+      case "description":
+        return "DESCRIPTION" as FormatType;
+    }
+  };
 
   const [createClient] = useCreateClientMutation();
   const [createEstimate] = useCreateEstimateMutation();
@@ -227,6 +243,7 @@ export default function AddEstimate() {
       ...prev,
       {
         id: Date.now(),
+        format: (estimateForm.format || "TABLE") as FormatType,
         items: [
           {
             id: Date.now().toString(),
@@ -239,6 +256,7 @@ export default function AddEstimate() {
             percentage: 0,
             amount: 0,
             rate: 0,
+            format: (estimateForm.format || "TABLE") as FormatType,
           },
         ],
       },
@@ -287,6 +305,7 @@ export default function AddEstimate() {
           markUp: 0,
           total: 0,
           originalItem: item,
+          format: table.format,
         };
 
         const updatedItems = isSelectingSameItem ? [] : [newItem];
@@ -402,6 +421,12 @@ export default function AddEstimate() {
     }
   };
 
+  const options = [
+    { id: "description", label: "Description" },
+    { id: "table", label: "Table Format" },
+    { id: "upload", label: "Upload Picture ,PDF , Document" },
+  ];
+
   const handleCreateClient = async (clientData: any) => {
     try {
       const response = await createClient(clientData).unwrap();
@@ -434,6 +459,11 @@ export default function AddEstimate() {
     try {
       const clientId = selectedClient?.id || estimateForm.clientId;
       let format = estimateForm.format;
+      const estimateNumber =
+        estimateForm.estimateNumber ||
+        searchParams?.get("estimateNumber") ||
+        searchParams?.get("estimateNo") ||
+        "";
 
       // fallback: read the format saved by the previous page (Estimate.tsx)
       if (!format) {
@@ -450,6 +480,15 @@ export default function AddEstimate() {
         } catch (e) {
           // ignore
         }
+      }
+
+      if (!format) {
+        const firstItemFormat = lineItemTables
+          .flatMap((table) => table.items)
+          .map((item) => item.format)
+          .find(Boolean);
+
+        format = (firstItemFormat || "TABLE") as FormatType;
       }
 
       if (!clientId) {
@@ -492,6 +531,7 @@ export default function AddEstimate() {
             id: String(resolveLineItemId(item)),
             quantity: Number(item.quantity) || 0,
             subTotal: Math.round(calculateItemTotal(item)),
+            format: table.format,
           })),
       );
 
@@ -523,16 +563,19 @@ export default function AddEstimate() {
 
       const bodyData = {
         estimateName: estimateForm.estimateName,
+        estimateNumber,
         clientId,
         date: estimateForm.date,
         endDate: estimateForm.endDate,
-        // poNumber: estimateForm.poNumber,
+        poNumber: estimateForm.poNumber,
         legendary: estimateForm.legendary,
         contractId: estimateForm.contractId,
         clientSign: estimateForm.clientSign,
         mySign: estimateForm.mySign,
         coverPaymentProcessingFee: estimateForm.coverPaymentProcessingFee,
         isOnlinePayment: estimateForm.isOnlinePayment,
+        isAutoInvoice: estimateForm.isAutoInvoice,
+        isGroupingEnabled: estimateForm.isGroupingEnabled,
         noteForClient: estimateForm.noteForClient,
         privateNote: estimateForm.privateNote,
 
@@ -541,7 +584,6 @@ export default function AddEstimate() {
         additionalMarkUp: Math.round(markupAmount),
         discountAmount: Math.round(discountAmountCalc),
         depositAmount: Math.round(depositAmountCalc),
-
         format,
         grandTotal: Math.round(calculateFinalTotal()),
       };
@@ -565,6 +607,7 @@ export default function AddEstimate() {
       // Reset form...
       setEstimateForm({
         estimateName: "",
+        estimateNumber: "",
         clientId: "",
         date: "",
         endDate: "",
@@ -572,6 +615,8 @@ export default function AddEstimate() {
         legendary: "",
         contractId: "",
         format: "" as FormatType | "",
+        isAutoInvoice: true,
+        isGroupingEnabled: true,
         clientSign: true,
         mySign: true,
         coverPaymentProcessingFee: true,
@@ -678,6 +723,41 @@ export default function AddEstimate() {
       console.error(error);
       toast.error("Failed to create tax");
     }
+  };
+
+  const addLineFromModal = () => {
+    const fmt = mapSelectedToFormat(selected);
+
+    setEstimateForm((prev) => ({
+      ...prev,
+      format: fmt,
+    }));
+
+    setLineItemTables((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        format: fmt,
+        items: [
+          {
+            id: Date.now().toString(),
+            description: "",
+            itemName: "",
+            markUp: 0,
+            quantity: 0,
+            tax: 0,
+            total: 0,
+            percentage: 0,
+            amount: 0,
+            rate: 0,
+            format: fmt,
+          },
+        ],
+      },
+    ]);
+
+    setIsOpen(false);
+    setSelected("description");
   };
 
   const handleCreateContract = async () => {
@@ -942,14 +1022,29 @@ export default function AddEstimate() {
         )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-sm text-gray-600">Estimate#</label>
+            <label className="text-sm text-gray-600">Estimate Name</label>
             <input
-              placeholder="Estimate#"
+              placeholder="Estimate Name"
               value={estimateForm.estimateName}
               onChange={(e) =>
                 setEstimateForm((prev) => ({
                   ...prev,
                   estimateName: e.target.value,
+                }))
+              }
+              className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm text-gray-600">Estimate Number</label>
+            <input
+              placeholder="Estimate Number"
+              value={estimateForm.estimateNumber}
+              onChange={(e) =>
+                setEstimateForm((prev) => ({
+                  ...prev,
+                  estimateNumber: e.target.value,
                 }))
               }
               className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
@@ -1287,13 +1382,29 @@ export default function AddEstimate() {
                             <textarea
                               placeholder="Notes"
                               className="w-full p-2 text-sm outline-none"
+                              value={item.description || ""}
+                              onChange={(e) =>
+                                setLineItemTables((prev) =>
+                                  prev.map((t) =>
+                                    t.id === table.id
+                                      ? {
+                                          ...t,
+                                          items: t.items.map((i) =>
+                                            i.id === item.id
+                                              ? {
+                                                  ...i,
+                                                  description: e.target.value,
+                                                }
+                                              : i,
+                                          ),
+                                        }
+                                      : t,
+                                  ),
+                                )
+                              }
                             />
                           ) : (
                             <div className="mt-2">
-                              {/* <p className="text-sm font-semibold">
-                                {item.itemName}
-                              </p> */}
-
                               {item.description && (
                                 <p className="text-base text-gray-500">
                                   {item.description}
@@ -1310,7 +1421,7 @@ export default function AddEstimate() {
             </div>
           ))}
           <button
-            onClick={addLine}
+            onClick={() => setIsOpen(true)}
             className="mt-4 w-full border border-orange-400 text-orange-500 rounded-lg py-2 flex items-center justify-center md:justify-start p-4 gap-2"
           >
             <Plus size={16} /> Add Line Item
@@ -1651,6 +1762,51 @@ export default function AddEstimate() {
                 </div>
               );
             })}
+          </div>
+        </CustomModal>
+
+        {/* add line items MODAL */}
+        <CustomModal
+          open={isOpen}
+          onClose={() => setIsOpen(false)}
+          title="Add Line item"
+          actions={[
+            {
+              label: "Close",
+              variant: "secondary",
+              onClick: () => setIsOpen(false),
+            },
+            {
+              label: "Add Line",
+              variant: "primary",
+              onClick: addLineFromModal,
+            },
+          ]}
+        >
+          <div className="space-y-3">
+            {options.map((item) => (
+              <div
+                key={item.id}
+                onClick={() => setSelected(item.id)}
+                className="flex items-center justify-between border rounded-lg p-3 cursor-pointer"
+              >
+                <input
+                  type="text"
+                  readOnly
+                  value={item.label}
+                  className="w-full bg-transparent outline-none cursor-pointer"
+                />
+
+                <div className="w-5 h-5 flex items-center justify-end">
+                  {selected === item.id && (
+                    <Check
+                      className="text-white bg-primary rounded-full p-1"
+                      size={20}
+                    />
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </CustomModal>
 

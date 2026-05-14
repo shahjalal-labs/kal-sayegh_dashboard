@@ -10,41 +10,25 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/Pagination";
-import {
-  useGetAllEstimatesQuery,
-  useSendEstimateMailMutation,
-} from "@/redux/api/admin/estimateApi";
-import { Check, PenLine, Plus, Search } from "lucide-react";
+import { useGetAllEstimatesQuery } from "@/redux/api/admin/estimateApi";
+import { PenLine, Plus, Search } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ColorRing } from "react-loader-spinner";
-import { toast } from "sonner";
-import { CustomModal } from "../../../modal/CustomModal";
 
 export default function Estimate() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
-  const [emailModalOpen, setEmailModalOpen] = useState(false);
-  const [selectedEstimate, setSelectedEstimate] = useState<any>(null);
-  const [selected, setSelected] = useState<string | null>(null);
+
   const [activeTab, setActiveTab] = useState("pending");
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 20;
   const { data, isLoading, refetch } = useGetAllEstimatesQuery({});
   const estimates = data?.result?.data || [];
-
-  const [sendEmail, { isLoading: isSendingEmail }] =
-    useSendEstimateMailMutation();
-
-  const [emailForm, setEmailForm] = useState({
-    to: "",
-    subject: "Your Estimate  from Geo Paving and Sealcoating",
-    message: "We are pleased to work with you. Please review the estimate.",
-    sendMeCopy: true,
-  });
 
   const normalizeStatus = (status?: string) =>
     status?.trim().toLowerCase() || "";
@@ -91,12 +75,6 @@ export default function Estimate() {
     if (!id) return "#----";
     return `#${id.slice(-4)}`;
   };
-
-  const options = [
-    { id: "description", label: "Description" },
-    { id: "table", label: "Table Format" },
-    // { id: "upload", label: "Upload Picture ,PDF , Document" },
-  ];
 
   // FIXED: Case-insensitive filtering and search
   const filteredEstimates = estimates.filter((item: any) => {
@@ -202,39 +180,6 @@ export default function Estimate() {
     );
   };
 
-  const getStatusBadgeClasses = (status?: string) => {
-    const normalizedStatus = normalizeStatus(status);
-
-    if (normalizedStatus === "approved") {
-      return "bg-[#2196F333] text-[#2196F3]";
-    }
-
-    if (normalizedStatus === "pending") {
-      return "bg-[#2196F333] text-[#2196F3]";
-    }
-
-    return "bg-red-100 text-red-600";
-  };
-
-  const getStatusLabel = (status?: string) => {
-    const normalizedStatus = normalizeStatus(status);
-
-    if (normalizedStatus === "pending") return "ISSUED";
-    if (normalizedStatus === "approved") return "Invoiced";
-    return status || "UNKNOWN";
-  };
-
-  const openEmailModal = (item: any) => {
-    setSelectedEstimate(item);
-    setEmailForm({
-      to: item?.client?.email ? item.client.email : "",
-      subject: "Your Estimate  from Geo Paving and Sealcoating",
-      message: "We are pleased to work with you. Please review the estimate.",
-      sendMeCopy: true,
-    });
-    setEmailModalOpen(true);
-  };
-
   const isEmailNotSent = (status?: string) =>
     !status || status.toString().trim().toUpperCase() === "NOT_SENT";
 
@@ -274,39 +219,6 @@ export default function Estimate() {
       />
     );
 
-  const handleSendEstimateEmail = async () => {
-    if (!selectedEstimate?.id) return;
-
-    const to = emailForm.to
-      .split(",")
-      .map((email) => email.trim())
-      .filter(Boolean);
-
-    if (to.length === 0) {
-      toast.error("Please add at least one recipient email.");
-      return;
-    }
-
-    try {
-      await sendEmail({
-        estimateId: selectedEstimate.id,
-        to,
-        cc: [],
-        bcc: [],
-        message: emailForm.message,
-        sendMeCopy: emailForm.sendMeCopy,
-        subject: emailForm.subject,
-      }).unwrap();
-
-      toast.success("Estimate email sent successfully");
-      setEmailModalOpen(false);
-      setSelectedEstimate(null);
-      refetch();
-    } catch (error: any) {
-      toast.error(error?.data?.message || "Failed to send estimate email");
-    }
-  };
-
   return (
     <div className="md:bg-secondary bg-secondary-none p-4 md:p-6 rounded-2xl">
       {/* HEADER */}
@@ -333,15 +245,15 @@ export default function Estimate() {
               />
             </div>
 
-            <button
-              onClick={() => setIsOpen(true)}
+            <Link
+              href="/admin/estimate/add-estimate"
               className="p-3 md:px-6 md:py-3 rounded-xl flex items-center justify-center gap-2 
              text-primary md:text-secondary 
              bg-transparent md:bg-primary"
             >
               <Plus size={20} />
               <span className="hidden md:inline">New Estimate</span>
-            </button>
+            </Link>
           </div>
         </div>
         <div className="relative w-full md:w-80 block md:hidden rounded-lg mt-4">
@@ -470,10 +382,6 @@ export default function Estimate() {
                                 {canOpenEmailModal ? (
                                   <button
                                     type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openEmailModal(item);
-                                    }}
                                     className="inline-flex items-center"
                                     aria-label={getEstimateEmailLabel(
                                       emailStatus,
@@ -688,61 +596,6 @@ export default function Estimate() {
           </Pagination>
         </div>
       )}
-
-      {/* MODAL */}
-      <CustomModal
-        open={isOpen}
-        onClose={() => setIsOpen(false)}
-        title="Add Line item"
-        actions={[
-          {
-            label: "Close",
-            variant: "secondary",
-            onClick: () => setIsOpen(false),
-          },
-          {
-            label: "Add Line",
-            variant: "primary",
-            onClick: () => {
-              if (selected === "description") {
-                localStorage.setItem("estimateDetailsFormat", "description");
-                router.push("/admin/estimate/add-estimate");
-              } else if (selected === "table") {
-                localStorage.setItem("estimateDetailsFormat", "table");
-                router.push("/admin/estimate/add-estimate");
-              } else {
-                toast.error("Please select an option first!");
-              }
-            },
-          },
-        ]}
-      >
-        <div className="space-y-3">
-          {options.map((item) => (
-            <div
-              key={item.id}
-              onClick={() => setSelected(item.id)}
-              className="flex items-center justify-between border rounded-lg p-3 cursor-pointer"
-            >
-              <input
-                type="text"
-                readOnly
-                value={item.label}
-                className="w-full bg-transparent outline-none cursor-pointer"
-              />
-
-              <div className="w-5 h-5 flex items-center justify-end">
-                {selected === item.id && (
-                  <Check
-                    className="text-white bg-primary rounded-full p-1"
-                    size={20}
-                  />
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </CustomModal>
     </div>
   );
 }

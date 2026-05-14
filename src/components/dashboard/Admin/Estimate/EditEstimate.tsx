@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Minus, Plus, Upload } from "lucide-react";
+import { ArrowLeft, Check, Minus, Plus, Upload } from "lucide-react";
 import Link from "next/link";
 import { AiOutlineUserAdd } from "react-icons/ai";
 
@@ -83,9 +83,20 @@ export default function EditEstimate() {
   const [activeMarkupItem, setActiveMarkupItem] = useState<any>(null);
   const [openCreateMarkupModal, setOpenCreateMarkupModal] = useState(false);
 
+  const [isOpen, setIsOpen] = useState(false);
+  const [selected, setSelected] = useState("description");
+  const [selectedFormat, setSelectedFormat] =
+    useState<FormatType>("DESCRIPTION");
+
+  const options = [
+    { id: "table", label: "Table Format" },
+    { id: "description", label: "Description Format" },
+    { id: "image_pdf", label: "Image PDF Format" },
+  ];
+
   const openItemModal = (tableId: number) => {
     setActiveTableId(tableId);
-    setItemModalOpen(true);
+    setIsOpen(true);
   };
 
   const openMarkupPicker = (tableId: number, itemId: string) => {
@@ -96,6 +107,13 @@ export default function EditEstimate() {
   const openTaxPicker = (tableId: number, itemId: string) => {
     setActiveTaxItem({ id: itemId, tableId });
     setAddTax(true);
+  };
+
+  const addItemFromModal = () => {
+    const fmt = mapSelectedToFormat(selected);
+    setSelectedFormat(fmt);
+    setIsOpen(false);
+    setItemModalOpen(true);
   };
 
   const [selectedItemsByTable, setSelectedItemsByTable] = useState<{
@@ -229,6 +247,7 @@ export default function EditEstimate() {
       grandTotal: Number(currentEstimate?.grandTotal || 0),
       discountAmount: Number(currentEstimate?.discountAmount || 0),
       depositAmount: Number(currentEstimate?.depositAmount || 0),
+      format: currentEstimate?.format || "TABLE",
     }));
 
     setDiscount(null);
@@ -238,6 +257,7 @@ export default function EditEstimate() {
     setLineItemTables([
       {
         id: Date.now(),
+        format: (currentEstimate?.format || "TABLE") as FormatType,
         items:
           normalizedItems.length > 0
             ? normalizedItems.map((item: any, index: number) => {
@@ -340,6 +360,10 @@ export default function EditEstimate() {
                   percentage: markupPercent,
                   amount: toNumber(item?.amount || catalogMatch?.amount || 0),
                   rate,
+                  format:
+                    item?.format ||
+                    (currentEstimate?.format as FormatType) ||
+                    "TABLE",
                   originalItem: {
                     id:
                       apiItemId ||
@@ -371,6 +395,7 @@ export default function EditEstimate() {
                   percentage: 0,
                   amount: 0,
                   rate: 0,
+                  format: (currentEstimate?.format as FormatType) || "TABLE",
                 },
               ],
       },
@@ -521,6 +546,7 @@ export default function EditEstimate() {
           markUp: item?.markUp?.amount ?? 0,
           total: 0,
           originalItem: item,
+          format: selectedFormat,
         };
 
         const updatedItems = isSelectingSameItem ? [] : [newItem];
@@ -758,6 +784,7 @@ export default function EditEstimate() {
             id: resolveLineItemId(item),
             quantity: Number(item.quantity) || 0,
             subTotal: Math.round(calculateItemTotal(item)),
+            format: table.format,
           })),
       );
 
@@ -1656,6 +1683,51 @@ export default function EditEstimate() {
           {modalType === "deposit" && (
             <DepositModalContent value={tempValue} setValue={setTempValue} />
           )}
+        </CustomModal>
+
+        {/* add line items MODAL */}
+        <CustomModal
+          open={isOpen}
+          onClose={() => setIsOpen(false)}
+          title="Add Line item"
+          actions={[
+            {
+              label: "Close",
+              variant: "secondary",
+              onClick: () => setIsOpen(false),
+            },
+            {
+              label: "Add Line",
+              variant: "primary",
+              onClick: addItemFromModal,
+            },
+          ]}
+        >
+          <div className="space-y-3">
+            {options.map((item) => (
+              <div
+                key={item.id}
+                onClick={() => setSelected(item.id)}
+                className="flex items-center justify-between border rounded-lg p-3 cursor-pointer"
+              >
+                <input
+                  type="text"
+                  readOnly
+                  value={item.label}
+                  className="w-full bg-transparent outline-none cursor-pointer"
+                />
+
+                <div className="w-5 h-5 flex items-center justify-end">
+                  {selected === item.id && (
+                    <Check
+                      className="text-white bg-primary rounded-full p-1"
+                      size={20}
+                    />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </CustomModal>
 
         {/* items modal */}
