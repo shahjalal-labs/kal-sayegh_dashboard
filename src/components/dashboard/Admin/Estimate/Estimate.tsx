@@ -523,9 +523,7 @@ export default function Estimate() {
                             <button
                               type="button"
                               onClick={() => {
-                                router.push(
-                                  `/admin/estimate/${item.id}?format=${getEstimateDetailsFormat(item)}`,
-                                );
+                                router.push(`/admin/estimate/${item.id}`);
                               }}
                               className="px-4 py-2 border border-primary text-primary rounded-lg whitespace-nowrap"
                             >

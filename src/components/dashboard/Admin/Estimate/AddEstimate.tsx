@@ -192,7 +192,24 @@ export default function AddEstimate() {
         return "IMAGE_PDF" as FormatType;
       case "description":
         return "DESCRIPTION" as FormatType;
+      default:
+        return "DESCRIPTION" as FormatType;
     }
+  };
+
+  const normalizeItemFormat = (format?: string | null): FormatType => {
+    const value = String(format || "").toUpperCase();
+    if (value === "TABLE") return "TABLE";
+    if (value === "IMAGE_PDF") return "IMAGE_PDF";
+    return "DESCRIPTION";
+  };
+
+  const getActiveTableFormat = (): FormatType | null => {
+    if (!activeTableId) return null;
+    const activeTable = lineItemTables.find(
+      (table) => table.id === activeTableId,
+    );
+    return activeTable?.format || null;
   };
 
   const [createClient] = useCreateClientMutation();
@@ -458,38 +475,12 @@ export default function AddEstimate() {
   const handleCreateEstimate = async () => {
     try {
       const clientId = selectedClient?.id || estimateForm.clientId;
-      let format = estimateForm.format;
+
       const estimateNumber =
         estimateForm.estimateNumber ||
         searchParams?.get("estimateNumber") ||
         searchParams?.get("estimateNo") ||
         "";
-
-      // fallback: read the format saved by the previous page (Estimate.tsx)
-      if (!format) {
-        try {
-          const stored =
-            typeof window !== "undefined"
-              ? localStorage.getItem("estimateDetailsFormat")
-              : null;
-          if (stored) {
-            const s = String(stored).toUpperCase();
-            if (s === "TABLE" || s === "DESCRIPTION" || s === "IMAGE_PDF")
-              format = s as FormatType;
-          }
-        } catch (e) {
-          // ignore
-        }
-      }
-
-      if (!format) {
-        const firstItemFormat = lineItemTables
-          .flatMap((table) => table.items)
-          .map((item) => item.format)
-          .find(Boolean);
-
-        format = (firstItemFormat || "TABLE") as FormatType;
-      }
 
       if (!clientId) {
         toast.error("Please select a client before creating the estimate.");
@@ -531,7 +522,6 @@ export default function AddEstimate() {
             id: String(resolveLineItemId(item)),
             quantity: Number(item.quantity) || 0,
             subTotal: Math.round(calculateItemTotal(item)),
-            format: table.format,
           })),
       );
 
@@ -584,7 +574,6 @@ export default function AddEstimate() {
         additionalMarkUp: Math.round(markupAmount),
         discountAmount: Math.round(discountAmountCalc),
         depositAmount: Math.round(depositAmountCalc),
-        format,
         grandTotal: Math.round(calculateFinalTotal()),
       };
 
@@ -644,9 +633,7 @@ export default function AddEstimate() {
       if (sideMapRef.current) sideMapRef.current.value = "";
       if (imageRef.current) imageRef.current.value = "";
 
-      router.push(
-        `/admin/estimate/${estimateId}?format=${format.toLowerCase()}`,
-      );
+      router.push(`/admin/estimate/${estimateId}`);
     } catch (err: any) {
       console.error("Estimate creation error:", err);
       try {
@@ -757,7 +744,7 @@ export default function AddEstimate() {
     ]);
 
     setIsOpen(false);
-    setSelected("description");
+    setSelected("");
   };
 
   const handleCreateContract = async () => {
@@ -1734,34 +1721,45 @@ export default function AddEstimate() {
           ]}
         >
           <div className="space-y-3">
-            {items.map((item: any) => {
-              const isSelected =
-                activeTableId &&
-                selectedItemsByTable[activeTableId] === item.id;
+            {items
+              .filter((item: any) => {
+                const activeFormat = getActiveTableFormat();
+                if (!activeFormat) return true;
+                return normalizeItemFormat(item?.format) === activeFormat;
+              })
+              .map((item: any) => {
+                const isSelected =
+                  activeTableId &&
+                  selectedItemsByTable[activeTableId] === item.id;
 
-              return (
-                <div
-                  key={item.id}
-                  onClick={() => handleToggleItem(item)}
-                  className={`flex justify-between items-start border p-3 rounded-xl cursor-pointer transition ${
-                    isSelected ? "bg-orange-50 border-orange-400" : ""
-                  }`}
-                >
-                  <div className="space-y-1">
-                    <p className="font-semibold text-gray-800">
-                      {item.itemName}
-                    </p>
-                    <p className="text-sm text-gray-500">{item.description}</p>
-                  </div>
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => handleToggleItem(item)}
+                    className={`flex justify-between items-start border p-3 rounded-xl cursor-pointer transition ${
+                      isSelected ? "bg-orange-50 border-orange-400" : ""
+                    }`}
+                  >
+                    <div className="space-y-1">
+                      <p className="font-semibold text-gray-800">
+                        {item.itemName}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {item.description}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        Format: {normalizeItemFormat(item?.format)}
+                      </p>
+                    </div>
 
-                  <div className="text-right min-w-[80px]">
-                    <p className="font-semibold text-gray-800">
-                      ${item?.rate || 0}
-                    </p>
+                    <div className="text-right min-w-[80px]">
+                      <p className="font-semibold text-gray-800">
+                        ${item?.rate || 0}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
         </CustomModal>
 

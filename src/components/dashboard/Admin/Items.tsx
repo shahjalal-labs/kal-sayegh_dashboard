@@ -69,6 +69,8 @@ export default function Items() {
     format: "",
   });
 
+  const isImagePdfFormat = form.format === "IMAGE_PDF";
+
   const toggleMarkup = (id: string) => {
     setSelectedMarkupIds((prev) =>
       prev.includes(id)
@@ -289,6 +291,10 @@ export default function Items() {
                 format: selectedFormat,
               }));
 
+              if (selectedFormat !== "IMAGE_PDF") {
+                setItemImages([]);
+              }
+
               setFormatModalOpen(false);
               setOpen(true);
             },
@@ -365,17 +371,19 @@ export default function Items() {
             />
           </div>
 
-          <div>
-            <label>Description</label>
-            <textarea
-              rows={5}
-              name="description"
-              placeholder="Enter Description"
-              className="border p-2 w-full rounded-xl focus:outline-none focus:ring-1 focus:ring-primary"
-              value={form.description}
-              onChange={handleChange}
-            />
-          </div>
+          {form.format !== "IMAGE_PDF" && (
+            <div>
+              <label>Description</label>
+              <textarea
+                rows={5}
+                name="description"
+                placeholder="Enter Description"
+                className="border p-2 w-full rounded-xl focus:outline-none focus:ring-1 focus:ring-primary"
+                value={form.description}
+                onChange={handleChange}
+              />
+            </div>
+          )}
           <div>
             <label>Private Notes</label>
             <textarea
@@ -388,75 +396,80 @@ export default function Items() {
             />
           </div>
 
-          <div>
-            <label>Item Images</label>
-            <div className="border-2 border-dashed rounded-xl py-7 p-4 text-center cursor-pointer hover:bg-orange-50 transition">
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={(e) => {
-                  const files = Array.from(e.target.files || []);
-                  setItemImages((prev) => [...prev, ...files]);
-                  e.target.value = "";
-                }}
-                className="hidden"
-                id="itemImageInput"
-              />
-              <label htmlFor="itemImageInput" className="cursor-pointer block">
-                <p className="font-medium text-gray-700">
-                  Click to upload or drag images
-                </p>
-                <p className="text-sm text-gray-500">
-                  PNG, JPG, GIF up to 10MB
-                </p>
-              </label>
-            </div>
-
-            {itemImages.length > 0 && (
-              <div className="mt-3">
-                <p className="text-sm font-medium mb-3">
-                  Selected Images: {itemImages.length}
-                </p>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {itemImages.map((file, idx) => (
-                    <div key={idx} className="relative group">
-                      <Image
-                        src={URL.createObjectURL(file)}
-                        alt={`Preview ${idx}`}
-                        width={200}
-                        height={200}
-                        className="w-full h-24 object-cover rounded-lg border border-gray-200"
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setItemImages((prev) =>
-                            prev.filter((_, i) => i !== idx),
-                          )
-                        }
-                        className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
-                      >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M6 18L18 6M6 6l12 12"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
-                </div>
+          {isImagePdfFormat && (
+            <div>
+              <label>Item Images</label>
+              <div className="border-2 border-dashed rounded-xl py-7 p-4 text-center cursor-pointer hover:bg-orange-50 transition">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    setItemImages((prev) => [...prev, ...files]);
+                    e.target.value = "";
+                  }}
+                  className="hidden"
+                  id="itemImageInput"
+                />
+                <label
+                  htmlFor="itemImageInput"
+                  className="cursor-pointer block"
+                >
+                  <p className="font-medium text-gray-700">
+                    Click to upload or drag images
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    PNG, JPG, GIF up to 10MB
+                  </p>
+                </label>
               </div>
-            )}
-          </div>
+
+              {itemImages.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-sm font-medium mb-3">
+                    Selected Images: {itemImages.length}
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {itemImages.map((file, idx) => (
+                      <div key={idx} className="relative group">
+                        <Image
+                          src={URL.createObjectURL(file)}
+                          alt={`Preview ${idx}`}
+                          width={200}
+                          height={200}
+                          className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setItemImages((prev) =>
+                              prev.filter((_, i) => i !== idx),
+                            )
+                          }
+                          className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div>
             <h2 className="text-lg font-semibold mb-3">Taxes</h2>
