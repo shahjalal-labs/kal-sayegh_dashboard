@@ -4,15 +4,16 @@ import {
   useGetAllJobRequestsQuery,
   useGetJobRequestDetailsQuery,
   useGetOfficesQuery,
+  useJobRequestByImageMutation,
   useUpdateJobRequestMutation,
 } from "@/redux/api/jobApi";
-import { Calendar, Mail, MapPin, Phone } from "lucide-react";
+import { Calendar, Mail, MapPin, Phone, Upload } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LiaEditSolid } from "react-icons/lia";
 import { RiFolderDownloadLine } from "react-icons/ri";
-import { ColorRing } from "react-loader-spinner";
+import { toast } from "sonner";
 import { CustomModal } from "../../modal/CustomModal";
 import CreateJobForm from "../CreateJobForm";
 import CreateOffice from "../CreateOffice";
@@ -34,12 +35,6 @@ interface JobItem {
   title: string;
   date: string;
   status: "NEW" | "REVIEWED";
-}
-
-interface Office {
-  id: string;
-  label: string;
-  jobs: JobItem[];
 }
 
 function CreateNewJobForm({ form, setForm, jobRequestId }: any) {
@@ -135,7 +130,11 @@ export default function OfficeAdministration() {
   const [openEditModal, setOpenEditModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [jobFormOpen, setJobFormOpen] = useState(false);
+
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [updateJobRequest] = useUpdateJobRequestMutation();
+  const [jobRequestByImage] = useJobRequestByImageMutation();
 
   const { data, isLoading: officesLoading } = useGetOfficesQuery({});
   const offices = data?.result || [];
@@ -145,17 +144,6 @@ export default function OfficeAdministration() {
     isLoading: jobsLoading,
     refetch: refetchAllJobs,
   } = useGetAllJobRequestsQuery({});
-
-  const allJobs =
-    allJobsData?.result?.flatMap((office: any) =>
-      office.jobRequests.map((job: any) => ({
-        ...job,
-        officeName: office.name,
-        officeId: office.id,
-      })),
-    ) || [];
-
-  console.log(allJobs);
 
   const [form, setForm] = useState<FormData>({
     title: "",
@@ -167,6 +155,36 @@ export default function OfficeAdministration() {
     address: "",
     note: "",
   });
+
+  const [jobFormByImage, setFormByImage] = useState({
+    title: "",
+    date: "",
+    officeId: "",
+  });
+
+  const handleChange = (field: string, value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const [preview, setPreview] = useState<string[]>([]);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+
+    // keep actual File objects for submission
+    setSelectedFiles(files);
+
+    const imageUrls = files.map((file) => URL.createObjectURL(file));
+
+    setPreview((prev) => [...prev, ...imageUrls]);
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setPreview((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleNewJob = () => {
     setIsOpen(false);
@@ -200,6 +218,73 @@ export default function OfficeAdministration() {
     } catch (error) {
       console.error("Failed to mark job as reviewed", error);
     }
+  };
+
+  const handleJobByImage = async () => {
+    try {
+      // basic validation
+      const title = jobFormByImage.title?.trim() || "";
+      if (title.length < 2) {
+        toast.error("Title must be at least 2 characters");
+        return;
+      }
+
+      // normalize date to full ISO datetime expected by backend
+      let dateIso = jobFormByImage.date || "";
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateIso)) {
+        dateIso = new Date(dateIso + "T10:00:00Z").toISOString();
+      } else {
+        const parsed = new Date(dateIso);
+        if (isNaN(parsed.getTime())) {
+          toast.error("Please provide a valid date");
+          return;
+        }
+        dateIso = parsed.toISOString();
+      }
+
+      const formData = new FormData();
+      formData.append(
+        "bodyData",
+        JSON.stringify({
+          title,
+          date: dateIso,
+          officeId: jobFormByImage.officeId,
+        }),
+      );
+
+      selectedFiles.forEach((file) => {
+        formData.append("jobRequestsImage", file);
+      });
+
+      const res = await jobRequestByImage(formData).unwrap();
+
+      console.log(res);
+
+      setJobFormOpen(false);
+
+      setFormByImage({
+        title: "",
+        date: "",
+        officeId: "",
+      });
+
+      setPreview([]);
+      setSelectedFiles([]);
+    } catch (error) {
+      toast.error("Failed to create job request by image.");
+    }
+  };
+
+  const getOfficeJobs = (officeId: string) => {
+    const matchedOffice = allJobsData?.result?.find(
+      (office: any) => office.id === officeId,
+    );
+
+    if (Array.isArray(matchedOffice?.jobRequests)) {
+      return matchedOffice.jobRequests;
+    }
+
+    return [];
   };
 
   return (
@@ -262,18 +347,138 @@ export default function OfficeAdministration() {
           />
         </CustomModal>
 
-        {officesLoading || jobsLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <ColorRing
-              visible={true}
-              height="70"
-              width="70"
-              colors={["#e15b64", "#f47e60", "#f8b26a", "#abbd81", "#849b87"]}
-            />
+        {/* Job Request Modal */}
+
+        <CustomModal
+          open={jobFormOpen}
+          onClose={() => setJobFormOpen(false)}
+          title="Create New Job Request"
+        >
+          <div className="space-y-5">
+            {/* Title */}
+            <div>
+              <label className="text-sm text-gray-600">Title</label>
+
+              <input
+                type="text"
+                value={jobFormByImage.title}
+                placeholder="Title"
+                onChange={(e) =>
+                  setFormByImage((prev) => ({ ...prev, title: e.target.value }))
+                }
+                className="mt-1 w-full rounded-xl border px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+
+            {/* Date */}
+            <div>
+              <label className="text-sm text-gray-600">Date</label>
+
+              <input
+                type="date"
+                value={jobFormByImage.date}
+                onChange={(e) =>
+                  setFormByImage((prev) => ({ ...prev, date: e.target.value }))
+                }
+                className="mt-1 w-full rounded-xl border px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+
+            {/* Office Id */}
+            <div>
+              <label className="text-sm text-gray-600">Office Id</label>
+
+              <input
+                type="text"
+                value={jobFormByImage.officeId}
+                placeholder="Office Id"
+                onChange={(e) =>
+                  setFormByImage((prev) => ({
+                    ...prev,
+                    officeId: e.target.value,
+                  }))
+                }
+                className="mt-1 w-full rounded-xl border px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+
+            {/* Upload Images */}
+            <div>
+              <label className="text-sm text-gray-600">Upload Images</label>
+
+              <input
+                type="file"
+                multiple
+                id="imageUpload"
+                className="hidden"
+                onChange={handleImageUpload}
+              />
+
+              <label
+                htmlFor="imageUpload"
+                onDragOver={(e) => e.preventDefault()}
+                className="mt-2 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-primary p-6"
+              >
+                <Upload className="mb-2 text-gray-400" size={24} />
+
+                <p className="text-sm">
+                  <span className="font-medium text-primary">
+                    Click to upload
+                  </span>{" "}
+                  or drag & drop
+                </p>
+              </label>
+
+              {/* Preview */}
+              <div className="mt-4 flex flex-wrap gap-3">
+                {preview.map((img, i) => (
+                  <div key={i} className="relative">
+                    <Image
+                      src={img}
+                      alt="preview"
+                      width={120}
+                      height={120}
+                      className="h-32 w-32 rounded-lg bg-gray-200 object-cover"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(i)}
+                      className="absolute -right-2 -top-2 rounded-full bg-red-500 px-2 text-xs text-white"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex justify-end gap-5 pt-4">
+              <button
+                type="button"
+                onClick={() => setJobFormOpen(false)}
+                className="rounded-xl border-2 border-primary px-8 py-2 text-primary transition-colors duration-300 hover:bg-primary hover:text-white"
+              >
+                Close
+              </button>
+
+              <button
+                type="button"
+                onClick={handleJobByImage}
+                className="rounded-xl bg-primary px-8 py-2 text-white transition-all hover:bg-primary/90"
+              >
+                Submit
+              </button>
+            </div>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4  md:gap-8">
-            {offices?.map((office: any) => (
+        </CustomModal>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4  md:gap-8">
+          {offices?.map((office: any) => {
+            const officeJobs = getOfficeJobs(office.id);
+
+            return (
               <div key={office.id} className="space-y-4">
                 <div className="flex items-center justify-between pb-4 gap-4 ">
                   <h2 className="font-normal text-gray-800 bg-white shadow-md border md:pr-14 pl-3 px-2 py-1 md:py-3 text-sm md:text-base rounded-md md:rounded-xl ">
@@ -283,20 +488,32 @@ export default function OfficeAdministration() {
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => setOpenModal(true)}
-                      className="px-2 py-1 md:px-4 md:py-3 bg-primary text-secondary text-xs md:text-base font-medium rounded-md md:rounded-xl hover:bg-primary/90 transition-colors flex items-center gap-2"
+                      className="p-2 md:px-4 md:py-3 bg-primary text-secondary text-xs md:text-base font-medium rounded-md md:rounded-xl hover:bg-primary/90 transition-colors flex items-center gap-2"
                     >
                       <span>+ New Job Request</span>
                     </button>
 
-                    <button className="p-1 md:p-3 rounded-lg shadow-lg bg-white text-gray-500 border">
+                    <button
+                      onClick={() => {
+                        setJobFormOpen(true);
+                        setFormByImage((prev) => ({
+                          ...prev,
+                          officeId: office.id,
+                        }));
+
+                        setPreview([]);
+                        setSelectedFiles([]);
+                      }}
+                      className="p-1 md:p-3 rounded-lg shadow-lg bg-white text-gray-500 border"
+                    >
                       <RiFolderDownloadLine size={25} />
                     </button>
                   </div>
                 </div>
 
                 <div className="space-y-7 ">
-                  {allJobs.length > 0 ? (
-                    allJobs.map((job: JobItem) => (
+                  {officeJobs.length > 0 ? (
+                    officeJobs.map((job: JobItem) => (
                       <div
                         key={job.id}
                         className="flex items-center justify-between md:py-6 md:px-4 bg-[#F7F8F8] border border-orange-100 rounded-2xl hover:bg-gray-50 transition cursor-pointer p-2"
@@ -316,7 +533,11 @@ export default function OfficeAdministration() {
                               {job.title}
                             </p>
                             <p className="text-xs md:text-base text-gray-500">
-                              {new Date(job.date).toLocaleDateString()}
+                              {new Date(job.date).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })}
                             </p>
                           </div>
                         </div>
@@ -352,9 +573,9 @@ export default function OfficeAdministration() {
                   )}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

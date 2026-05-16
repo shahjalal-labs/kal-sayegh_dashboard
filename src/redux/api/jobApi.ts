@@ -18,6 +18,14 @@ const jobApi = baseApi.injectEndpoints({
       }),
     }),
 
+    jobRequestByImage: builder.mutation({
+      query: (formData) => ({
+        url: "/job-request/create-job-request-by-image",
+        method: "POST",
+        body: formData,
+      }),
+    }),
+
     getOffices: builder.query({
       query: () => ({
         url: "/job-request/office",
@@ -58,4 +66,5 @@ export const {
   useCreateJobRequestMutation,
   useGetAllJobRequestsQuery,
   useGetJobRequestDetailsQuery,
+  useJobRequestByImageMutation,
 } = jobApi;
