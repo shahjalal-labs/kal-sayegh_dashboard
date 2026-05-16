@@ -11,6 +11,12 @@ import {
   MarkupModalContent,
 } from "@/components/modal/PopUp";
 import {
+  useAddContractMutation,
+  useDeleteContractMutation,
+  useGetAllContractsQuery,
+  useUpdateContractMutation,
+} from "@/redux/api/admin/contractApi";
+import {
   useCreateClientMutation,
   useCreateMarkupMutation,
   useCreateTaxMutation,
@@ -21,6 +27,7 @@ import {
   useGetEstimateByIdQuery,
   useGetMyClientsQuery,
 } from "@/redux/api/admin/estimateApi";
+import { FormatType } from "@/types/estimate.type";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -46,6 +53,7 @@ interface LineItem {
 interface LineItemTable {
   id: number;
   items: LineItem[];
+  format?: FormatType;
 }
 
 interface PrefilledSummary {
@@ -87,6 +95,20 @@ export default function EditEstimate() {
   const [selected, setSelected] = useState("description");
   const [selectedFormat, setSelectedFormat] =
     useState<FormatType>("DESCRIPTION");
+
+  const mapSelectedToFormat = (sel: string) => {
+    switch ((sel || "").toLowerCase()) {
+      case "table":
+        return "TABLE" as FormatType;
+      case "image_pdf":
+      case "upload":
+        return "IMAGE_PDF" as FormatType;
+      case "description":
+        return "DESCRIPTION" as FormatType;
+      default:
+        return "DESCRIPTION" as FormatType;
+    }
+  };
 
   const options = [
     { id: "table", label: "Table Format" },
@@ -152,6 +174,7 @@ export default function EditEstimate() {
   const [estimateForm, setEstimateForm] = useState({
     estimateName: "",
     clientId: "",
+    contractId: "",
     date: "",
     endDate: "",
     poNumber: "",
@@ -177,6 +200,24 @@ export default function EditEstimate() {
     useState<PrefilledSummary | null>(null);
 
   const [createClient, { isLoading }] = useCreateClientMutation();
+  const [addContract, { isLoading: isAddingContract }] =
+    useAddContractMutation();
+  const [updateContract] = useUpdateContractMutation();
+  const [deleteContract] = useDeleteContractMutation();
+  const { data: allContractsData, refetch: refetchContracts } =
+    useGetAllContractsQuery({});
+  const contracts = allContractsData?.result?.data ?? [];
+
+  const [addContractModalOpen, setAddContractModalOpen] = useState(false);
+  const [newContract, setNewContract] = useState({
+    title: "",
+    description: "",
+  });
+  const [editContract, setEditContract] = useState<{
+    id: string | null;
+    title: string;
+    description: string;
+  }>({ id: null, title: "", description: "" });
 
   useEffect(() => {
     if (queryEstimateId) {
@@ -243,6 +284,7 @@ export default function EditEstimate() {
       date: currentEstimate?.date || "",
       endDate: currentEstimate?.endDate || "",
       poNumber: currentEstimate?.poNumber || "",
+      contractId: currentEstimate?.contractId || "",
       additionalMarkUp: Number(currentEstimate?.additionalMarkUp || 0),
       grandTotal: Number(currentEstimate?.grandTotal || 0),
       discountAmount: Number(currentEstimate?.discountAmount || 0),
@@ -440,6 +482,45 @@ export default function EditEstimate() {
       grandTotal: Number(currentEstimate?.grandTotal || 0),
     });
   }, [currentEstimate, items]);
+
+  const handleCreateContract = async () => {
+    try {
+      if (!newContract.title.trim() || !newContract.description.trim()) {
+        toast.error("Please fill both contract fields");
+        return;
+      }
+
+      const res = await addContract({
+        title: newContract.title.trim(),
+        description: newContract.description.trim(),
+      }).unwrap();
+
+      toast.success("Contract created successfully");
+
+      const newContractId = res?.result?.id || res?.id || "";
+      if (newContractId) {
+        setEstimateForm((prev) => ({ ...prev, contractId: newContractId }));
+      }
+
+      setNewContract({ title: "", description: "" });
+      await refetchContracts();
+      setAddContractModalOpen(false);
+    } catch (error) {
+      console.error("Failed to create contract:", error);
+      toast.error("Failed to create contract");
+    }
+  };
+
+  const handleDeleteContract = async (contractId: any) => {
+    try {
+      await deleteContract(contractId).unwrap();
+      toast.success("Contract deleted");
+      await refetchContracts();
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to delete contract");
+    }
+  };
 
   useEffect(() => {
     if (!myClients?.length || !currentEstimate?.clientId) return;
@@ -802,6 +883,8 @@ export default function EditEstimate() {
       const bodyData = {
         estimateName: estimateForm.estimateName,
         clientId: selectedClient?.id || currentEstimate?.clientId,
+        contractId:
+          estimateForm.contractId || currentEstimate?.contractId || "",
         date: estimateForm.date,
         endDate: estimateForm.endDate,
         poNumber: estimateForm.poNumber,
@@ -813,16 +896,18 @@ export default function EditEstimate() {
         depositAmount: Math.round(depositAmountCalc),
 
         grandTotal: Math.round(calculateFinalTotal()),
-        existingSideMap: existingSideMapUrls,
-        existingFileUrls: existingImageUrls,
+        sideMap: existingSideMapUrls,
+        fileUrls: existingImageUrls,
       };
 
       const formData = new FormData();
       formData.append("bodyData", JSON.stringify(bodyData));
 
-      const allFiles = [...sideMaps, ...images];
+      sideMaps.forEach((file) => {
+        formData.append("map", file);
+      });
 
-      allFiles.forEach((file) => {
+      images.forEach((file) => {
         formData.append("urls", file);
       });
 
@@ -1154,6 +1239,24 @@ export default function EditEstimate() {
               }
               className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary"
             />
+          </div>
+        </div>
+        <div>
+          <label className="text-sm text-gray-600">Contract</label>
+          <div className="flex items-center gap-3 mt-1">
+            <button
+              onClick={() => setAddContractModalOpen(true)}
+              className="flex-1 text-left rounded-lg border px-4 py-2 bg-white"
+            >
+              {contracts.find((c: any) => c.id === estimateForm.contractId)
+                ?.title || "Select Contract"}
+            </button>
+            <button
+              onClick={() => setAddContractModalOpen(true)}
+              className="px-4 py-2 rounded-lg bg-primary text-white"
+            >
+              Manage
+            </button>
           </div>
         </div>
 
