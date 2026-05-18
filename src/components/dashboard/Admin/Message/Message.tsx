@@ -77,9 +77,11 @@ export default function Message() {
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const { data: profileData } = useMyProfileQuery({});
-  console.log("profiledata", profileData);
+
   const [generateUrlFn] = useGenerateUrlMutation();
   const [inviteMemberGroupFn, { isLoading: isInvitingMembers }] =
     useInviteGroupMutation();
@@ -434,6 +436,13 @@ export default function Message() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
 
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   const handleSendMessage = () => {
     // Allow sending if either text or files are present
     const hasContent = messageInput.trim() || attachmentUrls.length > 0;
@@ -478,6 +487,8 @@ export default function Message() {
     setSelectedRoomId(conv?.roomId || null);
     setIsChatLoading(true);
     setChatMessages([]);
+
+    if (isMobile) setIsChatOpen(true);
 
     if (socketRef.current?.readyState === WebSocket.OPEN) {
       socketRef.current.send(
@@ -566,264 +577,291 @@ export default function Message() {
 
   return (
     <div className="flex h-[calc(100vh-140px)] min-h-0 gap-6 overflow-hidden text-[rgb(28,26,60)]">
-      <ChatSidebar
-        searchInput={searchInput}
-        setSearchInput={setSearchInput}
-        setSelectedChat={handleSelectChat}
-        memberConversations={memberConversations}
-        selectedRoomId={selectedRoomId}
-        currentUserId={currentUserId}
-        isConnected={isConnected}
-      />
+      {!isMobile || !isChatOpen ? (
+        <ChatSidebar
+          searchInput={searchInput}
+          setSearchInput={setSearchInput}
+          setSelectedChat={handleSelectChat}
+          memberConversations={memberConversations}
+          selectedRoomId={selectedRoomId}
+          currentUserId={currentUserId}
+          isConnected={isConnected}
+        />
+      ) : null}
 
-      <div className="flex h-full min-h-0 flex-1 flex-col rounded-2xl border border-[#EEF1F7] bg-[#F8F9FC] overflow-hidden">
-        <div className="p-4 md:p-5 flex items-center justify-between border-b border-[#E9EDF6] bg-white">
-          <div className="flex items-center gap-3 md:gap-4">
+      {(!isMobile || isChatOpen) && (
+        <div
+          className={`flex h-full min-h-0 flex-1 flex-col rounded-2xl border border-[#EEF1F7] bg-[#F8F9FC] overflow-hidden ${
+            isMobile && isChatOpen
+              ? "fixed inset-0 z-50 bg-white md:static md:z-auto"
+              : ""
+          }`}
+        >
+          <div className="p-4 md:p-5 flex items-center justify-between border-b border-[#E9EDF6] bg-white">
+            <div className="flex items-center gap-3 md:gap-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-[#7A8099] hover:bg-[#F3F5FB]"
+                onClick={() => {
+                  if (isMobile && isChatOpen) {
+                    setIsChatOpen(false);
+                  }
+                }}
+              >
+                <BsArrowLeft className="h-5 w-5" />
+              </Button>
+
+              <div className="relative h-11 w-11 rounded-full overflow-hidden bg-[#E7EBF5]">
+                <Image
+                  src={
+                    getConversationAvatar(selectedConversation) ||
+                    defaultProfileImage
+                  }
+                  alt="room"
+                  fill
+                  className="object-cover"
+                />
+              </div>
+
+              <div>
+                <h2 className="font-semibold text-lg leading-tight text-[#262B45]">
+                  {getConversationTitle(selectedConversation)}
+                </h2>
+                <p className="text-xs text-[#8D93AC] mt-0.5">
+                  {getConversationMeta(selectedConversation)}
+                  {!isConnected ? " • Disconnected" : ""}
+                </p>
+              </div>
+            </div>
+
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-[#7A8099] hover:bg-[#F3F5FB]"
+              className="h-10 w-10 rounded-xl text-[#F28B3B] hover:bg-[#FFF4EA]"
+              onClick={handleAddMemberGroup}
             >
-              <BsArrowLeft className="h-5 w-5" />
+              <UserPlus className="h-5 w-5" />
             </Button>
-
-            <div className="relative h-11 w-11 rounded-full overflow-hidden bg-[#E7EBF5]">
-              <Image
-                src={
-                  getConversationAvatar(selectedConversation) ||
-                  defaultProfileImage
-                }
-                alt="room"
-                fill
-                className="object-cover"
-              />
-            </div>
-
-            <div>
-              <h2 className="font-semibold text-lg leading-tight text-[#262B45]">
-                {getConversationTitle(selectedConversation)}
-              </h2>
-              <p className="text-xs text-[#8D93AC] mt-0.5">
-                {getConversationMeta(selectedConversation)}
-                {!isConnected ? " • Disconnected" : ""}
-              </p>
-            </div>
           </div>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-10 w-10 rounded-xl text-[#F28B3B] hover:bg-[#FFF4EA]"
-            onClick={handleAddMemberGroup}
-          >
-            <UserPlus className="h-5 w-5" />
-          </Button>
-        </div>
-
-        <div className="flex-1 min-h-0 space-y-5 overflow-y-auto px-3 py-4 md:px-6 md:py-6">
-          {isChatLoading ? (
-            <div className="flex h-full min-h-[320px] items-center justify-center">
-              <div className="w-full max-w-xl rounded-3xl border border-[#E9EDF6] bg-white/80 p-6 shadow-sm backdrop-blur-sm">
-                <div className="flex items-center justify-between gap-4 border-b border-[#EEF1F7] pb-4">
-                  <div className="space-y-2">
-                    <div className="h-4 w-28 rounded-full bg-[#E7EBF5] animate-pulse" />
-                    <div className="h-3 w-40 rounded-full bg-[#EEF1F7] animate-pulse" />
+          <div className="flex-1 min-h-0 space-y-5 overflow-y-auto px-3 py-4 md:px-6 md:py-6">
+            {isChatLoading ? (
+              <div className="flex h-full min-h-[320px] items-center justify-center">
+                <div className="w-full max-w-xl rounded-3xl border border-[#E9EDF6] bg-white/80 p-6 shadow-sm backdrop-blur-sm">
+                  <div className="flex items-center justify-between gap-4 border-b border-[#EEF1F7] pb-4">
+                    <div className="space-y-2">
+                      <div className="h-4 w-28 rounded-full bg-[#E7EBF5] animate-pulse" />
+                      <div className="h-3 w-40 rounded-full bg-[#EEF1F7] animate-pulse" />
+                    </div>
+                    <BeautifulSpinner size="sm" variant="glow" />
                   </div>
-                  <BeautifulSpinner size="sm" variant="glow" />
-                </div>
 
-                <div className="mt-5 space-y-4">
-                  <div className="flex items-end gap-2">
-                    <div className="h-9 w-9 rounded-full bg-[#E7EBF5] animate-pulse shrink-0" />
-                    <div className="flex-1 max-w-[72%] rounded-2xl rounded-bl-md bg-[#F4EEE9] p-4 animate-pulse">
-                      <div className="h-3 w-3/4 rounded-full bg-[#E8E1DA]" />
-                      <div className="mt-2 h-3 w-1/2 rounded-full bg-[#E8E1DA]" />
+                  <div className="mt-5 space-y-4">
+                    <div className="flex items-end gap-2">
+                      <div className="h-9 w-9 rounded-full bg-[#E7EBF5] animate-pulse shrink-0" />
+                      <div className="flex-1 max-w-[72%] rounded-2xl rounded-bl-md bg-[#F4EEE9] p-4 animate-pulse">
+                        <div className="h-3 w-3/4 rounded-full bg-[#E8E1DA]" />
+                        <div className="mt-2 h-3 w-1/2 rounded-full bg-[#E8E1DA]" />
+                      </div>
+                    </div>
+
+                    <div className="flex items-end justify-end gap-2">
+                      <div className="flex-1 max-w-[72%] rounded-2xl rounded-br-md bg-[#E279321A] p-4 animate-pulse">
+                        <div className="h-3 w-2/3 rounded-full bg-[#EBCDBB] ml-auto" />
+                        <div className="mt-2 h-3 w-1/3 rounded-full bg-[#EBCDBB] ml-auto" />
+                      </div>
+                      <div className="h-9 w-9 rounded-full bg-[#E7EBF5] animate-pulse shrink-0" />
                     </div>
                   </div>
 
-                  <div className="flex items-end justify-end gap-2">
-                    <div className="flex-1 max-w-[72%] rounded-2xl rounded-br-md bg-[#E279321A] p-4 animate-pulse">
-                      <div className="h-3 w-2/3 rounded-full bg-[#EBCDBB] ml-auto" />
-                      <div className="mt-2 h-3 w-1/3 rounded-full bg-[#EBCDBB] ml-auto" />
-                    </div>
-                    <div className="h-9 w-9 rounded-full bg-[#E7EBF5] animate-pulse shrink-0" />
+                  <div className="mt-5 flex items-center gap-2 text-xs text-[#8D93AC]">
+                    <div className="h-2.5 w-2.5 rounded-full bg-[#F28B3B] animate-pulse" />
+                    Loading conversation...
                   </div>
-                </div>
-
-                <div className="mt-5 flex items-center gap-2 text-xs text-[#8D93AC]">
-                  <div className="h-2.5 w-2.5 rounded-full bg-[#F28B3B] animate-pulse" />
-                  Loading conversation...
                 </div>
               </div>
-            </div>
-          ) : chatMessages.length === 0 ? (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-[#9AA1B9] text-sm">
-                {selectedRoomId
-                  ? "No messages yet"
-                  : "Select a chat to start messaging"}
-              </p>
-            </div>
-          ) : null}
+            ) : chatMessages.length === 0 ? (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-[#9AA1B9] text-sm">
+                  {selectedRoomId
+                    ? "No messages yet"
+                    : "Select a chat to start messaging"}
+                </p>
+              </div>
+            ) : null}
 
-          {chatMessages.map((message) => {
-            const isOwnMessage =
-              message.senderId === currentUserId ||
-              message.userId === currentUserId;
-            const messageAvatar = getMessageAvatar(message, isOwnMessage);
+            {chatMessages.map((message) => {
+              const isOwnMessage =
+                message.senderId === currentUserId ||
+                message.userId === currentUserId;
+              const messageAvatar = getMessageAvatar(message, isOwnMessage);
 
-            return (
-              <div
-                key={message.id}
-                className={`flex items-end gap-2 ${
-                  isOwnMessage ? "justify-end" : "justify-start"
-                }`}
-              >
-                {!isOwnMessage && (
-                  <div className="relative h-9 w-9 rounded-full overflow-hidden bg-[#E7EBF5] shrink-0">
-                    <Image
-                      src={messageAvatar || defaultProfileImage}
-                      alt="sender"
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                )}
-
+              return (
                 <div
-                  className={`max-w-[78%] md:max-w-[66%] px-5 py-3.5 break-words whitespace-pre-wrap rounded-2xl ${
-                    isOwnMessage
-                      ? "bg-[#E279321A] text-[#2A3554] rounded-br-md"
-                      : "bg-[#E279321A] text-[#2A3554] rounded-bl-md"
+                  key={message.id}
+                  className={`flex items-end gap-2 ${
+                    isOwnMessage ? "justify-end" : "justify-start"
                   }`}
                 >
-                  {message.content ? (
-                    <p className="text-sm leading-relaxed">{message.content}</p>
-                  ) : null}
-
-                  {!!message.fileUrl?.length && (
-                    <div className="mt-2 flex flex-col gap-2">
-                      {message.fileUrl.map((url: string) => {
-                        const isImage = isImageFileUrl(url);
-                        return isImage ? (
-                          <a
-                            key={url}
-                            href={url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="block"
-                          >
-                            <div className="relative aspect-[9/16] w-full max-w-[960px] overflow-hidden ">
-                              <Image
-                                src={url}
-                                alt={getFileNameFromUrl(url)}
-                                fill
-                                className="object-contain"
-                              />
-                            </div>
-                          </a>
-                        ) : (
-                          <a
-                            key={url}
-                            href={url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex items-center gap-2 rounded-lg border border-[#D9DEEA] bg-white px-3 py-2 text-xs text-[#3B5BA9] underline break-all"
-                          >
-                            {getFileNameFromUrl(url)}
-                          </a>
-                        );
-                      })}
+                  {!isOwnMessage && (
+                    <div className="relative h-9 w-9 rounded-full overflow-hidden bg-[#E7EBF5] shrink-0">
+                      <Image
+                        src={messageAvatar || defaultProfileImage}
+                        alt="sender"
+                        fill
+                        className="object-cover"
+                      />
                     </div>
                   )}
 
-                  {message.timestamp && (
-                    <p className="text-[10px] text-[#98A0B8] mt-1.5 text-right">
-                      {message.timestamp}
-                    </p>
+                  <div className="flex flex-col max-w-[78%] md:max-w-[66%]">
+                    <div
+                      className={`px-5 py-3.5 break-words whitespace-pre-wrap rounded-2xl ${
+                        isOwnMessage
+                          ? "bg-[#E279321A] text-[#2A3554] rounded-br-md"
+                          : "bg-[#E279321A] text-[#2A3554] rounded-bl-md"
+                      }`}
+                    >
+                      {message.content ? (
+                        <p className="text-sm leading-relaxed">
+                          {message.content}
+                        </p>
+                      ) : null}
+
+                      {!!message.fileUrl?.length && (
+                        <div className="mt-2 flex flex-col gap-2">
+                          {message.fileUrl.map((url: string) => {
+                            const isImage = isImageFileUrl(url);
+                            return isImage ? (
+                              <a
+                                key={url}
+                                href={url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="block"
+                              >
+                                <div className="relative aspect-[9/16] w-full max-w-[960px] overflow-hidden ">
+                                  <Image
+                                    src={url}
+                                    alt={getFileNameFromUrl(url)}
+                                    fill
+                                    className="object-contain"
+                                  />
+                                </div>
+                              </a>
+                            ) : (
+                              <a
+                                key={url}
+                                href={url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex items-center gap-2 rounded-lg border border-[#D9DEEA] bg-white px-3 py-2 text-xs text-[#3B5BA9] underline break-all"
+                              >
+                                {getFileNameFromUrl(url)}
+                              </a>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {message.timestamp && (
+                      <p
+                        className={`text-[10px] text-[#98A0B8] mt-1 ${isOwnMessage ? "text-right" : "text-left"}`}
+                      >
+                        {message.timestamp}
+                      </p>
+                    )}
+                  </div>
+
+                  {isOwnMessage && (
+                    <div className="relative h-9 w-9 rounded-full overflow-hidden bg-[#E7EBF5] shrink-0">
+                      <Image
+                        src={messageAvatar || defaultProfileImage}
+                        alt="me"
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
                   )}
                 </div>
+              );
+            })}
+            <div ref={messagesEndRef} />
+          </div>
 
-                {isOwnMessage && (
-                  <div className="relative h-9 w-9 rounded-full overflow-hidden bg-[#E7EBF5] shrink-0">
-                    <Image
-                      src={messageAvatar || defaultProfileImage}
-                      alt="me"
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                )}
+          <div className="p-4 md:p-5 bg-[#F8F9FC]">
+            {attachmentNames.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {attachmentNames.map((name) => (
+                  <span
+                    key={name}
+                    className="rounded-full border border-[#D9DEEA] bg-white px-3 py-1 text-xs text-[#6D748E]"
+                  >
+                    {name}
+                  </span>
+                ))}
               </div>
-            );
-          })}
-          <div ref={messagesEndRef} />
-        </div>
+            )}
 
-        <div className="p-4 md:p-5 bg-[#F8F9FC]">
-          {attachmentNames.length > 0 && (
-            <div className="mb-3 flex flex-wrap gap-2">
-              {attachmentNames.map((name) => (
-                <span
-                  key={name}
-                  className="rounded-full border border-[#D9DEEA] bg-white px-3 py-1 text-xs text-[#6D748E]"
-                >
-                  {name}
-                </span>
-              ))}
-            </div>
-          )}
+            <input
+              ref={attachmentInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={handleAttachmentUpload}
+            />
 
-          <input
-            ref={attachmentInputRef}
-            type="file"
-            multiple
-            className="hidden"
-            onChange={handleAttachmentUpload}
-          />
-
-          <div className="flex items-center gap-2 border border-[#D9DEEA] bg-white px-2 py-2 rounded-2xl shadow-[0_2px_8px_rgba(21,30,64,0.04)]">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 rounded-full text-[#7F86A0] hover:bg-[#F3F5FB]"
-              disabled={
-                !selectedRoomId || !isConnected || isUploadingAttachments
-              }
-              onClick={() => attachmentInputRef.current?.click()}
-            >
-              <Plus className="h-5 w-5" />
-            </Button>
-
-            <div className="flex-1 relative">
-              <Input
-                placeholder={
-                  selectedRoomId ? "Type Messages" : "Select a chat to message"
+            <div className="flex items-center gap-2 border border-[#D9DEEA] bg-white px-2 py-2 rounded-2xl shadow-[0_2px_8px_rgba(21,30,64,0.04)]">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 rounded-full text-[#7F86A0] hover:bg-[#F3F5FB]"
+                disabled={
+                  !selectedRoomId || !isConnected || isUploadingAttachments
                 }
-                value={messageInput}
-                onChange={(e) => setMessageInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                className="border-none outline-none shadow-none h-10 text-sm placeholder:text-[#97A0BA]"
-                disabled={!selectedRoomId || !isConnected}
-              />
-            </div>
+                onClick={() => attachmentInputRef.current?.click()}
+              >
+                <Plus className="h-5 w-5" />
+              </Button>
 
-            <Button
-              onClick={handleSendMessage}
-              disabled={
-                (!messageInput.trim() && attachmentUrls.length === 0) ||
-                !selectedRoomId ||
-                !isConnected ||
-                isUploadingAttachments
-              }
-              className="bg-[#F28B3B] hover:bg-[#E67D2D] transition-colors h-9 w-9 rounded-xl p-0 text-white"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
+              <div className="flex-1 relative">
+                <Input
+                  placeholder={
+                    selectedRoomId
+                      ? "Type Messages"
+                      : "Select a chat to message"
+                  }
+                  value={messageInput}
+                  onChange={(e) => setMessageInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                  className="border-none h-10 text-base placeholder:text-[#97A0BA]   focus:outline-none
+  shadow-none
+  focus:ring-2
+  focus:ring-primary
+  focus:border-primary"
+                  disabled={!selectedRoomId || !isConnected}
+                />
+              </div>
+
+              <Button
+                onClick={handleSendMessage}
+                disabled={
+                  (!messageInput.trim() && attachmentUrls.length === 0) ||
+                  !selectedRoomId ||
+                  !isConnected ||
+                  isUploadingAttachments
+                }
+                className="bg-[#F28B3B] hover:bg-[#E67D2D] transition-colors h-9 w-9 rounded-xl p-0 text-white"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {isInviteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">

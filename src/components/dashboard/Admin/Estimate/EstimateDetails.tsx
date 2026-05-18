@@ -241,7 +241,7 @@ export default function EstimateDetails() {
           className="flex items-center gap-2 hover:underline"
         >
           <FiArrowLeft />
-          Back To Estimate List Page
+          <span className="text-gray-500 ">Back To Estimate List Page</span>
         </Link>
         <p className="text-red-500">Failed to load estimate details.</p>
       </div>
@@ -268,9 +268,8 @@ export default function EstimateDetails() {
 
     return (
       <div className="space-y-3" key="TABLE">
-        <div className="flex items-center justify-between border-b border-[#cfcfcf] pb-2 text-xl font-semibold text-black">
-          <h2>Table Format</h2>
-          <p>Total</p>
+        <div className="text-2xl font-semibold">
+          <h2>Table </h2>
         </div>
 
         <div
@@ -279,7 +278,7 @@ export default function EstimateDetails() {
         >
           <table
             data-pdf-table
-            className="w-full min-w-[760px] border-collapse text-xs md:text-sm text-gray-700"
+            className="w-full min-w-[760px] border-collapse text-sm md:text-base text-gray-700"
           >
             <thead>
               <tr className="bg-gray-100">
@@ -612,7 +611,12 @@ export default function EstimateDetails() {
         className="flex items-center gap-2 hover:underline text-gray-500 mt-6"
       >
         <FiArrowLeft />
-        Back To Estimate List Page
+        <span className="text-gray-500 hidden md:block text-lg">
+          Back To Estimate List Page
+        </span>
+        <h1 className="text-2xl font-normal text-gray-600 md:hidden block  text-center">
+          Estimate Details
+        </h1>
       </Link>
 
       <div className="md:flex flex-col md:flex-row md:justify-between mt-7 hidden">

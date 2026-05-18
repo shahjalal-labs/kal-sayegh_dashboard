@@ -3,6 +3,8 @@
 import { Input } from "@/components/ui/input";
 import { useCreateGroupMutation } from "@/redux/api/admin/messageApi";
 import { useGetAllUsersQuery } from "@/redux/api/userApi";
+import { formatDistanceToNowStrict } from "date-fns";
+
 import { Plus, Search } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
@@ -50,6 +52,13 @@ function isValidUrl(url: string) {
   } catch {
     return false;
   }
+}
+
+function formatRelativeTime(dateStr?: string | null) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return "";
+  return formatDistanceToNowStrict(d, { addSuffix: true });
 }
 
 export default function ChatSidebar({
@@ -154,7 +163,7 @@ export default function ChatSidebar({
   };
 
   return (
-    <div className="w-80 h-full min-h-0 flex flex-col gap-4">
+    <div className=" w-full md:w-80 h-full min-h-0 flex flex-col md:gap-4">
       <div className="p-4 bg-white">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-semibold">Chats</h1>
@@ -172,7 +181,7 @@ export default function ChatSidebar({
             placeholder="Search chats"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="pl-10 border border-[#E1E5F3] outline-none placeholder:text-base focus:ring-1 focus:ring-primary focus:outline-none "
+            className="pl-10 border border-[#E1E5F3] outline-none placeholder:text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
             disabled={!isConnected}
           />
         </div>
@@ -221,7 +230,7 @@ export default function ChatSidebar({
                 </p>
               </div>
               <span className="text-[10px] text-[#817F9B]">
-                {conv.lastMessage?.createdAt ? conv.lastMessage.createdAt : ""}
+                {formatRelativeTime(conv.lastMessage?.createdAt)}
               </span>
             </div>
           ))

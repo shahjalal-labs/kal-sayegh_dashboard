@@ -10,11 +10,11 @@ import { useEffect, useState } from "react";
 import { useLoginMutation } from "@/redux/api/authApi";
 import { setUser } from "@/redux/ReduxFunction";
 import Cookies from "js-cookie";
+import { jwtDecode } from "jwt-decode";
 import Link from "next/link";
 import { useDispatch } from "react-redux";
 import { toast } from "sonner";
 import AuthLayout from "./AuthLayout";
-import { jwtDecode } from "jwt-decode";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -137,67 +137,70 @@ export default function Login() {
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
         </div>
       ) : (
-        <AuthLayout title="Login" subtitle="Let's login into your account first ">
-          <form onSubmit={handleLogin} className="space-y-6 ">
-        <div className="relative w-full">
-          <label className="absolute -top-2 left-5 bg-secondary px-2 text-sm text-gray-600">
-            Email Address
-          </label>
-
-          <input
-            type="email"
-            placeholder="example@gmail.com"
-            className="w-full h-12 px-5 rounded-full border border-gray-300 bg-secondary
-    text-gray-700 placeholder-gray-400 
-    focus:outline-none focus:ring-1 focus:ring-orange-400  transition"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="relative w-full">
-          <label className="absolute -top-2 left-5 bg-secondary px-2 text-sm text-gray-600">
-            Password
-          </label>
-
-          <input
-            type={showPassword ? "text" : "password"}
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="w-full h-12 px-5 pr-12 rounded-full bg-secondary border border-gray-300 
-    text-gray-700 placeholder-gray-400 
-    focus:outline-none focus:ring-1 focus:ring-orange-400  transition"
-          />
-
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-          >
-            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-          </button>
-        </div>
-
-        <div className="text-right">
-          <Link
-            href="/forgot-password"
-            className="text-base text-primary font-semibold transition-colors hover:underline"
-          >
-            Forgot password?
-          </Link>
-        </div>
-
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="w-full h-12 bg-primary text-white rounded-2xl hover:bg-primary/90 transition-colors font-normal"
+        <AuthLayout
+          title="Login"
+          subtitle="Let's login into your account first "
         >
-          {isLoading ? "Logging in..." : "Log in"}
-        </button>
-      </form>
+          <form onSubmit={handleLogin} className="space-y-6 ">
+            <div className="relative w-full">
+              <label className="absolute -top-2 left-5 bg-secondary px-2 text-sm text-gray-600">
+                Email Address
+              </label>
+
+              <input
+                type="email"
+                placeholder="example@gmail.com"
+                className="w-full h-12 px-5 rounded-full border border-gray-300 bg-secondary
+    text-gray-700 placeholder-gray-400 
+    focus:outline-none focus:ring-1 focus:ring-orange-400  transition"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="relative w-full">
+              <label className="absolute -top-2 left-5 bg-secondary px-2 text-sm text-gray-600">
+                Password
+              </label>
+
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full h-12 px-5 pr-12 rounded-full bg-secondary border border-gray-300 
+    text-gray-700 placeholder-gray-400 
+    focus:outline-none focus:ring-1 focus:ring-orange-400  transition"
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
+
+            <div className="text-right">
+              <Link
+                href="/forgot-password"
+                className="text-base text-primary font-semibold transition-colors hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full h-12 bg-primary text-white rounded-2xl hover:bg-primary/90 transition-colors font-normal"
+            >
+              {isLoading ? "Logging in..." : "Log in"}
+            </button>
+          </form>
         </AuthLayout>
       )}
     </>

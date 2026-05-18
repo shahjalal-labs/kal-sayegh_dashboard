@@ -753,7 +753,7 @@ export default function InvoiceDetails({ format }: { format?: string }) {
           </Link> */}
                   </div>
 
-                  <div className="flex items-center gap-3 px-4">
+                  <div className="flex flex-wrap items-center gap-3 ">
                     <button
                       onClick={() => setIsReminderOpen(true)}
                       className="flex items-center gap-2 px-4 py-2  border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary text-sm"
@@ -763,7 +763,7 @@ export default function InvoiceDetails({ format }: { format?: string }) {
                     </button>
                     <button
                       onClick={() => setIsPaymentModalOpen(true)}
-                      className="group flex items-center gap-2 px-4 py-2 border-primary transition-all duration-300 border text-primary rounded-lg hover:bg-primary hover:text-white ease-in text-sm"
+                      className="group flex items-center gap-2 px-4 py-2  border-primary transition-all duration-300 border text-primary rounded-lg hover:bg-primary hover:text-white ease-in text-sm"
                     >
                       <Image
                         src={paymentIcon}
