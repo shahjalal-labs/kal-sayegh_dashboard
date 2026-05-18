@@ -645,19 +645,18 @@ export default function AddEstimate() {
 
       router.push(`/admin/estimate/${estimateId}`);
     } catch (err: any) {
-      console.error("Estimate creation error:", err);
+      toast.error("Estimate creation error:", err);
       try {
-        const data = err?.data || err?.response?.data;
+        const data = err?.data ?? err?.response?.data;
         if (data) {
-          console.error("Create estimate response:", data);
+          toast.error("Create estimate response:", data);
           if (data.errors) {
-            console.error("Validation errors:", data.errors);
-            toast.error(data.message || "Validation failed");
+            toast.error(data.message ?? "Validation failed");
           } else {
-            toast.error(data.message || "Failed to create estimate");
+            toast.error(data.message ?? "Failed to create estimate");
           }
         } else {
-          toast.error(err?.message || "Failed to create estimate");
+          toast.error(err?.message ?? "Failed to create estimate");
         }
       } catch (e) {
         toast.error("Failed to create estimate");
@@ -946,9 +945,9 @@ export default function AddEstimate() {
                           {client.clientName}
                         </p>
 
-                        <p className="text-sm opacity-80">{client.email}</p>
+                        <p className="text-base opacity-80">{client.email}</p>
 
-                        <p className="text-xs opacity-70 flex gap-2 items-center">
+                        <p className="text-base opacity-70 flex gap-2 items-center">
                           <LuMapPin /> {client.address || "No address"}
                         </p>
                       </div>
@@ -997,7 +996,7 @@ export default function AddEstimate() {
                       className="p-3 border rounded-lg hover:bg-orange-50 cursor-pointer transition"
                     >
                       <p className="font-medium">{client.clientName}</p>
-                      <p className="text-sm text-gray-500">{client.email}</p>
+                      <p className="text-base text-gray-500">{client.email}</p>
                     </div>
                   ))
                 ) : (
@@ -1019,7 +1018,7 @@ export default function AddEstimate() {
         )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-sm text-gray-600">Estimate Name</label>
+            <label className="text-base text-gray-600">Estimate Name</label>
             <input
               placeholder="Estimate Name"
               value={estimateForm.estimateName}
@@ -1034,7 +1033,7 @@ export default function AddEstimate() {
           </div>
 
           <div>
-            <label className="text-sm text-gray-600">Estimate Number</label>
+            <label className="text-base text-gray-600">Estimate Number</label>
             <input
               placeholder="Estimate Number"
               value={estimateForm.estimateNumber}
@@ -1049,7 +1048,7 @@ export default function AddEstimate() {
           </div>
 
           <div>
-            <label className="text-sm text-gray-600">Date</label>
+            <label className="text-base text-gray-600">Date</label>
             <input
               type="date"
               value={estimateForm.date}
@@ -1064,7 +1063,7 @@ export default function AddEstimate() {
           </div>
 
           <div>
-            <label className="text-sm text-gray-600">Expiration Date</label>
+            <label className="text-base text-gray-600">Expiration Date</label>
             <input
               type="date"
               value={estimateForm.endDate}
@@ -1079,7 +1078,7 @@ export default function AddEstimate() {
           </div>
 
           <div>
-            <label className="text-sm text-gray-600">PO Number</label>
+            <label className="text-base text-gray-600">PO Number</label>
             <input
               placeholder="PO Number"
               value={estimateForm.poNumber}
@@ -1095,7 +1094,7 @@ export default function AddEstimate() {
         </div>
 
         <div>
-          <label className="text-sm text-gray-600">Legendary</label>
+          <label className="text-base text-gray-600">Legendary</label>
           <input
             placeholder="Legendary"
             value={estimateForm.legendary}
@@ -1118,131 +1117,6 @@ export default function AddEstimate() {
             readOnly
             className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary"
           />
-        </div>
-
-        {/* Sign Buttons */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() =>
-              setEstimateForm((prev) => ({
-                ...prev,
-                clientSign: !prev.clientSign,
-              }))
-            }
-            className={`flex items-center justify-between rounded-xl border px-4 py-3 transition ${
-              estimateForm.clientSign
-                ? "border-primary bg-orange-50"
-                : "border-gray-200 bg-white"
-            }`}
-          >
-            <span className="text-sm font-medium text-gray-700">
-              Client Sign
-            </span>
-            <span
-              className={`flex h-6 w-11 items-center rounded-full p-1 transition ${
-                estimateForm.clientSign ? "bg-primary" : "bg-gray-300"
-              }`}
-            >
-              <span
-                className={`h-4 w-4 rounded-full bg-white transition ${
-                  estimateForm.clientSign ? "translate-x-5" : "translate-x-0"
-                }`}
-              />
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() =>
-              setEstimateForm((prev) => ({
-                ...prev,
-                mySign: !prev.mySign,
-              }))
-            }
-            className={`flex items-center justify-between rounded-xl border px-4 py-3 transition ${
-              estimateForm.mySign
-                ? "border-primary bg-orange-50"
-                : "border-gray-200 bg-white"
-            }`}
-          >
-            <span className="text-sm font-medium text-gray-700">My Sign</span>
-            <span
-              className={`flex h-6 w-11 items-center rounded-full p-1 transition ${
-                estimateForm.mySign ? "bg-primary" : "bg-gray-300"
-              }`}
-            >
-              <span
-                className={`h-4 w-4 rounded-full bg-white transition ${
-                  estimateForm.mySign ? "translate-x-5" : "translate-x-0"
-                }`}
-              />
-            </span>
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-          <button
-            type="button"
-            onClick={() =>
-              setEstimateForm((prev) => ({
-                ...prev,
-                isAutoInvoice: !prev.isAutoInvoice,
-              }))
-            }
-            className={`flex items-center justify-between rounded-xl border px-4 py-3 transition ${
-              estimateForm.isAutoInvoice
-                ? "border-primary bg-orange-50"
-                : "border-gray-200 bg-white"
-            }`}
-          >
-            <span className="text-sm font-medium text-gray-700">
-              Auto Invoice
-            </span>
-            <span
-              className={`flex h-6 w-11 items-center rounded-full p-1 transition ${
-                estimateForm.isAutoInvoice ? "bg-primary" : "bg-gray-300"
-              }`}
-            >
-              <span
-                className={`h-4 w-4 rounded-full bg-white transition ${
-                  estimateForm.isAutoInvoice ? "translate-x-5" : "translate-x-0"
-                }`}
-              />
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() =>
-              setEstimateForm((prev) => ({
-                ...prev,
-                isGroupingEnabled: !prev.isGroupingEnabled,
-              }))
-            }
-            className={`flex items-center justify-between rounded-xl border px-4 py-3 transition ${
-              estimateForm.isGroupingEnabled
-                ? "border-primary bg-orange-50"
-                : "border-gray-200 bg-white"
-            }`}
-          >
-            <span className="text-sm font-medium text-gray-700">
-              Group Items
-            </span>
-            <span
-              className={`flex h-6 w-11 items-center rounded-full p-1 transition ${
-                estimateForm.isGroupingEnabled ? "bg-primary" : "bg-gray-300"
-              }`}
-            >
-              <span
-                className={`h-4 w-4 rounded-full bg-white transition ${
-                  estimateForm.isGroupingEnabled
-                    ? "translate-x-5"
-                    : "translate-x-0"
-                }`}
-              />
-            </span>
-          </button>
         </div>
 
         <div>
@@ -1311,7 +1185,7 @@ export default function AddEstimate() {
                       <div className="border rounded-xl overflow-hidden">
                         {/* Row */}
                         <div className="grid grid-cols-1 md:grid-cols-6 border">
-                          <div className="col-span-1 md:col-span-1 border-r md:border-r p-2 text-sm text-gray-500 text-left">
+                          <div className="col-span-1 md:col-span-1 border-r md:border-r p-2 text-base text-gray-500 text-left">
                             <label className="block md:hidden font-medium mb-1">
                               Description
                             </label>
@@ -1330,7 +1204,7 @@ export default function AddEstimate() {
 
                           {/* Rate */}
                           <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0 md:p-0 text-center">
-                            <label className="block md:hidden text-sm font-medium mb-1 ">
+                            <label className="block md:hidden text-base font-medium mb-1 ">
                               Rate
                             </label>
                             <input
@@ -1360,7 +1234,7 @@ export default function AddEstimate() {
 
                           {/* Markup */}
                           <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0 md:p-0 text-center">
-                            <label className="block md:hidden text-sm font-medium mb-1">
+                            <label className="block md:hidden text-base font-medium mb-1">
                               Markup
                             </label>
                             <input
@@ -1378,7 +1252,7 @@ export default function AddEstimate() {
 
                           {/* Quantity */}
                           <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0 md:p-0 text-center">
-                            <label className="block md:hidden text-sm font-medium mb-1">
+                            <label className="block md:hidden text-base font-medium mb-1">
                               Quantity
                             </label>
                             <input
@@ -1412,7 +1286,7 @@ export default function AddEstimate() {
 
                           {/* Tax */}
                           <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0 md:p-0 text-center">
-                            <label className="block md:hidden text-sm font-medium mb-1">
+                            <label className="block md:hidden text-base font-medium mb-1">
                               Tax
                             </label>
                             <input
@@ -1426,7 +1300,7 @@ export default function AddEstimate() {
 
                           {/* Total */}
                           <div className="md:col-span-1 p-2 text-center">
-                            <label className="block md:hidden text-sm font-medium mb-1">
+                            <label className="block md:hidden text-base font-medium mb-1">
                               Total
                             </label>
                             <input
@@ -1442,7 +1316,7 @@ export default function AddEstimate() {
                           {!item.itemName ? (
                             <textarea
                               placeholder="Notes"
-                              className="w-full p-2 text-sm outline-none"
+                              className="w-full p-2 text-base outline-none"
                               value={item.description || ""}
                               onChange={(e) =>
                                 setLineItemTables((prev) =>
@@ -1533,7 +1407,7 @@ export default function AddEstimate() {
                   <button
                     type="button"
                     onClick={() => removeSideMap(idx)}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2"
+                    className="absolute -top-2 -right-2 bg-red-500 text-white text-base rounded-full px-2"
                   >
                     x
                   </button>
@@ -1586,7 +1460,7 @@ export default function AddEstimate() {
                 <button
                   type="button"
                   onClick={() => removeImage(idx)}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2"
+                  className="absolute -top-2 -right-2 bg-red-500 text-white text-base rounded-full px-2"
                 >
                   x
                 </button>
@@ -1696,8 +1570,136 @@ export default function AddEstimate() {
               </span>
             </div>
 
+            {/* Sign Buttons */}
+
+            <div className="py-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setEstimateForm((prev) => ({
+                      ...prev,
+                      clientSign: !prev.clientSign,
+                    }))
+                  }
+                  className={`flex items-center justify-between transition ${
+                    estimateForm.clientSign ? "" : ""
+                  }`}
+                >
+                  <span className="text-lg font-medium text-gray-700">
+                    Client Sign
+                  </span>
+                  <span
+                    className={`flex h-6 w-11 items-center rounded-full p-1 transition ${
+                      estimateForm.clientSign ? "bg-primary" : "bg-gray-300"
+                    }`}
+                  >
+                    <span
+                      className={`h-4 w-4 rounded-full bg-white transition ${
+                        estimateForm.clientSign
+                          ? "translate-x-5"
+                          : "translate-x-0"
+                      }`}
+                    />
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setEstimateForm((prev) => ({
+                      ...prev,
+                      mySign: !prev.mySign,
+                    }))
+                  }
+                  className={`flex items-center justify-between transition ${
+                    estimateForm.mySign ? "" : ""
+                  }`}
+                >
+                  <span className="text-lg font-medium text-gray-700">
+                    My Sign
+                  </span>
+                  <span
+                    className={`flex h-6 w-11 items-center rounded-full p-1 transition ${
+                      estimateForm.mySign ? "bg-primary" : "bg-gray-300"
+                    }`}
+                  >
+                    <span
+                      className={`h-4 w-4 rounded-full bg-white transition ${
+                        estimateForm.mySign ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setEstimateForm((prev) => ({
+                      ...prev,
+                      isAutoInvoice: !prev.isAutoInvoice,
+                    }))
+                  }
+                  className={`flex items-center justify-between  transition ${
+                    estimateForm.isAutoInvoice ? "" : ""
+                  }`}
+                >
+                  <span className="text-lg font-medium text-gray-700">
+                    Auto Invoice
+                  </span>
+                  <span
+                    className={`flex h-6 w-11 items-center rounded-full p-1 transition ${
+                      estimateForm.isAutoInvoice ? "bg-primary" : "bg-gray-300"
+                    }`}
+                  >
+                    <span
+                      className={`h-4 w-4 rounded-full bg-white transition ${
+                        estimateForm.isAutoInvoice
+                          ? "translate-x-5"
+                          : "translate-x-0"
+                      }`}
+                    />
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setEstimateForm((prev) => ({
+                      ...prev,
+                      isGroupingEnabled: !prev.isGroupingEnabled,
+                    }))
+                  }
+                  className={`flex items-center justify-between  transition ${
+                    estimateForm.isGroupingEnabled ? "" : ""
+                  }`}
+                >
+                  <span className="text-lg font-medium text-gray-700">
+                    Group Items
+                  </span>
+                  <span
+                    className={`flex h-6 w-11 items-center rounded-full p-1 transition ${
+                      estimateForm.isGroupingEnabled
+                        ? "bg-primary"
+                        : "bg-gray-300"
+                    }`}
+                  >
+                    <span
+                      className={`h-4 w-4 rounded-full bg-white transition ${
+                        estimateForm.isGroupingEnabled
+                          ? "translate-x-5"
+                          : "translate-x-0"
+                      }`}
+                    />
+                  </span>
+                </button>
+              </div>
+            </div>
+
             <div className="pt-5 space-y-3">
-              <h2 className="text-lg font-bold text-gray-900 border-b pb-2">
+              <h2 className="text-xl font-bold text-gray-900 border-b pb-2">
                 {" "}
                 Online Payment
               </h2>
@@ -1838,10 +1840,10 @@ export default function AddEstimate() {
                       <p className="font-semibold text-gray-800">
                         {item.itemName}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-base text-gray-500">
                         {item.description}
                       </p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-base text-gray-400">
                         Format: {normalizeItemFormat(item?.format)}
                       </p>
                     </div>
@@ -1948,11 +1950,11 @@ export default function AddEstimate() {
                     className="p-3 border rounded-lg cursor-pointer hover:bg-orange-50"
                   >
                     <p className="font-semibold">{m.name}</p>
-                    <p className="text-sm text-gray-500">{m.percentage}%</p>
+                    <p className="text-base text-gray-500">{m.percentage}%</p>
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-gray-400 text-center">
+                <p className="text-base text-gray-400 text-center">
                   No markup found
                 </p>
               )}
@@ -2003,7 +2005,7 @@ export default function AddEstimate() {
             <div className="space-y-4">
               {/* NAME */}
               <div>
-                <label className="text-sm text-gray-600 mb-1 block">
+                <label className="text-base text-gray-600 mb-1 block">
                   Markup Name
                 </label>
                 <input
@@ -2022,7 +2024,7 @@ export default function AddEstimate() {
 
               {/* PERCENTAGE */}
               <div>
-                <label className="text-sm text-gray-600 mb-1 block">
+                <label className="text-base text-gray-600 mb-1 block">
                   Percentage (%)
                 </label>
                 <input
@@ -2099,11 +2101,11 @@ export default function AddEstimate() {
                     className="p-3 border rounded-lg cursor-pointer hover:bg-orange-50"
                   >
                     <p className="font-semibold">{t.name}</p>
-                    <p className="text-sm text-gray-500">{t.percentage}%</p>
+                    <p className="text-base text-gray-500">{t.percentage}%</p>
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-gray-400 text-center">
+                <p className="text-base text-gray-400 text-center">
                   No tax found
                 </p>
               )}
@@ -2214,7 +2216,7 @@ export default function AddEstimate() {
                 value={formData.clientName}
                 onChange={handleChange}
                 placeholder="Client Name"
-                className="w-full mt-1 border p-2 sm:p-2.5 text-sm rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full mt-1 border p-2 sm:p-2.5 text-base rounded focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
@@ -2227,7 +2229,7 @@ export default function AddEstimate() {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="Email Address"
-                  className="w-full mt-1 border p-2 sm:p-2.5 text-sm rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full mt-1 border p-2 sm:p-2.5 text-base rounded focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 
@@ -2238,12 +2240,12 @@ export default function AddEstimate() {
                   value={formData.phoneNumber}
                   onChange={handleChange}
                   placeholder="Phone Number"
-                  className="w-full mt-1 border p-2 sm:p-2.5 text-sm rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full mt-1 border p-2 sm:p-2.5 text-base rounded focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
             </div>
 
-            <p className="text-sm sm:text-base font-normal">
+            <p className="text-base sm:text-base font-normal">
               Address Information
             </p>
 
@@ -2255,7 +2257,7 @@ export default function AddEstimate() {
                 value={formData.address}
                 onChange={handleChange}
                 placeholder="Address"
-                className="w-full mt-1 border p-2 sm:p-2.5 text-sm rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full mt-1 border p-2 sm:p-2.5 text-base rounded focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
@@ -2268,7 +2270,7 @@ export default function AddEstimate() {
                   value={formData.city}
                   onChange={handleChange}
                   placeholder="City"
-                  className="w-full mt-1 border p-2 sm:p-2.5 text-sm rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full mt-1 border p-2 sm:p-2.5 text-base rounded focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 
@@ -2279,7 +2281,7 @@ export default function AddEstimate() {
                   value={formData.state}
                   onChange={handleChange}
                   placeholder="State"
-                  className="w-full mt-1 border p-2 sm:p-2.5 text-sm rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full mt-1 border p-2 sm:p-2.5 text-base rounded focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
             </div>
@@ -2292,7 +2294,7 @@ export default function AddEstimate() {
                 value={formData.zip}
                 onChange={handleChange}
                 placeholder="Zip"
-                className="w-full mt-1 border p-2 sm:p-2.5 text-sm rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full mt-1 border p-2 sm:p-2.5 text-base rounded focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
@@ -2300,14 +2302,14 @@ export default function AddEstimate() {
             <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 mt-4 sm:mt-6">
               <button
                 onClick={() => setOpenClientModal(false)}
-                className="px-4 sm:px-8 py-2 text-sm border rounded-xl hover:text-white hover:bg-primary transition-colors duration-300"
+                className="px-4 sm:px-8 py-2 text-base border rounded-xl hover:text-white hover:bg-primary transition-colors duration-300"
               >
                 Cancel
               </button>
 
               <button
                 onClick={() => handleCreateClient(formData)}
-                className="px-4 sm:px-8 py-2 text-sm bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors"
+                className="px-4 sm:px-8 py-2 text-base bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors"
               >
                 Save
               </button>
@@ -2328,7 +2330,7 @@ export default function AddEstimate() {
             <div className="space-y-4">
               {/* NAME */}
               <div>
-                <label className="text-sm text-gray-600 mb-1 block">
+                <label className="text-base text-gray-600 mb-1 block">
                   Markup Name
                 </label>
                 <input
@@ -2346,7 +2348,7 @@ export default function AddEstimate() {
 
               {/* PERCENTAGE */}
               <div>
-                <label className="text-sm text-gray-600 mb-1 block">
+                <label className="text-base text-gray-600 mb-1 block">
                   Percentage (%)
                 </label>
                 <input
@@ -2400,11 +2402,11 @@ export default function AddEstimate() {
                     className="p-3 border rounded-lg cursor-pointer hover:bg-orange-50"
                   >
                     <p className="font-semibold">{m.name}</p>
-                    <p className="text-sm text-gray-500">{m.percentage}%</p>
+                    <p className="text-base text-gray-500">{m.percentage}%</p>
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-gray-400 text-center">
+                <p className="text-base text-gray-400 text-center">
                   No markup found
                 </p>
               )}
@@ -2453,7 +2455,7 @@ export default function AddEstimate() {
                 <h2 className="text-xl font-semibold text-gray-900">
                   Select Contract
                 </h2>
-                <p className="text-sm text-gray-500">
+                <p className="text-base text-gray-500">
                   Create a new contract or choose one from the list below.
                 </p>
               </div>
@@ -2470,7 +2472,7 @@ export default function AddEstimate() {
             <div className="grid gap-5 p-5 md:grid-cols-[1fr_1.2fr]">
               <div className="space-y-4 rounded-2xl border border-gray-200 bg-gray-50 p-4">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                  <label className="mb-1 block text-base font-medium text-gray-700">
                     Contract Title
                   </label>
                   <input
@@ -2490,12 +2492,12 @@ export default function AddEstimate() {
                           }))
                     }
                     placeholder="e.g. Contract title 2"
-                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
+                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-base outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                  <label className="mb-1 block text-base font-medium text-gray-700">
                     Contract Description
                   </label>
                   <textarea
@@ -2517,7 +2519,7 @@ export default function AddEstimate() {
                     }
                     placeholder="Describe the contract terms"
                     rows={8}
-                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
+                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-base outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
                   />
                 </div>
 
@@ -2561,7 +2563,7 @@ export default function AddEstimate() {
                   <h3 className="text-base font-semibold text-gray-900">
                     All Contracts
                   </h3>
-                  <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-medium text-primary">
+                  <span className="rounded-full bg-orange-50 px-3 py-1 text-base font-medium text-primary">
                     {contracts.length} total
                   </span>
                 </div>
@@ -2591,10 +2593,10 @@ export default function AddEstimate() {
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="space-y-1">
-                              <p className="text-sm font-semibold text-gray-900">
+                              <p className="text-base font-semibold text-gray-900">
                                 {contractItem.title}
                               </p>
-                              <p className="text-sm leading-6 text-gray-600">
+                              <p className="text-base leading-6 text-gray-600">
                                 {contractItem.description}
                               </p>
                             </div>
@@ -2632,7 +2634,7 @@ export default function AddEstimate() {
                               </button>
 
                               {isSelected && (
-                                <span className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-white">
+                                <span className="rounded-full bg-primary px-3 py-1 text-base font-medium text-white">
                                   Selected
                                 </span>
                               )}
@@ -2642,7 +2644,7 @@ export default function AddEstimate() {
                       );
                     })
                   ) : (
-                    <div className="flex min-h-[180px] items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-gray-50 text-sm text-gray-400">
+                    <div className="flex min-h-[180px] items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-gray-50 text-base text-gray-400">
                       No contracts found
                     </div>
                   )}

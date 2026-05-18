@@ -31,10 +31,13 @@ import { FormatType } from "@/types/estimate.type";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { CiEdit } from "react-icons/ci";
 import { GoPlus } from "react-icons/go";
 import { LuMapPin } from "react-icons/lu";
+import { RiDeleteBin4Line } from "react-icons/ri";
 import { ColorRing } from "react-loader-spinner";
 import { toast } from "sonner";
+import Swal from "sweetalert2";
 
 interface LineItem {
   id: string;
@@ -512,13 +515,62 @@ export default function EditEstimate() {
   };
 
   const handleDeleteContract = async (contractId: any) => {
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "You won't be able to recover this contract!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, delete it!",
+    });
+
+    if (!result.isConfirmed) return;
+
     try {
       await deleteContract(contractId).unwrap();
-      toast.success("Contract deleted");
-      await refetchContracts();
+
+      Swal.fire({
+        title: "Deleted!",
+        text: "Contract deleted successfully.",
+        icon: "success",
+        timer: 2000,
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Yes, delete it!",
+      });
     } catch (error) {
-      console.error(error);
-      toast.error("Failed to delete contract");
+      console.error("Failed to delete contract:", error);
+
+      Swal.fire({
+        title: "Error!",
+        text: "Failed to delete contract.",
+        icon: "error",
+        background: "#ffffff",
+      });
+    } finally {
+      await refetchContracts();
+    }
+  };
+
+  const handleUpdateContract = async () => {
+    if (!editContract.id) return;
+
+    try {
+      await updateContract({
+        contractId: editContract.id,
+        title: editContract.title,
+        description: editContract.description,
+      }).unwrap();
+
+      toast.success("Contract updated successfully");
+      setEditContract({ id: null, title: "", description: "" });
+      await refetchContracts();
+      setAddContractModalOpen(false);
+    } catch (error) {
+      console.error("Failed to update contract:", error);
+      toast.error("Failed to update contract");
     }
   };
 
@@ -1109,9 +1161,9 @@ export default function EditEstimate() {
                           {client.clientName}
                         </p>
 
-                        <p className="text-sm opacity-80">{client.email}</p>
+                        <p className="text-base opacity-80">{client.email}</p>
 
-                        <p className="text-xs opacity-70 flex gap-2 items-center">
+                        <p className="text-base opacity-70 flex gap-2 items-center">
                           <LuMapPin /> {client.address || "No address"}
                         </p>
                       </div>
@@ -1160,7 +1212,7 @@ export default function EditEstimate() {
                       className="p-3 border rounded-lg hover:bg-orange-50 cursor-pointer transition"
                     >
                       <p className="font-medium">{client.clientName}</p>
-                      <p className="text-sm text-gray-500">{client.email}</p>
+                      <p className="text-base text-gray-500">{client.email}</p>
                     </div>
                   ))
                 ) : (
@@ -1182,7 +1234,7 @@ export default function EditEstimate() {
         )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-sm text-gray-600">Estimate#</label>
+            <label className="text-base text-gray-600">Estimate#</label>
             <input
               placeholder="Estimate#"
               value={estimateForm.estimateName}
@@ -1197,7 +1249,7 @@ export default function EditEstimate() {
           </div>
 
           <div>
-            <label className="text-sm text-gray-600">Date</label>
+            <label className="text-base text-gray-600">Date</label>
             <input
               type="date"
               value={estimateForm.date}
@@ -1212,7 +1264,7 @@ export default function EditEstimate() {
           </div>
 
           <div>
-            <label className="text-sm text-gray-600">Expiration Date</label>
+            <label className="text-base text-gray-600">Expiration Date</label>
             <input
               type="date"
               value={estimateForm.endDate}
@@ -1227,7 +1279,7 @@ export default function EditEstimate() {
           </div>
 
           <div>
-            <label className="text-sm text-gray-600">PO Number</label>
+            <label className="text-base text-gray-600">PO Number</label>
             <input
               placeholder="PO Number"
               value={estimateForm.poNumber}
@@ -1239,24 +1291,6 @@ export default function EditEstimate() {
               }
               className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary"
             />
-          </div>
-        </div>
-        <div>
-          <label className="text-sm text-gray-600">Contract</label>
-          <div className="flex items-center gap-3 mt-1">
-            <button
-              onClick={() => setAddContractModalOpen(true)}
-              className="flex-1 text-left rounded-lg border px-4 py-2 bg-white"
-            >
-              {contracts.find((c: any) => c.id === estimateForm.contractId)
-                ?.title || "Select Contract"}
-            </button>
-            <button
-              onClick={() => setAddContractModalOpen(true)}
-              className="px-4 py-2 rounded-lg bg-primary text-white"
-            >
-              Manage
-            </button>
           </div>
         </div>
 
@@ -1274,6 +1308,227 @@ export default function EditEstimate() {
             className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
+
+        <div>
+          <label className="text-base text-gray-600">Contract</label>
+          <div className="flex items-center gap-3 mt-1">
+            <button
+              onClick={() => setAddContractModalOpen(true)}
+              className="flex-1 text-left rounded-lg border px-4 py-2 bg-white"
+            >
+              {contracts.find((c: any) => c.id === estimateForm.contractId)
+                ?.title || "Select Contract"}
+            </button>
+          </div>
+        </div>
+        {addContractModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-[980px] overflow-hidden rounded-2xl bg-white shadow-2xl">
+              <div className="flex items-start justify-between border-b border-gray-200 bg-gradient-to-r from-orange-50 to-white px-5 py-4">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Select Contract
+                  </h2>
+                  <p className="text-base text-gray-500">
+                    Create a new contract or choose one from the list below.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setAddContractModalOpen(false)}
+                  className="h-9 w-9 rounded-full border border-gray-200 text-gray-500 transition hover:border-red-200 hover:text-red-500"
+                  aria-label="Close contract modal"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="grid gap-5 p-5 md:grid-cols-[1fr_1.2fr]">
+                <div className="space-y-4 rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                  <div>
+                    <label className="mb-1 block text-base font-medium text-gray-700">
+                      Contract Title
+                    </label>
+                    <input
+                      type="text"
+                      value={
+                        editContract.id ? editContract.title : newContract.title
+                      }
+                      onChange={(e) =>
+                        editContract.id
+                          ? setEditContract((prev) => ({
+                              ...prev,
+                              title: e.target.value,
+                            }))
+                          : setNewContract((prev) => ({
+                              ...prev,
+                              title: e.target.value,
+                            }))
+                      }
+                      placeholder="e.g. Contract title 2"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-base outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-base font-medium text-gray-700">
+                      Contract Description
+                    </label>
+                    <textarea
+                      value={
+                        editContract.id
+                          ? editContract.description
+                          : newContract.description
+                      }
+                      onChange={(e) =>
+                        editContract.id
+                          ? setEditContract((prev) => ({
+                              ...prev,
+                              description: e.target.value,
+                            }))
+                          : setNewContract((prev) => ({
+                              ...prev,
+                              description: e.target.value,
+                            }))
+                      }
+                      placeholder="Describe the contract terms"
+                      rows={8}
+                      className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-base outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+
+                  <div className="flex gap-3">
+                    {editContract.id ? (
+                      <>
+                        <button
+                          onClick={handleUpdateContract}
+                          className="flex-1 rounded-xl bg-primary px-4 py-3 font-medium text-white transition hover:bg-primary/90"
+                        >
+                          Update Contract
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            setEditContract({
+                              id: null,
+                              title: "",
+                              description: "",
+                            })
+                          }
+                          className="flex-1 rounded-xl border bg-white px-4 py-3 font-medium text-gray-700"
+                        >
+                          Cancel Edit
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={handleCreateContract}
+                        disabled={isAddingContract}
+                        className="w-full rounded-xl bg-primary px-4 py-3 font-medium text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+                      >
+                        {isAddingContract ? "Saving..." : "Save Contract"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-gray-200 bg-white p-4">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="text-base font-semibold text-gray-900">
+                      All Contracts
+                    </h3>
+                    <span className="rounded-full bg-orange-50 px-3 py-1 text-base font-medium text-primary">
+                      {contracts.length} total
+                    </span>
+                  </div>
+
+                  <div className="max-h-[520px] space-y-3 overflow-y-auto pr-1">
+                    {contracts.length > 0 ? (
+                      contracts.map((contractItem: any) => {
+                        const isSelected =
+                          estimateForm.contractId === contractItem.id;
+
+                        return (
+                          <button
+                            key={contractItem.id}
+                            type="button"
+                            onClick={() => {
+                              setEstimateForm((prev) => ({
+                                ...prev,
+                                contractId: contractItem.id,
+                              }));
+                              setAddContractModalOpen(false);
+                            }}
+                            className={`w-full rounded-2xl border p-4 text-left transition ${
+                              isSelected
+                                ? "border-primary bg-orange-50"
+                                : "border-gray-200 hover:border-orange-300 hover:bg-orange-50/60"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="space-y-1">
+                                <p className="text-base font-semibold text-gray-900">
+                                  {contractItem.title}
+                                </p>
+                                <p className="text-base leading-6 text-gray-600">
+                                  {contractItem.description}
+                                </p>
+                              </div>
+
+                              <div className="flex  items-center gap-2 ">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteContract(contractItem.id);
+                                  }}
+                                  className=""
+                                  aria-label={`Delete ${contractItem.title}`}
+                                >
+                                  <RiDeleteBin4Line
+                                    size={20}
+                                    className="text-red-500 hover:text-red-600"
+                                  />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditContract({
+                                      id: contractItem.id,
+                                      title: contractItem.title || "",
+                                      description:
+                                        contractItem.description || "",
+                                    });
+                                  }}
+                                  className=""
+                                  aria-label={`Edit ${contractItem.title}`}
+                                >
+                                  <CiEdit
+                                    size={25}
+                                    className="text-blue-600 hover:text-blue-700"
+                                  />
+                                </button>
+
+                                {isSelected && (
+                                  <span className="rounded-full bg-primary px-3 py-1 text-base font-medium text-white">
+                                    Selected
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <div className="flex min-h-[180px] items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-gray-50 text-base text-gray-400">
+                        No contracts found
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div>
           {lineItemTables.map((table, index) => (
@@ -1327,7 +1582,7 @@ export default function EditEstimate() {
                       <div className="border rounded-xl overflow-hidden">
                         {/* Row */}
                         <div className="grid grid-cols-1 md:grid-cols-6 border">
-                          <div className="col-span-1 md:col-span-1 border-r md:border-r p-2 text-sm text-gray-500 text-left">
+                          <div className="col-span-1 md:col-span-1 border-r md:border-r p-2 text-base text-gray-500 text-left">
                             <label className="block md:hidden font-medium mb-1">
                               Description
                             </label>
@@ -1346,7 +1601,7 @@ export default function EditEstimate() {
 
                           {/* Rate */}
                           <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0 md:p-0 text-center">
-                            <label className="block md:hidden text-sm font-medium mb-1 ">
+                            <label className="block md:hidden text-base font-medium mb-1 ">
                               Rate
                             </label>
                             <input
@@ -1379,7 +1634,7 @@ export default function EditEstimate() {
 
                           {/* Markup */}
                           <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0 md:p-0 text-center">
-                            <label className="block md:hidden text-sm font-medium mb-1">
+                            <label className="block md:hidden text-base font-medium mb-1">
                               Markup
                             </label>
                             <input
@@ -1395,7 +1650,7 @@ export default function EditEstimate() {
 
                           {/* Quantity */}
                           <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0 md:p-0 text-center">
-                            <label className="block md:hidden text-sm font-medium mb-1">
+                            <label className="block md:hidden text-base font-medium mb-1">
                               Quantity
                             </label>
                             <input
@@ -1433,7 +1688,7 @@ export default function EditEstimate() {
 
                           {/* Tax */}
                           <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0 md:p-0 text-center">
-                            <label className="block md:hidden text-sm font-medium mb-1">
+                            <label className="block md:hidden text-base font-medium mb-1">
                               Tax
                             </label>
                             <input
@@ -1447,7 +1702,7 @@ export default function EditEstimate() {
 
                           {/* Total */}
                           <div className="md:col-span-1 p-2 text-center">
-                            <label className="block md:hidden text-sm font-medium mb-1">
+                            <label className="block md:hidden text-base font-medium mb-1">
                               Total
                             </label>
                             <input
@@ -1463,16 +1718,16 @@ export default function EditEstimate() {
                           {!item.itemName ? (
                             <textarea
                               placeholder="Notes"
-                              className="w-full p-2 text-sm outline-none"
+                              className="w-full p-2 text-base outline-none"
                             />
                           ) : (
                             <div className="mt-2">
-                              {/* <p className="text-sm font-semibold">
+                              {/* <p className="text-base font-semibold">
                                 {item.itemName}
                               </p> */}
 
                               {item.description && (
-                                <p className="text-xs text-gray-500">
+                                <p className="text-base text-gray-500">
                                   {item.description}
                                 </p>
                               )}
@@ -1538,7 +1793,7 @@ export default function EditEstimate() {
                   <button
                     type="button"
                     onClick={() => removeSideMap(idx)}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2"
+                    className="absolute -top-2 -right-2 bg-red-500 text-white text-base rounded-full px-2"
                   >
                     x
                   </button>
@@ -1571,7 +1826,7 @@ export default function EditEstimate() {
                   <button
                     type="button"
                     onClick={() => removeExistingSideMap(idx)}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2"
+                    className="absolute -top-2 -right-2 bg-red-500 text-white text-base rounded-full px-2"
                   >
                     x
                   </button>
@@ -1633,7 +1888,7 @@ export default function EditEstimate() {
                 <button
                   type="button"
                   onClick={() => removeExistingImage(idx)}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2"
+                  className="absolute -top-2 -right-2 bg-red-500 text-white text-base rounded-full px-2"
                 >
                   x
                 </button>
@@ -1653,7 +1908,7 @@ export default function EditEstimate() {
                 <button
                   type="button"
                   onClick={() => removeImage(idx)}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2"
+                  className="absolute -top-2 -right-2 bg-red-500 text-white text-base rounded-full px-2"
                 >
                   x
                 </button>
@@ -1869,7 +2124,9 @@ export default function EditEstimate() {
                     <p className="font-semibold text-gray-800">
                       {item.itemName}
                     </p>
-                    <p className="text-sm text-gray-500">{item.description}</p>
+                    <p className="text-base text-gray-500">
+                      {item.description}
+                    </p>
                   </div>
 
                   <div className="text-right min-w-[80px]">
@@ -1929,11 +2186,11 @@ export default function EditEstimate() {
                     className="p-3 border rounded-lg cursor-pointer hover:bg-orange-50"
                   >
                     <p className="font-semibold">{m.name}</p>
-                    <p className="text-sm text-gray-500">{m.percentage}%</p>
+                    <p className="text-base text-gray-500">{m.percentage}%</p>
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-gray-400 text-center">
+                <p className="text-base text-gray-400 text-center">
                   No markup found
                 </p>
               )}
@@ -1984,7 +2241,7 @@ export default function EditEstimate() {
             <div className="space-y-4">
               {/* NAME */}
               <div>
-                <label className="text-sm text-gray-600 mb-1 block">
+                <label className="text-base text-gray-600 mb-1 block">
                   Markup Name
                 </label>
                 <input
@@ -2003,7 +2260,7 @@ export default function EditEstimate() {
 
               {/* PERCENTAGE */}
               <div>
-                <label className="text-sm text-gray-600 mb-1 block">
+                <label className="text-base text-gray-600 mb-1 block">
                   Percentage (%)
                 </label>
                 <input
@@ -2081,11 +2338,11 @@ export default function EditEstimate() {
                     className="p-3 border rounded-lg cursor-pointer hover:bg-orange-50"
                   >
                     <p className="font-semibold">{t.name}</p>
-                    <p className="text-sm text-gray-500">{t.percentage}%</p>
+                    <p className="text-base text-gray-500">{t.percentage}%</p>
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-gray-400 text-center">
+                <p className="text-base text-gray-400 text-center">
                   No tax found
                 </p>
               )}
@@ -2188,7 +2445,7 @@ export default function EditEstimate() {
 
             {/* Client Name */}
             <div>
-              <label className="text-sm">Client Name</label>
+              <label className="text-base">Client Name</label>
               <input
                 name="clientName"
                 value={formData.clientName}
@@ -2201,7 +2458,7 @@ export default function EditEstimate() {
             {/* Email + Phone */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm">Email Address</label>
+                <label className="text-base">Email Address</label>
                 <input
                   name="email"
                   value={formData.email}
@@ -2212,7 +2469,7 @@ export default function EditEstimate() {
               </div>
 
               <div>
-                <label className="text-sm">Phone Number</label>
+                <label className="text-base">Phone Number</label>
                 <input
                   name="phoneNumber"
                   value={formData.phoneNumber}
@@ -2227,7 +2484,7 @@ export default function EditEstimate() {
 
             {/* Address */}
             <div>
-              <label className="text-sm">Address</label>
+              <label className="text-base">Address</label>
               <input
                 name="address"
                 value={formData.address}
@@ -2240,7 +2497,7 @@ export default function EditEstimate() {
             {/* City + State */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm">City</label>
+                <label className="text-base">City</label>
                 <input
                   name="city"
                   value={formData.city}
@@ -2251,7 +2508,7 @@ export default function EditEstimate() {
               </div>
 
               <div>
-                <label className="text-sm">State</label>
+                <label className="text-base">State</label>
                 <input
                   name="state"
                   value={formData.state}
@@ -2264,7 +2521,7 @@ export default function EditEstimate() {
 
             {/* Zip */}
             <div>
-              <label className="text-sm">Zip</label>
+              <label className="text-base">Zip</label>
               <input
                 name="zip"
                 value={formData.zip}
@@ -2306,7 +2563,7 @@ export default function EditEstimate() {
             <div className="space-y-4">
               {/* NAME */}
               <div>
-                <label className="text-sm text-gray-600 mb-1 block">
+                <label className="text-base text-gray-600 mb-1 block">
                   Markup Name
                 </label>
                 <input
@@ -2324,7 +2581,7 @@ export default function EditEstimate() {
 
               {/* PERCENTAGE */}
               <div>
-                <label className="text-sm text-gray-600 mb-1 block">
+                <label className="text-base text-gray-600 mb-1 block">
                   Percentage (%)
                 </label>
                 <input
@@ -2378,11 +2635,11 @@ export default function EditEstimate() {
                     className="p-3 border rounded-lg cursor-pointer hover:bg-orange-50"
                   >
                     <p className="font-semibold">{m.name}</p>
-                    <p className="text-sm text-gray-500">{m.percentage}%</p>
+                    <p className="text-base text-gray-500">{m.percentage}%</p>
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-gray-400 text-center">
+                <p className="text-base text-gray-400 text-center">
                   No markup found
                 </p>
               )}

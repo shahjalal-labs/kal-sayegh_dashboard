@@ -53,7 +53,11 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
 
   const isActive = (href: string) => {
     if (href.includes("/estimate")) {
-      return pathname.includes("/estimate");
+      return (
+        pathname.includes("/estimate") ||
+        pathname.includes("/edit-estimate") ||
+        pathname.includes("/admin/edit-estimate")
+      );
     }
     if (href.includes("/employee-management")) {
       return pathname.includes("/employee-management");
@@ -64,6 +68,7 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
     if (href.includes("/invoice")) {
       return pathname.includes("/invoice") || pathname.includes("/add-invoice");
     }
+
     if (href.includes("/office-administration")) {
       return pathname.includes("/office-administration");
     }
