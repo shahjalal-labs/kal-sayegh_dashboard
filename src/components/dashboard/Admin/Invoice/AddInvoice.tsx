@@ -70,7 +70,10 @@ export default function AddInvoice() {
   const handleCreateClient = async () => {
     try {
       await createClient(clientForm).unwrap();
+
+      toast.success("Client created successfully!");
       setOpenClientModal(false);
+
       setClientForm({
         clientName: "",
         email: "",
@@ -80,8 +83,8 @@ export default function AddInvoice() {
         state: "",
         zip: "",
       });
-    } catch (error) {
-      console.error("Failed to create client:", error);
+    } catch (error: any) {
+      toast.error("Failed to create client:", error);
     }
   };
 
@@ -473,69 +476,6 @@ export default function AddInvoice() {
                   }
                 />
               </div>
-
-              {/* Sign Buttons */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      clientSign: !prev.clientSign,
-                    }))
-                  }
-                  className={`flex items-center justify-between rounded-xl border px-4 py-3 transition ${
-                    formData.clientSign
-                      ? "border-primary bg-orange-50"
-                      : "border-gray-200 bg-white"
-                  }`}
-                >
-                  <span className="text-sm font-medium text-gray-700">
-                    Client Sign
-                  </span>
-                  <span
-                    className={`flex h-6 w-11 items-center rounded-full p-1 transition ${
-                      formData.clientSign ? "bg-primary" : "bg-gray-300"
-                    }`}
-                  >
-                    <span
-                      className={`h-4 w-4 rounded-full bg-white transition ${
-                        formData.clientSign ? "translate-x-5" : "translate-x-0"
-                      }`}
-                    />
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      mySign: !prev.mySign,
-                    }))
-                  }
-                  className={`flex items-center justify-between rounded-xl border px-4 py-3 transition ${
-                    formData.mySign
-                      ? "border-primary bg-orange-50"
-                      : "border-gray-200 bg-white"
-                  }`}
-                >
-                  <span className="text-sm font-medium text-gray-700">
-                    My Sign
-                  </span>
-                  <span
-                    className={`flex h-6 w-11 items-center rounded-full p-1 transition ${
-                      formData.mySign ? "bg-primary" : "bg-gray-300"
-                    }`}
-                  >
-                    <span
-                      className={`h-4 w-4 rounded-full bg-white transition ${
-                        formData.mySign ? "translate-x-5" : "translate-x-0"
-                      }`}
-                    />
-                  </span>
-                </button>
-              </div>
             </div>
           </div>
 
@@ -651,9 +591,70 @@ export default function AddInvoice() {
 
           <CommonTable key={tableKey} onDataChange={setTableData} />
 
+          {/* Sign Buttons */}
+          <div className="flex justify-end mt-5">
+            <div className="grid grid-cols-1 md:grid-cols-2  gap-3 w-full md:w-80 mt-6 ">
+              <button
+                type="button"
+                onClick={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    clientSign: !prev.clientSign,
+                  }))
+                }
+                className={`flex items-center justify-between  transition ${
+                  formData.clientSign ? "" : ""
+                }`}
+              >
+                <span className="text-xl font-medium text-gray-700">
+                  Client Sign
+                </span>
+                <span
+                  className={`flex h-6 w-11 items-center rounded-full p-1 transition ${
+                    formData.clientSign ? "bg-primary" : "bg-gray-300"
+                  }`}
+                >
+                  <span
+                    className={`h-4 w-4 rounded-full bg-white transition ${
+                      formData.clientSign ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    mySign: !prev.mySign,
+                  }))
+                }
+                className={`flex items-center justify-between rounded-xl px-4 py-3 transition ${
+                  formData.mySign ? "" : ""
+                }`}
+              >
+                <span className="text-xl font-medium text-gray-700">
+                  My Sign
+                </span>
+                <span
+                  className={`flex h-6 w-11 items-center rounded-full p-1 transition ${
+                    formData.mySign ? "bg-primary" : "bg-gray-300"
+                  }`}
+                >
+                  <span
+                    className={`h-4 w-4 rounded-full bg-white transition ${
+                      formData.mySign ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </span>
+              </button>
+            </div>
+          </div>
+
           {/* Online Payment */}
           <div className="flex justify-end">
-            <div className="mt-6 w-full  md:w-80 space-y-2 text-base flex justify-end">
+            <div className=" w-full  md:w-80 space-y-2 text-base flex justify-end">
               <div className="mt-8">
                 <h2 className="text-xl font-semibold border-b py-3">
                   Online Payment

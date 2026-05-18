@@ -158,6 +158,14 @@ const invoiceApi = baseApi.injectEndpoints({
         method: "POST",
       }),
     }),
+
+    updateInvoice: builder.mutation({
+      query: ({ invoiceId, formData }) => ({
+        url: `/invoice/update/${invoiceId}`,
+        method: "PUT",
+        body: formData,
+      }),
+    }),
   }),
 });
 
@@ -175,4 +183,5 @@ export const {
   useUpdateEmailStatusMutation,
   useGenerateFromEstimateMutation,
   usePaymentIntentMutation,
+  useUpdateInvoiceMutation,
 } = invoiceApi;

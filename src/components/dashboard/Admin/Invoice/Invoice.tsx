@@ -8,10 +8,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/Pagination";
-import {
-  useGetAllInvoiceQuery,
-  useUpdateEmailStatusMutation,
-} from "@/redux/api/admin/invoiceApi";
+import { useGetAllInvoiceQuery } from "@/redux/api/admin/invoiceApi";
 import { PencilLine, PenLine, Plus, Search } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -24,7 +21,6 @@ import Link from "next/link";
 
 export default function Invoice() {
   const router = useRouter();
-  const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("active");
   const [page, setPage] = useState(1);
@@ -39,8 +35,6 @@ export default function Invoice() {
     page,
     searchTerm: searchTerm,
   });
-
-  const [updateEmailStatus] = useUpdateEmailStatusMutation();
 
   const apiResult = invoicesData?.result;
   const rawInvoices = apiResult?.data || [];

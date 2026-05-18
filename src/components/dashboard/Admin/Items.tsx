@@ -199,7 +199,7 @@ export default function Items() {
     <div className="p-4  bg-gray-50 min-h-screen">
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <h1 className="text-xl md:text-3xl font-semibold px-9">Item List</h1>
+        <h1 className="text-xl md:text-3xl font-semibold md:px-9">Item List</h1>
 
         <div className="flex gap-3 w-full md:w-auto">
           {/* SEARCH */}
@@ -226,10 +226,10 @@ export default function Items() {
           filteredItems.map((item: any) => (
             <div
               key={item.id}
-              className="p-4 flex justify-between items-start hover:bg-orange-50 transition"
+              className="md:p-4 flex justify-between items-start hover:bg-orange-50 transition"
             >
               <div className="space-y-1">
-                <h2 className="font-semibold text-gray-800 uppercase text-2xl">
+                <h2 className="font-semibold text-gray-800 uppercase  text-lg md:text-xl">
                   {item.itemName}
                 </h2>
 
