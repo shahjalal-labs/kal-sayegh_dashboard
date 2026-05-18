@@ -1,6 +1,10 @@
-import { useSendInvoiceMailMutation } from "@/redux/api/admin/invoiceApi";
-import { LucideMoreHorizontal } from "lucide-react";
-import { useState } from "react";
+import {
+  useGetInvoicePaymentsQuery,
+  useInvoiceManualPaymentMutation,
+  useRefundPaymentMutation,
+  useSendInvoiceMailMutation,
+} from "@/redux/api/admin/invoiceApi";
+import { useEffect, useState } from "react";
 import { MultiValue, StylesConfig } from "react-select";
 import CreatableSelect from "react-select/creatable";
 import { toast } from "sonner";
@@ -10,6 +14,7 @@ type PaymentModalProps = {
   invoiceId: string;
   invoiceName?: string;
   recipientEmails?: string[];
+  totalDue?: number;
 };
 
 type EmailOption = {
@@ -100,15 +105,49 @@ const formatDate = (value: string) => {
   }).format(date);
 };
 
+const normalizePaymentRecords = (data: any): PaymentTransaction[] => {
+  const rawRecords = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.result)
+      ? data.result
+      : Array.isArray(data?.result?.data)
+        ? data.result.data
+        : Array.isArray(data?.data)
+          ? data.data
+          : Array.isArray(data?.payments)
+            ? data.payments
+            : [];
+
+  return rawRecords.map((record: any, index: number) => ({
+    id: String(record?.id || record?._id || index),
+    type:
+      String(record?.type || record?.kind || "payment").toLowerCase() ===
+      "refund"
+        ? "refund"
+        : "payment",
+    amount: Number(
+      record?.amount ?? record?.paidAmount ?? record?.paymentAmount ?? 0,
+    ),
+    date: String(
+      record?.paymentDate || record?.date || record?.createdAt || "",
+    ),
+    method: String(record?.paymentMethod || record?.method || "Cash"),
+    checkNumber: record?.checkNumber,
+    description: record?.description,
+    status: record?.status,
+  }));
+};
+
 const PaymentModal = ({
   onClose,
   invoiceId,
   invoiceName,
   recipientEmails = [],
+  totalDue: totalDueProp = 0,
 }: PaymentModalProps) => {
   const [isReminderOpen, setIsReminderOpen] = useState(false);
   const [isRecordPayment, setIsRecordPayment] = useState(false);
-  const [showPaymentList, setShowPaymentList] = useState(false);
+  const [showPaymentList, setShowPaymentList] = useState(true);
 
   const [sendMeCopy, setSendMeCopy] = useState(false);
   const [recipientInput, setRecipientInput] = useState("");
@@ -127,6 +166,14 @@ const PaymentModal = ({
       .filter((email) => email.trim())
       .map((email) => ({ label: email, value: email })),
   );
+
+  useEffect(() => {
+    setRecipients(
+      recipientEmails
+        .filter((email) => email.trim())
+        .map((email) => ({ label: email, value: email })),
+    );
+  }, [recipientEmails]);
 
   const [subject, setSubject] = useState(
     invoiceName
@@ -148,13 +195,36 @@ const PaymentModal = ({
     "details" | "refund" | null
   >(null);
 
+  const { data: paymentsData, refetch: refetchPayments } =
+    useGetInvoicePaymentsQuery(invoiceId, {
+      skip: !invoiceId,
+    });
+
+  const summary = paymentsData?.result?.summary;
+
+  const [recordInvoicePayment, { isLoading: isRecordingPayment }] =
+    useInvoiceManualPaymentMutation();
+  const [issueRefund, { isLoading: isRefundingPayment }] =
+    useRefundPaymentMutation();
+
   const [sendInvoiceMail, { isLoading: isSendingReminder }] =
     useSendInvoiceMailMutation();
 
-  const totalDue = 1800;
-  const totalPaid = 0;
-  const paidPercentage = 80;
-  const transactions: PaymentTransaction[] = [];
+  const totalDue = Number(summary?.totalDue ?? totalDueProp ?? 0);
+  const transactions = normalizePaymentRecords(paymentsData);
+  const totalPaidFromTransactions = transactions.reduce((sum, payment) => {
+    const amount = Number(payment.amount || 0);
+    return payment.type === "refund" ? sum - amount : sum + amount;
+  }, 0);
+  const totalPaid = Number(
+    summary?.totalPaid ?? totalPaidFromTransactions ?? 0,
+  );
+  const paidPercentage =
+    totalDue > 0
+      ? Math.min(100, Math.max(0, (totalPaid / totalDue) * 100))
+      : totalPaid > 0
+        ? 100
+        : 0;
 
   const calculatedRecordAmount = (() => {
     const numericAmount = Number(recordPaymentForm.amount || 0);
@@ -169,6 +239,15 @@ const PaymentModal = ({
 
     return numericAmount;
   })();
+
+  useEffect(() => {
+    if (recordPaymentForm.amountMode === "FULL") {
+      setRecordPaymentForm((prev) => ({
+        ...prev,
+        amount: String(totalDue || 0),
+      }));
+    }
+  }, [recordPaymentForm.amountMode, totalDue]);
 
   const amountPlaceholder =
     recordPaymentForm.amountMode === "$"
@@ -237,7 +316,7 @@ const PaymentModal = ({
     try {
       await sendInvoiceMail({
         invoiceId,
-        data: {
+        payload: {
           message: message.trim(),
           sendMeCopy,
           subject: subject.trim(),
@@ -253,13 +332,83 @@ const PaymentModal = ({
   };
 
   const handleRecordPayment = async () => {
-    toast.success(`Payment of ${formatCurrency(calculatedRecordAmount)} recorded.`);
-    setIsRecordPayment(false);
+    if (!invoiceId) {
+      toast.error("Invoice id is missing.");
+      return;
+    }
+
+    if (!calculatedRecordAmount || calculatedRecordAmount <= 0) {
+      toast.error("Enter a valid payment amount.");
+      return;
+    }
+
+    // convert date input (YYYY-MM-DD) to ISO datetime (UTC) expected by backend
+    const paymentDateIso = ((): string => {
+      const raw = recordPaymentForm.paymentDate;
+      if (!raw) return new Date().toISOString();
+      const parts = raw.split("-");
+      if (parts.length !== 3) return new Date(raw).toISOString();
+      const y = Number(parts[0]);
+      const m = Number(parts[1]) - 1;
+      const d = Number(parts[2]);
+      return new Date(Date.UTC(y, m, d, 0, 0, 0)).toISOString();
+    })();
+
+    try {
+      await recordInvoicePayment({
+        invoiceId,
+        payload: {
+          amount: calculatedRecordAmount,
+          amountMode: recordPaymentForm.amountMode,
+          paymentDate: paymentDateIso,
+          paymentMethod: recordPaymentForm.paymentMethod,
+          checkNumber:
+            recordPaymentForm.paymentMethod === "CHECK"
+              ? recordPaymentForm.checkNumber.trim()
+              : "",
+        },
+      }).unwrap();
+
+      toast.success(
+        `Payment of ${formatCurrency(calculatedRecordAmount)} recorded.`,
+      );
+      setIsRecordPayment(false);
+      await refetchPayments();
+    } catch (error) {
+      toast.error((error as any)?.data?.message || "Failed to record payment.");
+    }
   };
 
   const handleRefund = async () => {
-    toast.success(`Refund of ${formatCurrency(Number(refundAmount || 0))} prepared.`);
-    setActiveActionModal(null);
+    if (!activeTransaction?.id) {
+      toast.error("Select a payment to refund.");
+      return;
+    }
+
+    const amount = Number(refundAmount || activeTransaction?.amount || 0);
+
+    if (!amount || amount <= 0) {
+      toast.error("Enter a valid refund amount.");
+      return;
+    }
+
+    try {
+      await issueRefund({
+        paymentId: activeTransaction.id,
+        payload: {
+          amount,
+          reason: refund.reason.trim(),
+        },
+      }).unwrap();
+
+      toast.success(`Refund of ${formatCurrency(amount)} prepared.`);
+      setActiveActionModal(null);
+      setRefundAmount("");
+      setrefund({ amount: 0, reason: "" });
+      await refetchPayments();
+    } catch (error) {
+      toast.error((error as any)?.data?.message || "Failed to issue refund.");
+    }
   };
 
   return (
@@ -275,9 +424,9 @@ const PaymentModal = ({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Payments</h2>
+          <h2 className="text-xl font-semibold">Payments</h2>
           <button
-            className="bg-primary text-white px-4 py-2 rounded-md text-base"
+            className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-md text-base"
             onClick={() => {
               setIsRecordPayment(true);
               setIsReminderOpen(false);
@@ -289,20 +438,25 @@ const PaymentModal = ({
 
         <div className="bg-gray-100 p-4 rounded-md">
           <div className="flex justify-between text-base font-semibold mb-2">
-            <p>PAID</p>
-            <p className="text-gray-600">DUE $1800.00</p>
+            <p className="uppercase text-xl font-normal">Paid</p>
+            <p className="text-xl font-normal">DUE ${summary?.totalDue}</p>
           </div>
 
-          <div className="w-full h-8 rounded-sm flex items-center">
-            <input
-              type="text"
-              defaultValue="0"
-              className="w-full h-full bg-gray-400 text-white border-none p-3 focus:outline-none"
-            />
+          <div className="w-full h-10 overflow-hidden  bg-[#8F8F8F] flex items-center">
+            <div
+              className="flex h-full items-center justify-between  bg-[#008000] px-3 text-white transition-all duration-300"
+              style={{
+                width: `${Math.min(100, Math.max(0, paidPercentage))}%`,
+              }}
+            >
+              <span className="whitespace-nowrap font-normal">
+                {formatCurrency(totalPaid)} of {formatCurrency(totalDue)}
+              </span>
+            </div>
           </div>
 
           <div
-            className="mt-3 flex items-center gap-2 text-primary text-base cursor-pointer"
+            className="mt-3 flex items-center gap-2 text-primary hover:text-orange-400 text-base cursor-pointer"
             onClick={(event) => {
               event.stopPropagation();
               setIsReminderOpen(true);
@@ -314,108 +468,81 @@ const PaymentModal = ({
           </div>
         </div>
 
-        {showPaymentList && (
-          <div className="mt-6 space-y-4">
-            <div className="flex items-start justify-between border-b border-gray-200 pb-4">
-              <div>
-                <p className="text-base font-semibold text-gray-900">
-                  $1600.00
-                </p>
-                <p className="text-sm text-gray-500">Apr 20 Mon, 2026 / Cash</p>
-              </div>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setActiveMenuId((prev) =>
-                      prev === "payment" ? null : "payment",
-                    )
-                  }
-                  className="h-9 w-12 rounded-md bg-gray-100 text-sm text-gray-700"
-                  aria-label="Payment actions"
-                >
-                  ---
-                </button>
-                {activeMenuId === "payment" && (
-                  <div className="absolute right-0 top-11 z-10 w-32 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveActionModal("details");
-                        setActiveMenuId(null);
-                      }}
-                      className="block w-full px-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50"
-                    >
-                      Details
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveActionModal("refund");
-                        setActiveMenuId(null);
-                      }}
-                      className="block w-full px-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50"
-                    >
-                      Issue Refund
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+        {transactions.length > 0
+          ? transactions.map((transaction) => (
+              <div
+                key={transaction.id}
+                className="flex items-start justify-between border-b border-gray-200 pb-4"
+              >
+                <div>
+                  <p
+                    className={`text-base font-semibold ${
+                      transaction.type === "refund"
+                        ? "text-gray-400"
+                        : "text-gray-900"
+                    }`}
+                  >
+                    {transaction.type === "refund" ? "-" : "+"}
+                    {formatCurrency(Math.abs(transaction.amount))}
+                    {transaction.type === "refund" ? " (Refund)" : ""}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {formatDate(transaction.date)} / {transaction.method}
+                  </p>
+                </div>
 
-            <div className="flex items-start justify-between border-b border-gray-200 pb-4">
-              <div>
-                <p className="text-base font-semibold text-gray-400">
-                  $1600.00 (Refund)
-                </p>
-                <p className="text-sm text-gray-400">Apr 20 Mon, 2026 / Cash</p>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setActiveMenuId((prev) =>
+                        prev === transaction.id ? null : transaction.id,
+                      )
+                    }
+                    className="h-9 w-12 rounded-md bg-gray-100 text-base text-gray-700"
+                    aria-label={`${transaction.type} actions`}
+                  >
+                    ---
+                  </button>
+                  {activeMenuId === transaction.id && (
+                    <div className="absolute right-0 top-11 z-10 w-32 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTransaction(transaction);
+                          setActiveActionModal("details");
+                          setActiveMenuId(null);
+                        }}
+                        className="block w-full px-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50"
+                      >
+                        Details
+                      </button>
+                      {transaction.type === "payment" && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveTransaction(transaction);
+                            setRefundAmount(
+                              String(Math.abs(transaction.amount)),
+                            );
+                            setActiveActionModal("refund");
+                            setActiveMenuId(null);
+                          }}
+                          className="block w-full px-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50"
+                        >
+                          Issue Refund
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setActiveMenuId((prev) =>
-                      prev === "refund" ? null : "refund",
-                    )
-                  }
-                  className="h-9 w-12 rounded-md bg-gray-100 text-sm text-gray-700"
-                  aria-label="Refund actions"
-                >
-                  ---
-                </button>
-                {activeMenuId === "refund" && (
-                  <div className="absolute right-0 top-11 z-10 w-32 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveActionModal("details");
-                        setActiveMenuId(null);
-                      }}
-                      className="block w-full px-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50"
-                    >
-                      Details
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveActionModal("refund");
-                        setActiveMenuId(null);
-                      }}
-                      className="block w-full px-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50"
-                    >
-                      Issue Refund
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
+            ))
+          : null}
         <div className="flex justify-end mt-6">
           <button
             type="button"
-            className="bg-primary hover:bg-orange-600 transition-colors text-white px-6 py-2 rounded-md text-base"
+            className="bg-primary hover:bg-primary/90 transition-colors text-white px-6 py-2 rounded-md text-base"
             onClick={handleClose}
           >
             Close
@@ -441,7 +568,7 @@ const PaymentModal = ({
 
             <div className="mt-8 space-y-8">
               <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-900">
+                <label className="block text-lg font-medium text-gray-900">
                   To
                 </label>
                 <CreatableSelect<EmailOption, true>
@@ -476,14 +603,14 @@ const PaymentModal = ({
               </div>
 
               <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-900">
+                <label className="block text-lg font-medium text-gray-900">
                   Subject
                 </label>
                 <input
                   type="text"
                   value={subject}
                   onChange={(event) => setSubject(event.target.value)}
-                  className="h-12 w-full rounded-xl border border-gray-200 px-4 text-sm text-gray-700 outline-none placeholder:text-gray-400 focus:border-primary"
+                  className="h-12 w-full rounded-xl border border-gray-200 px-4 text-base text-gray-700 outline-none placeholder:text-gray-400 focus:border-primary"
                 />
               </div>
 
@@ -502,20 +629,20 @@ const PaymentModal = ({
                     }`}
                   />
                 </button>
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-base font-medium text-gray-700">
                   Send me a copy
                 </span>
               </div>
 
               <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-900">
+                <label className="block text-lg font-medium text-gray-900">
                   Message
                 </label>
                 <textarea
                   rows={5}
                   value={message}
                   onChange={(event) => setMessage(event.target.value)}
-                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm leading-6 text-gray-700 outline-none placeholder:text-gray-400 focus:border-primary"
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-base leading-6 text-gray-700 outline-none placeholder:text-gray-400 focus:border-primary"
                   placeholder="Write your reminder message"
                 />
               </div>
@@ -675,7 +802,7 @@ const PaymentModal = ({
           }}
         >
           <div
-            className="w-full max-w-[640px] rounded-2xl bg-white p-6 shadow-xl"
+            className="w-full max-w-[700px] rounded-2xl bg-white p-6 shadow-xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-5 flex items-center gap-3">
@@ -687,21 +814,19 @@ const PaymentModal = ({
               >
                 ←
               </button>
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-xl font-semibold text-gray-900">
                 Record Payment
               </h2>
             </div>
 
             <div className="mb-6 rounded-xl bg-gray-100 p-4 text-base">
-              <div className="mb-2 flex justify-between text-xs font-normal">
-                <span className="text-base">PAID</span>
-                <span className="text-base font-normal">
-                  DUE {formatCurrency(totalDue)}
-                </span>
+              <div className="mb-2 flex justify-between text-xl font-normal">
+                <span>PAID</span>
+                <span>DUE ${summary.totalDue}</span>
               </div>
-              <div className=" w-full overflow-hidden rounded-sm bg-gray-300">
+              <div className=" w-full overflow-hidden rounded-sm bg-[#8F8F8F]">
                 <div
-                  className="flex h-full items-center justify-between bg-green-700 px-3 py-3 text-base text-white transition-all duration-300"
+                  className="flex h-full items-center bg-[#008000] px-3 py-3 text-base text-white transition-all duration-300"
                   style={{ width: `${paidPercentage}%` }}
                 >
                   <span>{formatCurrency(totalPaid)}</span>
@@ -713,25 +838,31 @@ const PaymentModal = ({
               </div>
             </div>
 
-            <h3 className="mb-3 text-base font-semibold text-gray-900">
+            <h3 className="mb-3 text-xl font-semibold text-gray-900">
               Record Payment
             </h3>
 
             <div className="space-y-4">
               <div>
-                <label className="text-sm text-gray-600">Amount</label>
+                <label className="text-lg text-gray-600">Amount</label>
                 <div className="mt-2 flex gap-3">
                   <input
                     type="text"
-                    value={recordPaymentForm.amount}
+                    value={
+                      recordPaymentForm.amountMode === "FULL"
+                        ? String(totalDue || 0)
+                        : recordPaymentForm.amount
+                    }
                     placeholder={amountPlaceholder}
                     onChange={(e) =>
+                      recordPaymentForm.amountMode !== "FULL" &&
                       setRecordPaymentForm((prev) => ({
                         ...prev,
                         amount: e.target.value.replace(/[^0-9.]/g, ""),
                       }))
                     }
-                    className="w-full rounded-lg border px-3 py-2 text-base focus:outline-none focus:ring-1 focus:ring-primary"
+                    readOnly={recordPaymentForm.amountMode === "FULL"}
+                    className={`w-full rounded-lg border px-3 py-2 text-base focus:outline-none focus:ring-1 focus:ring-primary ${recordPaymentForm.amountMode === "FULL" ? "bg-gray-100" : ""}`}
                   />
                   <div className="flex overflow-hidden rounded-lg border border-gray-300 w-56">
                     <button
@@ -743,7 +874,7 @@ const PaymentModal = ({
                           amount: "",
                         }))
                       }
-                      className={`border-r border-gray-300 px-4 text-sm font-semibold ${recordPaymentForm.amountMode === "$" ? "text-white bg-primary" : "text-gray-500"}`}
+                      className={`border-r border-gray-300 px-4 text-base font-semibold ${recordPaymentForm.amountMode === "$" ? "text-white bg-primary" : "text-gray-500"}`}
                     >
                       $
                     </button>
@@ -756,7 +887,7 @@ const PaymentModal = ({
                           amount: "",
                         }))
                       }
-                      className={`border-r border-gray-300 px-4 text-sm ${recordPaymentForm.amountMode === "%" ? "text-white bg-primary" : "text-gray-500"}`}
+                      className={`border-r border-gray-300 px-4 text-base ${recordPaymentForm.amountMode === "%" ? "text-white bg-primary" : "text-gray-500"}`}
                     >
                       %
                     </button>
@@ -769,7 +900,7 @@ const PaymentModal = ({
                           amount: String(totalDue),
                         }))
                       }
-                      className={`px-4 text-sm ${recordPaymentForm.amountMode === "FULL" ? "text-white bg-primary" : "text-gray-500"}`}
+                      className={`px-4 text-base ${recordPaymentForm.amountMode === "FULL" ? "text-white bg-primary" : "text-gray-500"}`}
                     >
                       FULL
                     </button>
@@ -778,7 +909,7 @@ const PaymentModal = ({
               </div>
 
               <div>
-                <label className="text-sm text-gray-600">Payment Date</label>
+                <label className="text-lg text-gray-600">Payment Date</label>
 
                 <div className="relative mt-2">
                   <input
@@ -790,13 +921,13 @@ const PaymentModal = ({
                         paymentDate: e.target.value,
                       }))
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary "
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-base focus:outline-none focus:ring-1 focus:ring-primary "
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-sm text-gray-600">Payment Method</label>
+                <label className="text-lg text-gray-600">Payment Method</label>
                 <div className="mt-2 grid grid-cols-4 overflow-hidden rounded-lg border border-gray-300">
                   <button
                     type="button"
@@ -819,7 +950,7 @@ const PaymentModal = ({
                         paymentMethod: "CHECK",
                       }))
                     }
-                    className={`border-l border-gray-300 py-2 text-sm ${recordPaymentForm.paymentMethod === "CHECK" ? "bg-primary text-white" : "text-gray-500"}`}
+                    className={`border-l border-gray-300 py-2 text-base ${recordPaymentForm.paymentMethod === "CHECK" ? "bg-primary text-white" : "text-gray-500"}`}
                   >
                     Check
                   </button>
@@ -832,7 +963,7 @@ const PaymentModal = ({
                         checkNumber: "",
                       }))
                     }
-                    className={`border-l border-gray-300 py-2 text-sm ${recordPaymentForm.paymentMethod === "CARD" ? "bg-primary text-white" : "text-gray-500"}`}
+                    className={`border-l border-gray-300 py-2 text-base ${recordPaymentForm.paymentMethod === "CARD" ? "bg-primary text-white" : "text-gray-500"}`}
                   >
                     Card
                   </button>
@@ -845,14 +976,14 @@ const PaymentModal = ({
                         checkNumber: "",
                       }))
                     }
-                    className={`border-l border-gray-300 py-2 text-sm ${recordPaymentForm.paymentMethod === "BANK_TRANSFER" ? "bg-primary text-white" : "text-gray-500"}`}
+                    className={`border-l border-gray-300 py-2 text-base ${recordPaymentForm.paymentMethod === "BANK_TRANSFER" ? "bg-primary text-white" : "text-gray-500"}`}
                   >
                     Bank Transfer
                   </button>
                 </div>
                 {recordPaymentForm.paymentMethod === "CHECK" && (
                   <div className="mt-3">
-                    <label className="text-sm text-gray-600">
+                    <label className="text-base text-gray-600">
                       Check Number
                     </label>
                     <input
@@ -865,7 +996,7 @@ const PaymentModal = ({
                         }))
                       }
                       placeholder="CHK123456"
-                      className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                      className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-base focus:outline-none focus:ring-1 focus:ring-primary"
                     />
                   </div>
                 )}
@@ -876,14 +1007,14 @@ const PaymentModal = ({
               <button
                 type="button"
                 onClick={() => setIsRecordPayment(false)}
-                className="min-w-[100px] rounded-lg border border-orange-400 px-5 py-2 text-sm text-primary hover:opacity-90"
+                className="min-w-[100px] rounded-lg border border-primary px-5 py-2 text-base text-primary hover:bg-primary opacity-90 hover:text-white transition-all duration-300 ease-in"
               >
                 Close
               </button>
               <button
                 type="button"
                 onClick={handleRecordPayment}
-                className="min-w-[100px] rounded-lg bg-primary px-5 py-2 text-sm text-white hover:opacity-90"
+                className="min-w-[100px] rounded-lg bg-primary px-5 py-2 text-base text-white hover:opacity-90"
               >
                 Add
               </button>

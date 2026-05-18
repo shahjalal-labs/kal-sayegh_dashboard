@@ -449,7 +449,7 @@ export default function EstimateDetails() {
           );
         })}
 
-        <div className="mt-9 space-y-4 border-t-2 border-orange-200">
+        <div className="mt-9 space-y-4">
           <div>
             {sideMapUrls.length > 0 ? (
               <div className="grid grid-cols-1 gap-3 mt-4">
@@ -511,10 +511,7 @@ export default function EstimateDetails() {
           {fileUrls.length > 0 ? (
             <div className="grid grid-cols-1 gap-3">
               {fileUrls.map((url: string, index: number) => (
-                <div
-                  key={`file-${index}`}
-                  className="border-2 border-orange-200 bg-white p-2"
-                >
+                <div key={`file-${index}`} className="border-2  bg-white p-2">
                   {isVideoUrl(url) ? (
                     <video controls className="w-full h-auto rounded-sm">
                       <source src={url} />
@@ -532,7 +529,7 @@ export default function EstimateDetails() {
               ))}
             </div>
           ) : (
-            <p className="text-center text-gray-500 mt-4 h-[200px] md:h-[350px] flex items-center justify-center bg-[#f9f9f9] border-2 border-orange-200">
+            <p className="text-center text-gray-500 mt-4 h-[200px] md:h-[350px] flex items-center justify-center bg-[#f9f9f9] border-2 ">
               No files available
             </p>
           )}

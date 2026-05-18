@@ -1,6 +1,5 @@
 "use client";
 
-import { CustomModal } from "@/components/modal/CustomModal";
 import {
   Pagination,
   PaginationContent,
@@ -13,20 +12,19 @@ import {
   useGetAllInvoiceQuery,
   useUpdateEmailStatusMutation,
 } from "@/redux/api/admin/invoiceApi";
-import { Check, PencilLine, PenLine, Plus, Search } from "lucide-react";
+import { PencilLine, PenLine, Plus, Search } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ColorRing } from "react-loader-spinner";
-import { toast } from "sonner";
 
 import openEmail from "@/assets/dashboard/openEmail.png";
 import sentEmail from "@/assets/dashboard/sentEmail.png";
+import Link from "next/link";
 
 export default function Invoice() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
-  const [selected, setSelected] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("active");
   const [page, setPage] = useState(1);
@@ -44,10 +42,9 @@ export default function Invoice() {
 
   const [updateEmailStatus] = useUpdateEmailStatusMutation();
 
-  // API returns { success, message, result: { meta, data } }
   const apiResult = invoicesData?.result;
   const rawInvoices = apiResult?.data || [];
-  // client-side tab filtering (api doesn't accept status param)
+
   const invoices = rawInvoices.filter((inv: any) => {
     if (activeTab === "paid")
       return String(inv.status).toUpperCase() === "PAID";
@@ -242,15 +239,15 @@ export default function Invoice() {
               />
             </div>
 
-            <button
-              onClick={() => setIsOpen(true)}
+            <Link
+              href="/admin/invoice/add-invoice"
               className="p-3 md:px-6 md:py-3 rounded-xl flex items-center justify-center gap-2 
              text-primary md:text-secondary 
              bg-transparent md:bg-primary"
             >
               <Plus size={20} />
               <span className="hidden md:inline">New Invoice</span>
-            </button>
+            </Link>
           </div>
         </div>
 
@@ -469,9 +466,7 @@ export default function Invoice() {
                           <button
                             type="button"
                             onClick={() =>
-                              router.push(
-                                `/admin/invoice/${item.id}?format=${localStorage.getItem("invoiceDetailsFormat") === "table" ? "table" : "description"}`,
-                              )
+                              router.push(`/admin/invoice/${item.id}`)
                             }
                             className="px-4 py-2 border border-primary text-primary hover:bg-primary/90 transition-colors hover:text-white rounded-lg whitespace-nowrap"
                           >
@@ -532,59 +527,6 @@ export default function Invoice() {
           </Pagination>
         </div>
       )}
-
-      <CustomModal
-        open={isOpen}
-        onClose={() => setIsOpen(false)}
-        title="Add Line item"
-        actions={[
-          {
-            label: "Close",
-            variant: "secondary",
-            onClick: () => setIsOpen(false),
-          },
-          {
-            label: "Add Line",
-            variant: "primary",
-            onClick: () => {
-              if (selected === "description") {
-                localStorage.setItem("invoiceDetailsFormat", "description");
-                router.push("/admin/add-invoice");
-              } else if (selected === "table") {
-                localStorage.setItem("invoiceDetailsFormat", "table");
-                router.push("/admin/add-invoice");
-              } else {
-                toast.error("Please select an option first!");
-              }
-            },
-          },
-        ]}
-      >
-        <div className="space-y-3">
-          {options.map((item) => (
-            <div
-              key={item.id}
-              onClick={() => setSelected(item.id)}
-              className="flex items-center justify-between border rounded-lg p-3 cursor-pointer"
-            >
-              <input
-                type="text"
-                readOnly
-                value={item.label}
-                className="w-full bg-transparent outline-none cursor-pointer"
-              />
-              <div className="w-5 h-5 flex items-center justify-end">
-                {selected === item.id && (
-                  <Check
-                    className="text-white bg-primary rounded-full p-1"
-                    size={20}
-                  />
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </CustomModal>
     </div>
   );
 }

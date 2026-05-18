@@ -283,7 +283,12 @@ export default function AddEstimate() {
   const calculateFinalTotal = () => {
     let total = grandSubtotal;
 
-    if (selectedMarkup?.percentage) {
+    if (
+      estimateForm.additionalMarkUp &&
+      Number(estimateForm.additionalMarkUp) !== 0
+    ) {
+      total += (total * Number(estimateForm.additionalMarkUp)) / 100;
+    } else if (selectedMarkup?.percentage) {
       total += (total * selectedMarkup.percentage) / 100;
     }
 
@@ -441,6 +446,7 @@ export default function AddEstimate() {
   const options = [
     { id: "description", label: "Description" },
     { id: "table", label: "Table Format" },
+
     { id: "upload", label: "Upload Picture ,PDF , Document" },
   ];
 
@@ -571,7 +577,11 @@ export default function AddEstimate() {
 
         items: submittedItems,
 
-        additionalMarkUp: Math.round(markupAmount),
+        additionalMarkUp:
+          estimateForm.additionalMarkUp &&
+          Number(estimateForm.additionalMarkUp) !== 0
+            ? Number(estimateForm.additionalMarkUp)
+            : Math.round(markupAmount),
         discountAmount: Math.round(discountAmountCalc),
         depositAmount: Math.round(depositAmountCalc),
         grandTotal: Math.round(calculateFinalTotal()),
@@ -1171,6 +1181,70 @@ export default function AddEstimate() {
           </button>
         </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+          <button
+            type="button"
+            onClick={() =>
+              setEstimateForm((prev) => ({
+                ...prev,
+                isAutoInvoice: !prev.isAutoInvoice,
+              }))
+            }
+            className={`flex items-center justify-between rounded-xl border px-4 py-3 transition ${
+              estimateForm.isAutoInvoice
+                ? "border-primary bg-orange-50"
+                : "border-gray-200 bg-white"
+            }`}
+          >
+            <span className="text-sm font-medium text-gray-700">
+              Auto Invoice
+            </span>
+            <span
+              className={`flex h-6 w-11 items-center rounded-full p-1 transition ${
+                estimateForm.isAutoInvoice ? "bg-primary" : "bg-gray-300"
+              }`}
+            >
+              <span
+                className={`h-4 w-4 rounded-full bg-white transition ${
+                  estimateForm.isAutoInvoice ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              setEstimateForm((prev) => ({
+                ...prev,
+                isGroupingEnabled: !prev.isGroupingEnabled,
+              }))
+            }
+            className={`flex items-center justify-between rounded-xl border px-4 py-3 transition ${
+              estimateForm.isGroupingEnabled
+                ? "border-primary bg-orange-50"
+                : "border-gray-200 bg-white"
+            }`}
+          >
+            <span className="text-sm font-medium text-gray-700">
+              Group Items
+            </span>
+            <span
+              className={`flex h-6 w-11 items-center rounded-full p-1 transition ${
+                estimateForm.isGroupingEnabled ? "bg-primary" : "bg-gray-300"
+              }`}
+            >
+              <span
+                className={`h-4 w-4 rounded-full bg-white transition ${
+                  estimateForm.isGroupingEnabled
+                    ? "translate-x-5"
+                    : "translate-x-0"
+                }`}
+              />
+            </span>
+          </button>
+        </div>
+
         <div>
           <label className="text-base text-gray-600">Note for Client</label>
           <textarea
@@ -1551,6 +1625,26 @@ export default function AddEstimate() {
               )}
             </div>
 
+            <div className="flex justify-between items-center border-b py-1">
+              <span className="text-gray-700 font-medium">
+                Additional Markup
+              </span>
+              <input
+                type="number"
+                step="0.1"
+                value={estimateForm.additionalMarkUp || ""}
+                onChange={(e) =>
+                  setEstimateForm((prev) => ({
+                    ...prev,
+                    additionalMarkUp:
+                      e.target.value === "" ? 0 : parseFloat(e.target.value),
+                  }))
+                }
+                className="w-24 text-right border rounded px-2 py-1"
+                placeholder="%"
+              />
+            </div>
+
             <div className="flex justify-between items-center  border-b py-1">
               <span className="text-gray-700 font-medium">Discount</span>
 
@@ -1768,6 +1862,7 @@ export default function AddEstimate() {
           open={isOpen}
           onClose={() => setIsOpen(false)}
           title="Add Line item"
+          maxWidth="sm"
           actions={[
             {
               label: "Close",
@@ -1792,7 +1887,7 @@ export default function AddEstimate() {
                   type="text"
                   readOnly
                   value={item.label}
-                  className="w-full bg-transparent outline-none cursor-pointer"
+                  className={`w-full bg-transparent outline-none cursor-pointer `}
                 />
 
                 <div className="w-5 h-5 flex items-center justify-end">

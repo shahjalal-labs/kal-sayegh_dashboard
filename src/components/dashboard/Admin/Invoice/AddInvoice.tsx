@@ -1,12 +1,11 @@
 "use client";
 
-import CommonEstimateTable from "@/components/table/CommonEstimateTable";
+import CommonTable from "@/components/table/CommonTable";
 import {
   useCreateClientMutation,
   useGetMyClientsQuery,
 } from "@/redux/api/admin/estimateApi";
 import { useCreateInvoiceMutation } from "@/redux/api/admin/invoiceApi";
-import { table } from "console";
 import { ArrowLeft, MapPin, Upload } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -27,6 +26,11 @@ export default function AddInvoice() {
     legendary: "",
     endDate: "",
     clientId: "",
+    clientSign: true,
+    mySign: true,
+    isOnlinePayment: true,
+    coverPaymentProcessingFee: true,
+    additionalMarkUp: 0,
   });
 
   const [tableData, setTableData] = useState<any>(null);
@@ -76,7 +80,6 @@ export default function AddInvoice() {
         state: "",
         zip: "",
       });
-      // Optionally refetch clients
     } catch (error) {
       console.error("Failed to create client:", error);
     }
@@ -121,10 +124,22 @@ export default function AddInvoice() {
       return;
     }
 
+    const clientId = selectedClient?.id || formData.clientId;
+
+    if (!clientId) {
+      toast.error("Please select a client before creating the invoice.");
+      return;
+    }
+
     const bodyData = {
       additionalMarkUp: tableData.summaryMarkup?.percentage || 0,
-      clientId: formData.clientId,
+      clientId,
       date: formData.date,
+      poNumber: formData.poNumber,
+      clientSign: formData.clientSign,
+      mySign: formData.mySign,
+      isOnlinePayment: formData.isOnlinePayment,
+      coverPaymentProcessingFee: formData.coverPaymentProcessingFee,
       depositAmount: Math.round(tableData.summaryDeposit?.value || 0),
       discountAmount: Math.round(tableData.summaryDiscount?.value || 0),
       endDate: formData.endDate,
@@ -132,8 +147,8 @@ export default function AddInvoice() {
       invoiceName: formData.invoiceName,
       legendary: formData.legendary,
       items: selectedItems.map((item: any) => ({
-        id: item.selectedItem.id,
-        quantity: parseFloat(item.quantity),
+        id: item.selectedItem.id || item.selectedItem._id || "",
+        quantity: parseFloat(item.quantity) || 0,
         subTotal: Math.round(item.total),
       })),
     };
@@ -155,27 +170,48 @@ export default function AddInvoice() {
 
       toast.success("Invoice has been created successfully!");
 
+      // Reset local state to match estimate flow
+      setFormData({
+        invoiceName: "",
+        date: "",
+        poNumber: "",
+        daysToPay: "",
+        legendary: "",
+        endDate: "",
+        clientId: "",
+        clientSign: true,
+        mySign: true,
+        isOnlinePayment: true,
+        coverPaymentProcessingFee: true,
+        additionalMarkUp: 0,
+      });
+
+      setTableData(null);
+      setTableKey((k) => k + 1);
+      setSelectedClient(null);
+
       setSideMaps([]);
       setImages([]);
 
       if (sideMapRef.current) sideMapRef.current.value = "";
       if (imageRef.current) imageRef.current.value = "";
 
-      const storedFormat =
-        typeof window !== "undefined"
-          ? localStorage.getItem("invoiceDetailsFormat")
-          : null;
-      const format = storedFormat === "table" ? "table" : "description";
-
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("invoiceDetailsFormat");
+      router.push(`/admin/invoice/${invoiceId}`);
+    } catch (err: any) {
+      try {
+        const data = err?.data || err?.response?.data;
+        if (data) {
+          if (data.errors) {
+            toast.error(data.message || "Validation failed");
+          } else {
+            toast.error(data.message || "Failed to create invoice");
+          }
+        } else {
+          toast.error(err?.message || "Failed to create invoice");
+        }
+      } catch (e) {
+        toast.error("Failed to create invoice");
       }
-
-      router.push(`/admin/invoice/${invoiceId}?format=${format}`);
-    } catch (error) {
-      toast.error(
-        "Failed to create invoice." + (error as any)?.data?.message || "",
-      );
     }
   };
 
@@ -437,6 +473,69 @@ export default function AddInvoice() {
                   }
                 />
               </div>
+
+              {/* Sign Buttons */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      clientSign: !prev.clientSign,
+                    }))
+                  }
+                  className={`flex items-center justify-between rounded-xl border px-4 py-3 transition ${
+                    formData.clientSign
+                      ? "border-primary bg-orange-50"
+                      : "border-gray-200 bg-white"
+                  }`}
+                >
+                  <span className="text-sm font-medium text-gray-700">
+                    Client Sign
+                  </span>
+                  <span
+                    className={`flex h-6 w-11 items-center rounded-full p-1 transition ${
+                      formData.clientSign ? "bg-primary" : "bg-gray-300"
+                    }`}
+                  >
+                    <span
+                      className={`h-4 w-4 rounded-full bg-white transition ${
+                        formData.clientSign ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      mySign: !prev.mySign,
+                    }))
+                  }
+                  className={`flex items-center justify-between rounded-xl border px-4 py-3 transition ${
+                    formData.mySign
+                      ? "border-primary bg-orange-50"
+                      : "border-gray-200 bg-white"
+                  }`}
+                >
+                  <span className="text-sm font-medium text-gray-700">
+                    My Sign
+                  </span>
+                  <span
+                    className={`flex h-6 w-11 items-center rounded-full p-1 transition ${
+                      formData.mySign ? "bg-primary" : "bg-gray-300"
+                    }`}
+                  >
+                    <span
+                      className={`h-4 w-4 rounded-full bg-white transition ${
+                        formData.mySign ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -550,7 +649,81 @@ export default function AddInvoice() {
             </div>
           </div>
 
-          <CommonEstimateTable key={tableKey} onDataChange={setTableData} />
+          <CommonTable key={tableKey} onDataChange={setTableData} />
+
+          {/* Online Payment */}
+          <div className="flex justify-end">
+            <div className="mt-6 w-full  md:w-80 space-y-2 text-base flex justify-end">
+              <div className="mt-8">
+                <h2 className="text-xl font-semibold border-b py-3">
+                  Online Payment
+                </h2>
+                <div className="flex items-center justify-between mt-3">
+                  <div>
+                    <div className="font-semibold text-lg">Stripe</div>
+                    <div className="text-base text-gray-500">
+                      Accept Debit/Credit, Apple pay, Google pay Stripe Link or
+                      Bank Transfer(ACH)
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        isOnlinePayment: !prev.isOnlinePayment,
+                      }))
+                    }
+                    className="ml-4"
+                  >
+                    <span
+                      className={`flex h-6 w-11 items-center rounded-full p-1 transition ${formData.isOnlinePayment ? "bg-primary" : "bg-gray-300"}`}
+                    >
+                      <span
+                        className={`h-4 w-4 rounded-full bg-white transition ${formData.isOnlinePayment ? "translate-x-5" : "translate-x-0"}`}
+                      />
+                    </span>
+                  </button>
+                </div>
+
+                <div className="mt-4 border-t pt-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-semibold text-lg">
+                        Cover Payment Processing Fee
+                      </div>
+                      <div className="text-base text-gray-500">
+                        Applies a markup to cover your processing fee
+                      </div>
+                      <div className="text-base text-gray-400 mt-3">
+                        Note: This is not visible to your client
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          coverPaymentProcessingFee:
+                            !prev.coverPaymentProcessingFee,
+                        }))
+                      }
+                    >
+                      <span
+                        className={`flex h-6 w-11 items-center rounded-full p-1 transition ${formData.coverPaymentProcessingFee ? "bg-primary" : "bg-gray-300"}`}
+                      >
+                        <span
+                          className={`h-4 w-4 rounded-full bg-white transition ${formData.coverPaymentProcessingFee ? "translate-x-5" : "translate-x-0"}`}
+                        />
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <button
             onClick={handleSubmit}

@@ -1,5 +1,4 @@
-import InvoiceDetailsDescription from "@/components/dashboard/Admin/Invoice/InvoiceDetailsDescription";
-import InvoiceDetailsTableFormat from "@/components/dashboard/Admin/Invoice/InvoiceDetailsTableFormat";
+import InvoiceDetails from "@/components/dashboard/Admin/Invoice/InvoiceDetails";
 
 type InvoiceDetailsPageProps = {
   searchParams: Promise<{
@@ -11,11 +10,5 @@ export default async function InvoiceDetailsPage({
   searchParams,
 }: InvoiceDetailsPageProps) {
   const params = await searchParams;
-  const format = params?.format;
-
-  if (format === "table") {
-    return <InvoiceDetailsTableFormat />;
-  }
-
-  return <InvoiceDetailsDescription />;
+  return <InvoiceDetails format={params?.format} />;
 }

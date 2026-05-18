@@ -5,18 +5,21 @@ import {
   useGetAllMarkupsQuery,
   useGetAllTaxesQuery,
 } from "@/redux/api/admin/estimateApi";
-import { Minus, Plus } from "lucide-react";
+import { FormatType } from "@/types/estimate.type";
+import { Check, Minus, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { GoPlus } from "react-icons/go";
 import { CustomModal } from "../modal/CustomModal";
 import { DepositModalContent, DiscountModalContent } from "../modal/PopUp";
 
-export default function CommonEstimateTable({
+export default function CommonTable({
   onDataChange,
 }: {
   onDataChange?: (data: any) => void;
 }) {
-  const [items, setItems] = useState<{ id: number }[]>([]);
+  const [items, setItems] = useState<{ id: number; format: FormatType }[]>([]);
+  const [formatModalOpen, setFormatModalOpen] = useState(false);
+  const [selectedFormat, setSelectedFormat] = useState<FormatType | null>(null);
   const [itemModalOpen, setItemModalOpen] = useState(false);
   const [activeTableId, setActiveTableId] = useState<number | null>(null);
   const [selectedItemsByTable, setSelectedItemsByTable] = useState<
@@ -72,6 +75,48 @@ export default function CommonEstimateTable({
   const [discountModal, setDiscountModal] = useState(false);
   const [depositModal, setDepositModal] = useState(false);
 
+  const formatOptions = [
+    { id: "DESCRIPTION", label: "Description" },
+    { id: "TABLE", label: "Table Format" },
+    { id: "IMAGE_PDF", label: "Upload Picture, PDF, Document" },
+  ] as const;
+
+  const mapSelectedToFormat = (sel: string): FormatType => {
+    switch ((sel || "").toLowerCase()) {
+      case "table":
+        return "TABLE";
+      case "upload picture, pdf, document":
+      case "image_pdf":
+        return "IMAGE_PDF";
+      case "description":
+      default:
+        return "DESCRIPTION";
+    }
+  };
+
+  const getRowFormat = (rowId: number): FormatType => {
+    return items.find((item) => item.id === rowId)?.format || "DESCRIPTION";
+  };
+
+  const getFormatLabel = (format: FormatType) => {
+    switch (format) {
+      case "TABLE":
+        return "Table Format";
+      case "IMAGE_PDF":
+        return "Upload Picture, PDF, Document";
+      case "DESCRIPTION":
+      default:
+        return "Description";
+    }
+  };
+
+  const getItemsByFormat = (format: FormatType) => {
+    return allItems.filter((item: any) => {
+      const itemFormat = String(item?.format || "DESCRIPTION").toUpperCase();
+      return itemFormat === format;
+    });
+  };
+
   const openItemModal = (tableId: number) => {
     setActiveTableId(tableId);
     setItemModalOpen(true);
@@ -97,8 +142,9 @@ export default function CommonEstimateTable({
     }));
   };
 
-  const addLine = () => {
-    setItems([...items, { id: Date.now() }]);
+  const addLine = (format: FormatType) => {
+    setItems((prev) => [...prev, { id: Date.now(), format }]);
+    setFormatModalOpen(false);
   };
 
   const removeLine = (lineId: number) => {
@@ -303,7 +349,6 @@ export default function CommonEstimateTable({
               const selectedTax = selectedTaxesByRow[item.id] || null;
               const selectedMarkup = selectedMarkupsByRow[item.id];
 
-              // Extract markup: use admin-selected markup first, then item default
               const markupValue = selectedMarkup
                 ? selectedMarkup.percentage != null
                   ? selectedMarkup.percentage
@@ -336,9 +381,7 @@ export default function CommonEstimateTable({
                   </button>
 
                   <div className="border rounded-xl overflow-hidden">
-                    {/* Row */}
                     <div className="grid grid-cols-1 md:grid-cols-6 border">
-                      {/* Description with item list */}
                       <div className="col-span-1 md:col-span-1 border-r md:border-r p-2 text-sm text-gray-500">
                         <label className="block md:hidden font-medium mb-1">
                           Description
@@ -354,6 +397,9 @@ export default function CommonEstimateTable({
                             Item List
                           </span>
                         </div>
+                        <p className="mt-2 text-xs text-gray-400 md:hidden">
+                          {getFormatLabel(item.format)}
+                        </p>
                       </div>
 
                       <div className="md:col-span-1 p-2 border-r   md:border-r border-b md:border-b-0  md:p-0 flex items-center">
@@ -474,160 +520,210 @@ export default function CommonEstimateTable({
         )}
 
         <button
-          onClick={addLine}
+          onClick={() => setFormatModalOpen(true)}
           className="mt-4 w-full border border-orange-400 text-orange-500 rounded-lg py-2 flex items-center justify-center md:justify-start p-4 gap-2"
         >
           <Plus size={16} /> Add Line Item
         </button>
       </div>
 
+      <CustomModal
+        open={formatModalOpen}
+        maxWidth="md"
+        onClose={() => {
+          setFormatModalOpen(false);
+          setSelectedFormat(null);
+        }}
+        title="Add Line Item"
+        actions={[
+          {
+            label: "Cancel",
+            variant: "secondary",
+            onClick: () => {
+              setFormatModalOpen(false);
+              setSelectedFormat(null);
+            },
+          },
+          {
+            label: "Add",
+            variant: "primary",
+            onClick: () => {
+              if (selectedFormat) {
+                addLine(selectedFormat);
+                setSelectedFormat(null);
+              }
+            },
+          },
+        ]}
+      >
+        <div className="space-y-3">
+          {formatOptions.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() =>
+                setSelectedFormat(option.id as unknown as FormatType)
+              }
+              className="w-full flex items-center justify-between rounded-xl border border-gray-200 p-4 text-left hover:border-orange-400 hover:bg-orange-50 transition"
+            >
+              <span className="font-medium text-gray-800">{option.label}</span>
+              <div className="w-5 h-5 flex items-center justify-end">
+                {selectedFormat === option.id && (
+                  <Check
+                    className="text-white bg-primary rounded-full p-1"
+                    size={20}
+                  />
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+      </CustomModal>
+
       {/* Summary */}
-      {items.length > 0 && (
-        <div className="flex justify-end mt-6">
-          <div className="w-72 space-y-2 text-base">
-            <div className="flex justify-between">
-              <span>Subtotal</span>
-              <span>
-                $
-                {(() => {
-                  let sum = 0;
-                  items.forEach((item) => {
-                    const selectedItem = selectedItemsByTable[item.id];
-                    const rate = parseFloat(rowData[item.id]?.rate || "0") || 0;
-                    const quantity =
-                      parseFloat(rowData[item.id]?.quantity || "0") || 0;
-                    const selectedMarkup = selectedMarkupsByRow[item.id];
+      <div className="flex justify-end mt-6 text-lg">
+        <div className="w-80 space-y-2 text-base">
+          <div className="flex justify-between border-b text-lg">
+            <span>Subtotal</span>
+            <span>
+              $
+              {(() => {
+                let sum = 0;
+                items.forEach((item) => {
+                  const selectedItem = selectedItemsByTable[item.id];
+                  const rate = parseFloat(rowData[item.id]?.rate || "0") || 0;
+                  const quantity =
+                    parseFloat(rowData[item.id]?.quantity || "0") || 0;
+                  const selectedMarkup = selectedMarkupsByRow[item.id];
 
-                    // Extract markup: use admin-selected markup first, then item default
-                    const markupValue = selectedMarkup
-                      ? selectedMarkup.percentage != null
-                        ? selectedMarkup.percentage
-                        : selectedMarkup.amount || 0
-                      : selectedItem?.markUp?.percentage != null
-                        ? selectedItem.markUp.percentage
-                        : selectedItem?.markUp?.amount || 0;
-                    const isMarkupPercentage = selectedMarkup
-                      ? selectedMarkup.percentage != null
-                      : selectedItem?.markUp?.percentage != null;
-                    const taxPercent =
-                      selectedTaxesByRow[item.id]?.percentage || 0;
-                    const base = rate * quantity;
-                    const markupAmount = isMarkupPercentage
-                      ? base * (markupValue / 100)
-                      : markupValue;
-                    const subtotal = base + markupAmount;
-                    const taxAmount = subtotal * (taxPercent / 100);
-                    const total = subtotal + taxAmount;
-                    sum += total;
-                  });
-                  return sum.toFixed(2);
-                })()}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span>Markup</span>
-              <span
-                className="text-orange-500 cursor-pointer"
-                onClick={() => setMarkupSummaryModal(true)}
-              >
-                {summaryMarkup ? `${summaryMarkup.percentage}% ` : "Add"}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span>Discount</span>
-              <span
-                className="text-orange-500 cursor-pointer"
-                onClick={() => setDiscountModal(true)}
-              >
-                {summaryDiscount
-                  ? `${summaryDiscount.value}${summaryDiscount.unit === "percent" ? "%" : "$"}`
-                  : "Add"}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span>Request a deposit</span>
-              <span
-                className="text-orange-500 cursor-pointer"
-                onClick={() => setDepositModal(true)}
-              >
-                {summaryDeposit
-                  ? `${summaryDeposit.value}${summaryDeposit.unit === "percent" ? "%" : "$"}`
-                  : "Add"}
-              </span>
-            </div>
-            <div className="flex justify-between font-semibold pt-2 border-t">
-              <span>Total (USD)</span>
-              <span className="text-orange-500">
-                $
-                {(() => {
-                  let subtotal = 0;
-                  items.forEach((item) => {
-                    const selectedItem = selectedItemsByTable[item.id];
-                    const rate = parseFloat(rowData[item.id]?.rate || "0") || 0;
-                    const quantity =
-                      parseFloat(rowData[item.id]?.quantity || "0") || 0;
-                    const selectedMarkup = selectedMarkupsByRow[item.id];
+                  const markupValue = selectedMarkup
+                    ? selectedMarkup.percentage != null
+                      ? selectedMarkup.percentage
+                      : selectedMarkup.amount || 0
+                    : selectedItem?.markUp?.percentage != null
+                      ? selectedItem.markUp.percentage
+                      : selectedItem?.markUp?.amount || 0;
+                  const isMarkupPercentage = selectedMarkup
+                    ? selectedMarkup.percentage != null
+                    : selectedItem?.markUp?.percentage != null;
+                  const taxPercent =
+                    selectedTaxesByRow[item.id]?.percentage || 0;
+                  const base = rate * quantity;
+                  const markupAmount = isMarkupPercentage
+                    ? base * (markupValue / 100)
+                    : markupValue;
+                  const subtotal = base + markupAmount;
+                  const taxAmount = subtotal * (taxPercent / 100);
+                  const total = subtotal + taxAmount;
+                  sum += total;
+                });
+                return sum.toFixed(2);
+              })()}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span>Markup</span>
+            <span
+              className="text-orange-500 cursor-pointer"
+              onClick={() => setMarkupSummaryModal(true)}
+            >
+              {summaryMarkup ? `${summaryMarkup.percentage}% ` : "Add"}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span>Discount</span>
+            <span
+              className="text-orange-500 cursor-pointer"
+              onClick={() => setDiscountModal(true)}
+            >
+              {summaryDiscount
+                ? `${summaryDiscount.value}${summaryDiscount.unit === "percent" ? "%" : "$"}`
+                : "Add"}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span>Request a deposit</span>
+            <span
+              className="text-orange-500 cursor-pointer"
+              onClick={() => setDepositModal(true)}
+            >
+              {summaryDeposit
+                ? `${summaryDeposit.value}${summaryDeposit.unit === "percent" ? "%" : "$"}`
+                : "Add"}
+            </span>
+          </div>
+          <div className="flex justify-between font-semibold pt-2 border-t">
+            <span>Total (USD)</span>
+            <span className="text-orange-500">
+              $
+              {(() => {
+                let subtotal = 0;
+                items.forEach((item) => {
+                  const selectedItem = selectedItemsByTable[item.id];
+                  const rate = parseFloat(rowData[item.id]?.rate || "0") || 0;
+                  const quantity =
+                    parseFloat(rowData[item.id]?.quantity || "0") || 0;
+                  const selectedMarkup = selectedMarkupsByRow[item.id];
 
-                    // Extract markup: use admin-selected markup first, then item default
-                    const markupValue = selectedMarkup
-                      ? selectedMarkup.percentage != null
-                        ? selectedMarkup.percentage
-                        : selectedMarkup.amount || 0
-                      : selectedItem?.markUp?.percentage != null
-                        ? selectedItem.markUp.percentage
-                        : selectedItem?.markUp?.amount || 0;
-                    const isMarkupPercentage = selectedMarkup
-                      ? selectedMarkup.percentage != null
-                      : selectedItem?.markUp?.percentage != null;
-                    const taxPercent =
-                      selectedTaxesByRow[item.id]?.percentage || 0;
-                    const base = rate * quantity;
-                    const markupAmount = isMarkupPercentage
-                      ? base * (markupValue / 100)
-                      : markupValue;
-                    const itemSubtotal = base + markupAmount;
-                    const taxAmount = itemSubtotal * (taxPercent / 100);
-                    const total = itemSubtotal + taxAmount;
-                    subtotal += total;
-                  });
+                  // Extract markup: use admin-selected markup first, then item default
+                  const markupValue = selectedMarkup
+                    ? selectedMarkup.percentage != null
+                      ? selectedMarkup.percentage
+                      : selectedMarkup.amount || 0
+                    : selectedItem?.markUp?.percentage != null
+                      ? selectedItem.markUp.percentage
+                      : selectedItem?.markUp?.amount || 0;
+                  const isMarkupPercentage = selectedMarkup
+                    ? selectedMarkup.percentage != null
+                    : selectedItem?.markUp?.percentage != null;
+                  const taxPercent =
+                    selectedTaxesByRow[item.id]?.percentage || 0;
+                  const base = rate * quantity;
+                  const markupAmount = isMarkupPercentage
+                    ? base * (markupValue / 100)
+                    : markupValue;
+                  const itemSubtotal = base + markupAmount;
+                  const taxAmount = itemSubtotal * (taxPercent / 100);
+                  const total = itemSubtotal + taxAmount;
+                  subtotal += total;
+                });
 
-                  // Apply summary markup
-                  let total = subtotal;
-                  if (summaryMarkup) {
-                    total += subtotal * (summaryMarkup.percentage / 100);
+                // Apply summary markup
+                let total = subtotal;
+                if (summaryMarkup) {
+                  total += subtotal * (summaryMarkup.percentage / 100);
+                }
+
+                // Apply discount
+                if (summaryDiscount) {
+                  if (summaryDiscount.unit === "percent") {
+                    total -= total * (summaryDiscount.value / 100);
+                  } else {
+                    total -= summaryDiscount.value;
                   }
+                }
 
-                  // Apply discount
-                  if (summaryDiscount) {
-                    if (summaryDiscount.unit === "percent") {
-                      total -= total * (summaryDiscount.value / 100);
-                    } else {
-                      total -= summaryDiscount.value;
-                    }
+                // Apply deposit
+                if (summaryDeposit) {
+                  if (summaryDeposit.unit === "percent") {
+                    total += subtotal * (summaryDeposit.value / 100);
+                  } else {
+                    total += summaryDeposit.value;
                   }
+                }
 
-                  // Apply deposit
-                  if (summaryDeposit) {
-                    if (summaryDeposit.unit === "percent") {
-                      total += subtotal * (summaryDeposit.value / 100);
-                    } else {
-                      total += summaryDeposit.value;
-                    }
-                  }
-
-                  return total.toFixed(2);
-                })()}
-              </span>
-            </div>
+                return total.toFixed(2);
+              })()}
+            </span>
           </div>
         </div>
-      )}
+      </div>
 
       {/* markup */}
       <CustomModal
         open={itemModalOpen}
         onClose={() => setItemModalOpen(false)}
-        title="Item List"
+        title={`Item List - ${getFormatLabel(getRowFormat(activeTableId || 0))}`}
         actions={[
           {
             label: "Cancel",
@@ -642,10 +738,12 @@ export default function CommonEstimateTable({
         ]}
       >
         <div className="space-y-3">
-          {allItems.length === 0 ? (
+          {activeTableId === null ? (
+            <p className="text-sm text-gray-500">Select a line item first.</p>
+          ) : getItemsByFormat(getRowFormat(activeTableId)).length === 0 ? (
             <p className="text-sm text-gray-500">No items available.</p>
           ) : (
-            allItems.map((item: any) => {
+            getItemsByFormat(getRowFormat(activeTableId)).map((item: any) => {
               const isSelected =
                 activeTableId !== null &&
                 selectedItemsByTable[activeTableId]?.id === item.id;
