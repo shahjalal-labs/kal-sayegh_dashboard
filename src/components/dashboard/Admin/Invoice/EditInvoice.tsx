@@ -2,6 +2,7 @@
 
 import InvoiceContractModal from "@/components/dashboard/Admin/Invoice/InvoiceContractModal";
 import CommonTable from "@/components/table/CommonTable";
+import Summary from "@/components/table/summary";
 import ToggleSwitch from "@/components/ui/ToggleSwitch";
 import {
   useAddContractMutation,
@@ -708,8 +709,10 @@ export default function EditInvoice() {
             </div>
           </div>
 
-          <div className="flex justify-end mt-5">
-            <div className="w-full md:w-80 space-y-3">
+          <Summary data={tableData} onDataChange={setTableData} />
+
+          <div className="flex justify-end my-12">
+            <div className="w-full md:w-80 space-y-3 border-t">
               <ToggleSwitch
                 label="Client Sign"
                 checked={formData.clientSign}
