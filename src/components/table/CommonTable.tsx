@@ -8,9 +8,7 @@ import {
 import { FormatType } from "@/types/estimate.type";
 import { Check, Minus, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
-import { GoPlus } from "react-icons/go";
 import { CustomModal } from "../modal/CustomModal";
-import { DepositModalContent, DiscountModalContent } from "../modal/PopUp";
 
 export default function CommonTable({
   onDataChange,
@@ -62,6 +60,7 @@ export default function CommonTable({
   >({});
 
   const [summaryMarkup, setSummaryMarkup] = useState<any>(null);
+  const [summaryTax, setSummaryTax] = useState<any>(null);
   const [summaryDiscount, setSummaryDiscount] = useState<{
     value: number;
     unit: "percent" | "dollar";
@@ -72,6 +71,7 @@ export default function CommonTable({
   } | null>(null);
 
   const [markupSummaryModal, setMarkupSummaryModal] = useState(false);
+  const [taxSummaryModal, setTaxSummaryModal] = useState(false);
   const [discountModal, setDiscountModal] = useState(false);
   const [depositModal, setDepositModal] = useState(false);
 
@@ -201,7 +201,6 @@ export default function CommonTable({
       }).unwrap();
       setOpenCreateMarkupModal(false);
       setMarkupValue({ name: "", percentage: "" });
-      // Optionally refetch markups
     } catch (error) {
       console.error("Failed to create markup:", error);
     }
@@ -214,10 +213,7 @@ export default function CommonTable({
 
   const handleSelectTax = (tax: any) => {
     if (activeTaxRowId === null) return;
-    setSelectedTaxesByRow((prev) => ({
-      ...prev,
-      [activeTaxRowId]: tax,
-    }));
+    setSelectedTaxesByRow((prev) => ({ ...prev, [activeTaxRowId]: tax }));
     setAddTax(false);
   };
 
@@ -229,7 +225,6 @@ export default function CommonTable({
       }).unwrap();
       setTaxModalOpen(false);
       setTaxValue({ name: "", percentage: "" });
-      // Optionally refetch taxes
     } catch (error) {
       console.error("Failed to create tax:", error);
     }
@@ -238,6 +233,33 @@ export default function CommonTable({
   const handleSelectSummaryMarkup = (markup: any) => {
     setSummaryMarkup(markup);
     setMarkupSummaryModal(false);
+  };
+
+  const handleSelectSummaryTax = (tax: any) => {
+    setSummaryTax(tax);
+    setTaxSummaryModal(false);
+  };
+
+  const updateQuantity = (rowId: number, nextQuantity: number) => {
+    const safeQuantity = Math.max(0, nextQuantity);
+
+    setRowData((prev) => ({
+      ...prev,
+      [rowId]: {
+        ...prev[rowId],
+        quantity: String(safeQuantity),
+      },
+    }));
+  };
+
+  const incrementQuantity = (rowId: number) => {
+    const currentQuantity = parseFloat(rowData[rowId]?.quantity || "0") || 0;
+    updateQuantity(rowId, currentQuantity + 1);
+  };
+
+  const decrementQuantity = (rowId: number) => {
+    const currentQuantity = parseFloat(rowData[rowId]?.quantity || "0") || 0;
+    updateQuantity(rowId, currentQuantity - 1);
   };
 
   // Provide data to parent
@@ -250,7 +272,6 @@ export default function CommonTable({
         const selectedTax = selectedTaxesByRow[item.id] || null;
         const selectedMarkup = selectedMarkupsByRow[item.id];
 
-        // Extract markup: use admin-selected markup first, then item default
         const markupValue = selectedMarkup
           ? selectedMarkup.percentage != null
             ? selectedMarkup.percentage
@@ -291,6 +312,9 @@ export default function CommonTable({
       if (summaryMarkup) {
         grandTotal += subtotal * (summaryMarkup.percentage / 100);
       }
+      if (summaryTax) {
+        grandTotal += subtotal * (summaryTax.percentage / 100);
+      }
       if (summaryDiscount) {
         if (summaryDiscount.unit === "percent") {
           grandTotal -= grandTotal * (summaryDiscount.value / 100);
@@ -309,6 +333,7 @@ export default function CommonTable({
       onDataChange({
         items: itemsData,
         summaryMarkup,
+        summaryTax,
         summaryDiscount,
         summaryDeposit,
         grandTotal: Math.round(grandTotal),
@@ -321,6 +346,7 @@ export default function CommonTable({
     selectedMarkupsByRow,
     selectedTaxesByRow,
     summaryMarkup,
+    summaryTax,
     summaryDiscount,
     summaryDeposit,
     onDataChange,
@@ -402,13 +428,12 @@ export default function CommonTable({
                         </p>
                       </div>
 
-                      <div className="md:col-span-1 p-2 border-r   md:border-r border-b md:border-b-0  md:p-0 flex items-center">
+                      <div className="md:col-span-1 p-2 border-r  md:border-r border-b md:border-b-0  md:p-0 flex items-center ">
                         <label className="block md:hidden text-basefont-medium mb-1">
                           Rate
                         </label>
                         <input
-                          className="cell w-full focus:outline-none focus:ring-1 focus:ring-primary 
-             focus:border-primary transition p-2"
+                          className="cell w-full focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition p-2"
                           placeholder="$0.00"
                           value={rowData[item.id]?.rate || ""}
                           readOnly
@@ -423,6 +448,7 @@ export default function CommonTable({
                           }
                         />
                       </div>
+
                       <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0  md:p-0 flex items-center">
                         <label className="block md:hidden text-sm font-medium mb-1  ">
                           Markup
@@ -442,35 +468,36 @@ export default function CommonTable({
                                   : ""
                           }
                           readOnly
-                          onClick={() => openMarkupPicker(item.id)}
                         />
                       </div>
+
                       <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0  md:p-0 flex items-center">
                         <label className="block md:hidden text-sm font-medium mb-1">
                           Quantity
                         </label>
-                        <input
-                          className="cell w-full focus:outline-none focus:ring-1 focus:ring-primary 
-             focus:border-primary transition p-2"
-                          placeholder="0"
-                          value={rowData[item.id]?.quantity ?? "0"}
-                          onChange={(e) =>
-                            setRowData((prev) => ({
-                              ...prev,
-                              [item.id]: {
-                                ...prev[item.id],
-                                quantity: e.target.value,
-                              },
-                            }))
-                          }
-                        />
+                        <div className="flex w-full items-center gap-2">
+                          <input
+                            type="number"
+                            className="cell w-full focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition p-2 "
+                            placeholder="0"
+                            value={rowData[item.id]?.quantity ?? "0"}
+                            onChange={(e) =>
+                              updateQuantity(
+                                item.id,
+                                Number(e.target.value || 0),
+                              )
+                            }
+                            min={0}
+                          />
+                        </div>
                       </div>
+
                       <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0  md:p-0 flex items-center">
                         <label className="block md:hidden text-sm font-medium mb-1">
                           Tax
                         </label>
                         <input
-                          className="cell w-full p-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary transition bg-white/90"
+                          className="cell w-full p-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary transition bg-white/90 cursor-pointer"
                           placeholder="Tax"
                           value={
                             selectedTax ? `${selectedTax.percentage}%` : ""
@@ -478,13 +505,20 @@ export default function CommonTable({
                           readOnly
                           onClick={() => openTaxPicker(item.id)}
                         />
+                        <span
+                          className="md:hidden text-orange-500 ml-2 cursor-pointer"
+                          onClick={() => openTaxPicker(item.id)}
+                        >
+                          {selectedTax ? `${selectedTax.percentage}%` : "Add"}
+                        </span>
                       </div>
-                      <div className="md:col-span-1 p-2 flex items-center">
+
+                      <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0  md:p-0 flex items-center">
                         <label className="block md:hidden text-sm font-medium mb-1">
                           Total
                         </label>
                         <input
-                          className="cell w-full"
+                          className="ell w-full p-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary transition bg-white/90"
                           placeholder="$0.00"
                           value={`$${total.toFixed(2)}`}
                           readOnly
@@ -580,146 +614,7 @@ export default function CommonTable({
         </div>
       </CustomModal>
 
-      {/* Summary */}
-      <div className="flex justify-end mt-6 text-lg">
-        <div className="w-80 space-y-2 text-base">
-          <div className="flex justify-between border-b text-lg">
-            <span>Subtotal</span>
-            <span>
-              $
-              {(() => {
-                let sum = 0;
-                items.forEach((item) => {
-                  const selectedItem = selectedItemsByTable[item.id];
-                  const rate = parseFloat(rowData[item.id]?.rate || "0") || 0;
-                  const quantity =
-                    parseFloat(rowData[item.id]?.quantity || "0") || 0;
-                  const selectedMarkup = selectedMarkupsByRow[item.id];
-
-                  const markupValue = selectedMarkup
-                    ? selectedMarkup.percentage != null
-                      ? selectedMarkup.percentage
-                      : selectedMarkup.amount || 0
-                    : selectedItem?.markUp?.percentage != null
-                      ? selectedItem.markUp.percentage
-                      : selectedItem?.markUp?.amount || 0;
-                  const isMarkupPercentage = selectedMarkup
-                    ? selectedMarkup.percentage != null
-                    : selectedItem?.markUp?.percentage != null;
-                  const taxPercent =
-                    selectedTaxesByRow[item.id]?.percentage || 0;
-                  const base = rate * quantity;
-                  const markupAmount = isMarkupPercentage
-                    ? base * (markupValue / 100)
-                    : markupValue;
-                  const subtotal = base + markupAmount;
-                  const taxAmount = subtotal * (taxPercent / 100);
-                  const total = subtotal + taxAmount;
-                  sum += total;
-                });
-                return sum.toFixed(2);
-              })()}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span>Markup</span>
-            <span
-              className="text-orange-500 cursor-pointer"
-              onClick={() => setMarkupSummaryModal(true)}
-            >
-              {summaryMarkup ? `${summaryMarkup.percentage}% ` : "Add"}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span>Discount</span>
-            <span
-              className="text-orange-500 cursor-pointer"
-              onClick={() => setDiscountModal(true)}
-            >
-              {summaryDiscount
-                ? `${summaryDiscount.value}${summaryDiscount.unit === "percent" ? "%" : "$"}`
-                : "Add"}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span>Request a deposit</span>
-            <span
-              className="text-orange-500 cursor-pointer"
-              onClick={() => setDepositModal(true)}
-            >
-              {summaryDeposit
-                ? `${summaryDeposit.value}${summaryDeposit.unit === "percent" ? "%" : "$"}`
-                : "Add"}
-            </span>
-          </div>
-          <div className="flex justify-between font-semibold pt-2 border-t">
-            <span>Total (USD)</span>
-            <span className="text-orange-500">
-              $
-              {(() => {
-                let subtotal = 0;
-                items.forEach((item) => {
-                  const selectedItem = selectedItemsByTable[item.id];
-                  const rate = parseFloat(rowData[item.id]?.rate || "0") || 0;
-                  const quantity =
-                    parseFloat(rowData[item.id]?.quantity || "0") || 0;
-                  const selectedMarkup = selectedMarkupsByRow[item.id];
-
-                  // Extract markup: use admin-selected markup first, then item default
-                  const markupValue = selectedMarkup
-                    ? selectedMarkup.percentage != null
-                      ? selectedMarkup.percentage
-                      : selectedMarkup.amount || 0
-                    : selectedItem?.markUp?.percentage != null
-                      ? selectedItem.markUp.percentage
-                      : selectedItem?.markUp?.amount || 0;
-                  const isMarkupPercentage = selectedMarkup
-                    ? selectedMarkup.percentage != null
-                    : selectedItem?.markUp?.percentage != null;
-                  const taxPercent =
-                    selectedTaxesByRow[item.id]?.percentage || 0;
-                  const base = rate * quantity;
-                  const markupAmount = isMarkupPercentage
-                    ? base * (markupValue / 100)
-                    : markupValue;
-                  const itemSubtotal = base + markupAmount;
-                  const taxAmount = itemSubtotal * (taxPercent / 100);
-                  const total = itemSubtotal + taxAmount;
-                  subtotal += total;
-                });
-
-                // Apply summary markup
-                let total = subtotal;
-                if (summaryMarkup) {
-                  total += subtotal * (summaryMarkup.percentage / 100);
-                }
-
-                // Apply discount
-                if (summaryDiscount) {
-                  if (summaryDiscount.unit === "percent") {
-                    total -= total * (summaryDiscount.value / 100);
-                  } else {
-                    total -= summaryDiscount.value;
-                  }
-                }
-
-                // Apply deposit
-                if (summaryDeposit) {
-                  if (summaryDeposit.unit === "percent") {
-                    total += subtotal * (summaryDeposit.value / 100);
-                  } else {
-                    total += summaryDeposit.value;
-                  }
-                }
-
-                return total.toFixed(2);
-              })()}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* markup */}
+      {/* Item picker modal */}
       <CustomModal
         open={itemModalOpen}
         onClose={() => setItemModalOpen(false)}
@@ -743,31 +638,24 @@ export default function CommonTable({
           ) : getItemsByFormat(getRowFormat(activeTableId)).length === 0 ? (
             <p className="text-sm text-gray-500">No items available.</p>
           ) : (
-            getItemsByFormat(getRowFormat(activeTableId)).map((item: any) => {
+            getItemsByFormat(getRowFormat(activeTableId)).map((it: any) => {
               const isSelected =
                 activeTableId !== null &&
-                selectedItemsByTable[activeTableId]?.id === item.id;
-
+                selectedItemsByTable[activeTableId]?.id === it.id;
               return (
                 <div
-                  key={item.id}
-                  onClick={() => handleToggleItem(item)}
-                  className={`flex justify-between items-start border p-3 rounded-xl cursor-pointer transition ${
-                    isSelected
-                      ? "bg-orange-50 border-orange-400"
-                      : "border-gray-200"
-                  }`}
+                  key={it.id}
+                  onClick={() => handleToggleItem(it)}
+                  className={`flex justify-between items-start border p-3 rounded-xl cursor-pointer transition ${isSelected ? "bg-orange-50 border-orange-400" : "border-gray-200"}`}
                 >
                   <div className="space-y-1">
-                    <p className="font-semibold text-gray-800">
-                      {item.itemName}
-                    </p>
-                    <p className="text-sm text-gray-500">{item.description}</p>
+                    <p className="font-semibold text-gray-800">{it.itemName}</p>
+                    <p className="text-sm text-gray-500">{it.description}</p>
                   </div>
 
                   <div className="text-right min-w-[80px]">
                     <p className="font-semibold text-gray-800">
-                      ${item?.rate || 0}
+                      ${it?.rate || 0}
                     </p>
                   </div>
                 </div>
@@ -775,316 +663,6 @@ export default function CommonTable({
             })
           )}
         </div>
-      </CustomModal>
-
-      <CustomModal
-        open={markupModalOpen}
-        onClose={() => setMarkupModalOpen(false)}
-        title=" Markup"
-        actions={[
-          {
-            label: "Cancel",
-            variant: "secondary",
-            onClick: () => setMarkupModalOpen(false),
-          },
-        ]}
-      >
-        <div className="space-y-3">
-          {markups.length === 0 ? (
-            <p className="text-sm text-gray-500">No markups available.</p>
-          ) : (
-            markups.map((markup: any) => (
-              <div
-                key={markup.id}
-                onClick={() => handleSelectMarkup(markup)}
-                className="p-3 border rounded-xl cursor-pointer hover:bg-orange-50"
-              >
-                <p className="font-semibold">{markup.name}</p>
-                <p className="text-sm text-gray-500">{markup.percentage}%</p>
-              </div>
-            ))
-          )}
-        </div>
-
-        <button
-          className="flex items-center gap-2  mt-3  py-4"
-          onClick={() => setOpenCreateMarkupModal(true)}
-        >
-          <GoPlus
-            size={30}
-            className="text-lg bg-primary p-1 text-white rounded-full"
-          />
-          <span className="font-medium">Add Markup</span>
-        </button>
-      </CustomModal>
-
-      {openCreateMarkupModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white w-[420px] rounded-2xl shadow-xl p-6 space-y-5 animate-in fade-in zoom-in-95">
-            {/* HEADER */}
-            <div>
-              <h2 className="text-xl font-semibold text-gray-800">Markup</h2>
-            </div>
-
-            {/* INPUTS */}
-            <div className="space-y-4">
-              {/* NAME */}
-              <div>
-                <label className="text-sm text-gray-600 mb-1 block">
-                  Markup Name
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Service Charge"
-                  value={markupValue.name}
-                  onChange={(e) =>
-                    setMarkupValue((prev) => ({
-                      ...prev,
-                      name: e.target.value,
-                    }))
-                  }
-                  className="w-full border border-gray-300 focus:border-primary focus:ring-1 focus:ring-primary outline-none p-2.5 rounded-lg"
-                />
-              </div>
-
-              {/* PERCENTAGE */}
-              <div>
-                <label className="text-sm text-gray-600 mb-1 block">
-                  Percentage (%)
-                </label>
-                <input
-                  type="number"
-                  placeholder="e.g. 15"
-                  value={markupValue.percentage}
-                  onChange={(e) =>
-                    setMarkupValue((prev) => ({
-                      ...prev,
-                      percentage: e.target.value,
-                    }))
-                  }
-                  className="w-full border border-gray-300 focus:border-primary focus:ring-1 focus:ring-primary outline-none p-2.5 rounded-lg"
-                />
-              </div>
-            </div>
-
-            {/* ACTIONS */}
-            <div className="flex gap-3 pt-2">
-              <button
-                onClick={() => setOpenCreateMarkupModal(false)}
-                className="w-full border border-gray-300 py-2.5 rounded-xl hover:bg-gray-100 transition"
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={handleCreateMarkup}
-                className="w-full bg-primary hover:bg-primary/90 text-white py-2.5 rounded-xl transition"
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* tax */}
-      {addTax && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white w-[400px] rounded-xl p-5 space-y-3">
-            {/* TITLE */}
-            <h2 className="text-lg font-semibold">Select Tax</h2>
-
-            {/* TAX LIST */}
-            <div className="space-y-2 max-h-[300px] overflow-y-auto">
-              {taxes?.length > 0 ? (
-                taxes.map((t: any) => (
-                  <div
-                    key={t.id}
-                    onClick={() => handleSelectTax(t)}
-                    className="p-3 border rounded-lg cursor-pointer hover:bg-orange-50"
-                  >
-                    <p className="font-semibold">{t.name}</p>
-                    <p className="text-sm text-gray-500">{t.percentage}%</p>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-gray-400 text-center">
-                  No tax found
-                </p>
-              )}
-            </div>
-
-            <button
-              onClick={() => {
-                setAddTax(false);
-                setTaxModalOpen(true);
-              }}
-              className="flex items-center gap-2 mt-3 py-4"
-            >
-              <GoPlus
-                size={30}
-                className="text-lg bg-primary p-1 text-white rounded-full"
-              />
-              <span className="font-medium">Add Tax</span>
-            </button>
-
-            {/* FOOTER */}
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setAddTax(false)}
-                className="w-full mt-3 border border-primary py-2 rounded-xl hover:bg-primary hover:text-white duration-300 ease-in"
-              >
-                Close
-              </button>
-
-              <button
-                onClick={() => setAddTax(false)}
-                className="w-full mt-3 bg-primary hover:bg-primary/90 text-white transition-colors py-2 rounded-xl"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {taxModalOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white w-[400px] rounded-xl p-5 space-y-3">
-            <h2 className="text-lg font-semibold">Create Tax</h2>
-
-            {/* NAME */}
-            <input
-              type="text"
-              placeholder="Tax name"
-              value={taxValue.name}
-              onChange={(e) =>
-                setTaxValue((prev) => ({
-                  ...prev,
-                  name: e.target.value,
-                }))
-              }
-              className="w-full border p-2 rounded"
-            />
-
-            {/* PERCENTAGE */}
-            <input
-              type="number"
-              placeholder="Enter tax %"
-              value={taxValue.percentage}
-              onChange={(e) =>
-                setTaxValue((prev) => ({
-                  ...prev,
-                  percentage: e.target.value,
-                }))
-              }
-              className="w-full border p-2 rounded"
-            />
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setTaxModalOpen(false)}
-                className="w-full border py-2 rounded-xl"
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={handleCreateTax}
-                className="w-full bg-primary text-white py-2 rounded-xl"
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Summary Markup Modal */}
-      <CustomModal
-        open={markupSummaryModal}
-        onClose={() => setMarkupSummaryModal(false)}
-        title="Select Markup"
-        actions={[
-          {
-            label: "Cancel",
-            variant: "secondary",
-            onClick: () => setMarkupSummaryModal(false),
-          },
-        ]}
-      >
-        <div className="space-y-3">
-          {markups.length === 0 ? (
-            <p className="text-sm text-gray-500">No markups available.</p>
-          ) : (
-            markups.map((markup: any) => (
-              <div
-                key={markup.id}
-                onClick={() => handleSelectSummaryMarkup(markup)}
-                className="p-3 border rounded-xl cursor-pointer hover:bg-orange-50"
-              >
-                <p className="font-semibold">{markup.name}</p>
-                <p className="text-sm text-gray-500">{markup.percentage}%</p>
-              </div>
-            ))
-          )}
-        </div>
-      </CustomModal>
-
-      {/* Discount Modal */}
-      <CustomModal
-        open={discountModal}
-        onClose={() => setDiscountModal(false)}
-        title="Discount"
-        actions={[
-          {
-            label: "Cancel",
-            variant: "secondary",
-            onClick: () => setDiscountModal(false),
-          },
-          {
-            label: "Apply",
-            variant: "primary",
-            onClick: () => setDiscountModal(false),
-          },
-        ]}
-      >
-        <DiscountModalContent
-          value={summaryDiscount?.value || 0}
-          setValue={(val: number) =>
-            setSummaryDiscount((prev) =>
-              prev ? { ...prev, value: val } : { value: val, unit: "percent" },
-            )
-          }
-        />
-      </CustomModal>
-
-      {/* Deposit Modal */}
-      <CustomModal
-        open={depositModal}
-        onClose={() => setDepositModal(false)}
-        title="Deposit"
-        actions={[
-          {
-            label: "Cancel",
-            variant: "secondary",
-            onClick: () => setDepositModal(false),
-          },
-          {
-            label: "Apply",
-            variant: "primary",
-            onClick: () => setDepositModal(false),
-          },
-        ]}
-      >
-        <DepositModalContent
-          value={summaryDeposit?.value || 0}
-          setValue={(val: number) =>
-            setSummaryDeposit((prev) =>
-              prev ? { ...prev, value: val } : { value: val, unit: "percent" },
-            )
-          }
-        />
       </CustomModal>
     </div>
   );

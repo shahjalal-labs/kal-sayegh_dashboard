@@ -87,17 +87,6 @@ export default function Invoice() {
     b.localeCompare(a),
   );
 
-  // const openEmailModal = (invoice: any) => {
-  //   setSelectedInvoice(invoice);
-  //   setEmailForm({
-  //     to: invoice?.client?.email || "",
-  //     subject: `Invoice ${invoice?.invoiceName || getInvoiceRef(invoice?.id)}`,
-  //     message: invoice?.emailMessage || "",
-  //     sendMeCopy: false,
-  //   });
-  //   setEmailModalOpen(true);
-  // };
-
   const isEmailNotSent = (status?: string) =>
     !status || status === "NOT_SENT" || status === "not_sent";
 
@@ -202,11 +191,6 @@ export default function Invoice() {
     if (!id) return "#----";
     return `#${id.slice(-4)}`;
   };
-
-  const options = [
-    { id: "description", label: "Description format" },
-    { id: "table", label: "Table format" },
-  ];
 
   const totalPagesCount = totalPages;
 
@@ -316,11 +300,7 @@ export default function Invoice() {
                     >
                       <div
                         className="md:hidden px-2 py-3 cursor-pointer hover:bg-gray-50 rounded transition-colors"
-                        onClick={() =>
-                          router.push(
-                            `/admin/invoice/${item.id}?format=${localStorage.getItem("invoiceDetailsFormat") === "table" ? "table" : "description"}`,
-                          )
-                        }
+                        onClick={() => router.push(`/admin/invoice/${item.id}`)}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
@@ -457,6 +437,17 @@ export default function Invoice() {
                         </div>
 
                         <div className="hidden md:flex md:gap-2 md:w-[10%] md:justify-end">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              router.push(
+                                `/admin/invoice/edit-invoice?id=${item.id}`,
+                              )
+                            }
+                            className="px-4 py-2 border border-primary text-primary hover:bg-primary/90 transition-colors hover:text-white rounded-lg whitespace-nowrap"
+                          >
+                            Edit
+                          </button>
                           <button
                             type="button"
                             onClick={() =>

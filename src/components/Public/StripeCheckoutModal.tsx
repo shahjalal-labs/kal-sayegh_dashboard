@@ -15,18 +15,11 @@ const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "",
 );
 
-const paymentIntentRequestCache = new Map<
-  string,
-  Promise<string | null>
->();
+const paymentIntentRequestCache = new Map<string, Promise<string | null>>();
 
 /* ---------------- CHECKOUT FORM ---------------- */
 
-function CheckoutForm({
-  onClose,
-}: {
-  onClose: () => void;
-}) {
+function CheckoutForm({ onClose }: { onClose: () => void }) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -165,14 +158,10 @@ export default function StripeCheckoutModal({
   }, [invoiceId, createIntent]);
 
   if (loading) {
-    return (
-      <div className="py-10 text-center text-gray-500">
-        Creating payment intent...
-      </div>
-    );
+    return <div className="py-10 text-center text-gray-500"></div>;
   }
 
-  // ❗ CRITICAL FIX: prevent Elements mount before clientSecret
+
   if (!clientSecret) {
     return (
       <div className="py-10 text-center text-red-500">

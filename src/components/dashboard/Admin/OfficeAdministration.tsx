@@ -34,7 +34,8 @@ interface JobItem {
   id: number;
   title: string;
   date: string;
-  status: "NEW" | "REVIEWED";
+  status: string;
+  jobSerial: string;
 }
 
 function CreateNewJobForm({ form, setForm, jobRequestId }: any) {
@@ -162,19 +163,11 @@ export default function OfficeAdministration() {
     officeId: "",
   });
 
-  const handleChange = (field: string, value: string) => {
-    setForm((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
   const [preview, setPreview] = useState<string[]>([]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
 
-    // keep actual File objects for submission
     setSelectedFiles(files);
 
     const imageUrls = files.map((file) => URL.createObjectURL(file));
@@ -529,6 +522,12 @@ export default function OfficeAdministration() {
                           />
 
                           <div>
+                            <p className="text-base font-semibold">
+                              SL No:{" "}
+                              <span className="font-normal">
+                                {job?.jobSerial}
+                              </span>
+                            </p>
                             <p className="text-sm md:text-lg font-medium text-gray-900">
                               {job.title}
                             </p>

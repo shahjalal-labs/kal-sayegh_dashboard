@@ -1,6 +1,16 @@
 "use client";
 
+import InvoiceContractModal from "@/components/dashboard/Admin/Invoice/InvoiceContractModal";
 import CommonTable from "@/components/table/CommonTable";
+import Summary from "@/components/table/summary";
+import { Textarea } from "@/components/ui/Textarea";
+import ToggleSwitch from "@/components/ui/ToggleSwitch";
+import {
+  useAddContractMutation,
+  useDeleteContractMutation,
+  useGetAllContractsQuery,
+  useUpdateContractMutation,
+} from "@/redux/api/admin/contractApi";
 import {
   useCreateClientMutation,
   useGetMyClientsQuery,
@@ -13,24 +23,34 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { AiOutlineUserAdd } from "react-icons/ai";
 import { toast } from "sonner";
+import Swal from "sweetalert2";
 
 export default function AddInvoice() {
   const router = useRouter();
   const [createInvoice, { isLoading }] = useCreateInvoiceMutation();
 
   const [formData, setFormData] = useState({
-    invoiceName: "",
-    date: "",
-    poNumber: "",
-    daysToPay: "",
-    legendary: "",
-    endDate: "",
+    additionalMarkUp: 0,
     clientId: "",
     clientSign: true,
-    mySign: true,
-    isOnlinePayment: true,
+    contractId: "",
     coverPaymentProcessingFee: true,
-    additionalMarkUp: 0,
+    date: "",
+    depositAmount: 0,
+    discountAmount: 0,
+    endDate: "",
+    grandTotal: 0,
+    invoiceName: "",
+    invoiceNumber: "",
+    isGroupingEnabled: false,
+    isOnlinePayment: true,
+    items: [],
+    legendary: "",
+    mySign: true,
+    poNumber: "",
+    daysToPay: "",
+    noteForClient: "",
+    privateNote: "",
   });
 
   const [tableData, setTableData] = useState<any>(null);
@@ -63,6 +83,30 @@ export default function AddInvoice() {
     zip: "",
   });
 
+  const [addContractModalOpen, setAddContractModalOpen] = useState(false);
+  const [newContract, setNewContract] = useState({
+    title: "",
+    description: "",
+  });
+  const [editContract, setEditContract] = useState<{
+    id: string | null;
+    title: string;
+    description: string;
+  }>({ id: null, title: "", description: "" });
+
+  const [addContract, { isLoading: isAddingContract }] =
+    useAddContractMutation();
+  const { data: allContracts, refetch: refetchContracts } =
+    useGetAllContractsQuery({});
+  const contracts = allContracts?.result?.data ?? [];
+  const selectedContractTitle =
+    contracts.find(
+      (contractItem: any) => contractItem.id === formData.contractId,
+    )?.title ?? "";
+
+  const [updateContract] = useUpdateContractMutation();
+  const [deleteContract] = useDeleteContractMutation();
+
   const handleClientChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setClientForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
@@ -85,6 +129,93 @@ export default function AddInvoice() {
       });
     } catch (error: any) {
       toast.error("Failed to create client:", error);
+    }
+  };
+
+  const handleCreateContract = async () => {
+    try {
+      if (!newContract.title.trim() || !newContract.description.trim()) {
+        toast.error("Please fill both contract fields");
+        return;
+      }
+
+      const res = await addContract({
+        title: newContract.title.trim(),
+        description: newContract.description.trim(),
+      }).unwrap();
+
+      toast.success("Contract created successfully");
+
+      const newContractId =
+        res?.result?.id || res?.result?._id || res?.id || res?._id || "";
+
+      if (newContractId) {
+        setFormData((prev) => ({ ...prev, contractId: newContractId }));
+      }
+
+      setNewContract({ title: "", description: "" });
+
+      await refetchContracts();
+      setAddContractModalOpen(false);
+    } catch (error) {
+      console.error("Failed to create contract:", error);
+      toast.error("Failed to create contract");
+    }
+  };
+
+  const handleDeleteContract = async (contractId: any) => {
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "You won't be able to recover this contract!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, delete it!",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await deleteContract(contractId).unwrap();
+
+      Swal.fire({
+        title: "Deleted!",
+        text: "Contract deleted successfully.",
+        icon: "success",
+        timer: 2000,
+      });
+    } catch (error) {
+      console.error("Failed to delete contract:", error);
+
+      Swal.fire({
+        title: "Error!",
+        text: "Failed to delete contract.",
+        icon: "error",
+        background: "#ffffff",
+      });
+    } finally {
+      await refetchContracts();
+    }
+  };
+
+  const handleUpdateContract = async () => {
+    if (!editContract.id) return;
+
+    try {
+      await updateContract({
+        contractId: editContract.id,
+        title: editContract.title,
+        description: editContract.description,
+      }).unwrap();
+
+      toast.success("Contract updated successfully");
+      setEditContract({ id: null, title: "", description: "" });
+      await refetchContracts();
+      setAddContractModalOpen(false);
+    } catch (error) {
+      console.error("Failed to update contract:", error);
+      toast.error("Failed to update contract");
     }
   };
 
@@ -135,12 +266,17 @@ export default function AddInvoice() {
     }
 
     const bodyData = {
-      additionalMarkUp: tableData.summaryMarkup?.percentage || 0,
+      additionalMarkUp:
+        tableData.summaryMarkup?.percentage ?? formData.additionalMarkUp ?? 0,
       clientId,
+      contractId: formData.contractId,
       date: formData.date,
+
+      invoiceNumber: formData.invoiceNumber,
       poNumber: formData.poNumber,
       clientSign: formData.clientSign,
       mySign: formData.mySign,
+      isGroupingEnabled: formData.isGroupingEnabled,
       isOnlinePayment: formData.isOnlinePayment,
       coverPaymentProcessingFee: formData.coverPaymentProcessingFee,
       depositAmount: Math.round(tableData.summaryDeposit?.value || 0),
@@ -149,6 +285,8 @@ export default function AddInvoice() {
       grandTotal: Math.round(tableData.grandTotal),
       invoiceName: formData.invoiceName,
       legendary: formData.legendary,
+      noteForClient: formData.noteForClient,
+
       items: selectedItems.map((item: any) => ({
         id: item.selectedItem.id || item.selectedItem._id || "",
         quantity: parseFloat(item.quantity) || 0,
@@ -173,20 +311,29 @@ export default function AddInvoice() {
 
       toast.success("Invoice has been created successfully!");
 
-      // Reset local state to match estimate flow
       setFormData({
-        invoiceName: "",
-        date: "",
-        poNumber: "",
-        daysToPay: "",
-        legendary: "",
-        endDate: "",
+        additionalMarkUp: 0,
         clientId: "",
         clientSign: true,
-        mySign: true,
-        isOnlinePayment: true,
+        contractId: "",
         coverPaymentProcessingFee: true,
-        additionalMarkUp: 0,
+        date: "",
+        depositAmount: 0,
+        discountAmount: 0,
+        endDate: "",
+        grandTotal: 0,
+        invoiceName: "",
+        invoiceNumber: "",
+
+        daysToPay: "",
+        legendary: "",
+        isGroupingEnabled: false,
+        isOnlinePayment: true,
+        items: [],
+        noteForClient: "",
+        privateNote: "",
+        poNumber: "",
+        mySign: true,
       });
 
       setTableData(null);
@@ -409,9 +556,9 @@ export default function AddInvoice() {
               )}
 
               <div className="space-y-2">
-                <label>Invoice</label>
+                <label>Invoice Name</label>
                 <input
-                  placeholder="Invoice#"
+                  placeholder="Invoice name"
                   className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
                   value={formData.invoiceName}
                   onChange={(e) =>
@@ -422,6 +569,22 @@ export default function AddInvoice() {
                   }
                 />
               </div>
+
+              <div className="space-y-2">
+                <label>Invoice Number</label>
+                <input
+                  placeholder="Invoice number"
+                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
+                  value={formData.invoiceNumber}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      invoiceNumber: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
               <div className="space-y-2">
                 <label>Date</label>
                 <input
@@ -463,6 +626,21 @@ export default function AddInvoice() {
                 />
               </div>
               <div className="space-y-2">
+                <label>PO Number</label>
+                <input
+                  placeholder="PO Number"
+                  type="number"
+                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
+                  value={formData.poNumber}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      poNumber: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
                 <label>Legendary</label>
                 <input
                   placeholder="Legendary"
@@ -476,8 +654,51 @@ export default function AddInvoice() {
                   }
                 />
               </div>
+
+              <div>
+                <label className="text-base text-gray-600">Contract </label>
+                <input
+                  onClick={() => setAddContractModalOpen(true)}
+                  placeholder="Contract "
+                  value={selectedContractTitle}
+                  readOnly
+                  className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label>Note For Client</label>
+                <Textarea
+                  placeholder="Note for Client"
+                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
+                  value={formData.noteForClient}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      noteForClient: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label>Private Note</label>
+                <Textarea
+                  placeholder="Private note"
+                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
+                  value={formData.privateNote}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      privateNote: e.target.value,
+                    }))
+                  }
+                />
+              </div>
             </div>
           </div>
+
+          <CommonTable key={tableKey} onDataChange={setTableData} />
 
           <div className="mt-7">
             <label className="text-lg text-gray-600">Side Map</label>
@@ -589,140 +810,58 @@ export default function AddInvoice() {
             </div>
           </div>
 
-          <CommonTable key={tableKey} onDataChange={setTableData} />
+          <Summary tableData={tableData} onDataChange={setTableData} />
 
-          {/* Sign Buttons */}
-          <div className="flex justify-end mt-5">
-            <div className="grid grid-cols-1 md:grid-cols-2  gap-3 w-full md:w-80 mt-6 ">
-              <button
-                type="button"
-                onClick={() =>
+          <div className="flex justify-end ">
+            <div className="grid grid-cols-1  gap-3 my-12 w-full md:w-80 border-t">
+              <ToggleSwitch
+                label="Stripe"
+                description="Accept Debit/Credit, Apple pay, Google pay Stripe Link or Bank Transfer(ACH)"
+                checked={formData.isOnlinePayment}
+                onToggle={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    isOnlinePayment: !prev.isOnlinePayment,
+                  }))
+                }
+                className="px-4 py-3 border border-gray-200"
+              />
+
+              <ToggleSwitch
+                label="Client Sign"
+                checked={formData.clientSign}
+                onToggle={() =>
                   setFormData((prev) => ({
                     ...prev,
                     clientSign: !prev.clientSign,
                   }))
                 }
-                className={`flex items-center justify-between  transition ${
-                  formData.clientSign ? "" : ""
-                }`}
-              >
-                <span className="text-xl font-medium text-gray-700">
-                  Client Sign
-                </span>
-                <span
-                  className={`flex h-6 w-11 items-center rounded-full p-1 transition ${
-                    formData.clientSign ? "bg-primary" : "bg-gray-300"
-                  }`}
-                >
-                  <span
-                    className={`h-4 w-4 rounded-full bg-white transition ${
-                      formData.clientSign ? "translate-x-5" : "translate-x-0"
-                    }`}
-                  />
-                </span>
-              </button>
+                className="px-4 py-3 border border-gray-200"
+              />
 
-              <button
-                type="button"
-                onClick={() =>
+              <ToggleSwitch
+                label="My Sign"
+                checked={formData.mySign}
+                onToggle={() =>
                   setFormData((prev) => ({
                     ...prev,
                     mySign: !prev.mySign,
                   }))
                 }
-                className={`flex items-center justify-between rounded-xl px-4 py-3 transition ${
-                  formData.mySign ? "" : ""
-                }`}
-              >
-                <span className="text-xl font-medium text-gray-700">
-                  My Sign
-                </span>
-                <span
-                  className={`flex h-6 w-11 items-center rounded-full p-1 transition ${
-                    formData.mySign ? "bg-primary" : "bg-gray-300"
-                  }`}
-                >
-                  <span
-                    className={`h-4 w-4 rounded-full bg-white transition ${
-                      formData.mySign ? "translate-x-5" : "translate-x-0"
-                    }`}
-                  />
-                </span>
-              </button>
-            </div>
-          </div>
+                className="px-4 py-3 border border-gray-200"
+              />
 
-          {/* Online Payment */}
-          <div className="flex justify-end">
-            <div className=" w-full  md:w-80 space-y-2 text-base flex justify-end">
-              <div className="mt-8">
-                <h2 className="text-xl font-semibold border-b py-3">
-                  Online Payment
-                </h2>
-                <div className="flex items-center justify-between mt-3">
-                  <div>
-                    <div className="font-semibold text-lg">Stripe</div>
-                    <div className="text-base text-gray-500">
-                      Accept Debit/Credit, Apple pay, Google pay Stripe Link or
-                      Bank Transfer(ACH)
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        isOnlinePayment: !prev.isOnlinePayment,
-                      }))
-                    }
-                    className="ml-4"
-                  >
-                    <span
-                      className={`flex h-6 w-11 items-center rounded-full p-1 transition ${formData.isOnlinePayment ? "bg-primary" : "bg-gray-300"}`}
-                    >
-                      <span
-                        className={`h-4 w-4 rounded-full bg-white transition ${formData.isOnlinePayment ? "translate-x-5" : "translate-x-0"}`}
-                      />
-                    </span>
-                  </button>
-                </div>
-
-                <div className="mt-4 border-t pt-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-semibold text-lg">
-                        Cover Payment Processing Fee
-                      </div>
-                      <div className="text-base text-gray-500">
-                        Applies a markup to cover your processing fee
-                      </div>
-                      <div className="text-base text-gray-400 mt-3">
-                        Note: This is not visible to your client
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          coverPaymentProcessingFee:
-                            !prev.coverPaymentProcessingFee,
-                        }))
-                      }
-                    >
-                      <span
-                        className={`flex h-6 w-11 items-center rounded-full p-1 transition ${formData.coverPaymentProcessingFee ? "bg-primary" : "bg-gray-300"}`}
-                      >
-                        <span
-                          className={`h-4 w-4 rounded-full bg-white transition ${formData.coverPaymentProcessingFee ? "translate-x-5" : "translate-x-0"}`}
-                        />
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <ToggleSwitch
+                label="Group Items"
+                checked={formData.isGroupingEnabled}
+                onToggle={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    isGroupingEnabled: !prev.isGroupingEnabled,
+                  }))
+                }
+                className="px-4 py-3 border border-gray-200"
+              />
             </div>
           </div>
 
@@ -846,6 +985,24 @@ export default function AddInvoice() {
             </div>
           </div>
         )}
+
+        <InvoiceContractModal
+          open={addContractModalOpen}
+          onClose={() => setAddContractModalOpen(false)}
+          contracts={contracts}
+          selectedContractId={formData.contractId}
+          onSelectContract={(contractId) =>
+            setFormData((prev) => ({ ...prev, contractId }))
+          }
+          newContract={newContract}
+          setNewContract={setNewContract}
+          editContract={editContract}
+          setEditContract={setEditContract}
+          onCreateContract={handleCreateContract}
+          onUpdateContract={handleUpdateContract}
+          onDeleteContract={handleDeleteContract}
+          isCreating={isAddingContract}
+        />
 
         <style jsx>{`
           .input {

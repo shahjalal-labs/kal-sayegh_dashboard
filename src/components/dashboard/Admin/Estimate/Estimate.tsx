@@ -219,6 +219,12 @@ export default function Estimate() {
       />
     );
 
+  const openEmailModal = (item: any) => {
+    router.push(
+      `/admin/estimate/${item.id}?format=${getEstimateDetailsFormat(item)}`,
+    );
+  };
+
   return (
     <div className="md:bg-secondary bg-secondary-none p-4 md:p-6 rounded-2xl">
       {/* HEADER */}
@@ -533,7 +539,7 @@ export default function Estimate() {
                               type="button"
                               onClick={() => {
                                 router.push(
-                                  `/admin/edit-estimate?id=${item.id}`,
+                                  `/admin/estimate/edit-estimate?id=${item.id}`,
                                 );
                               }}
                               className="px-4 py-2 bg-primary text-secondary rounded-lg whitespace-nowrap"

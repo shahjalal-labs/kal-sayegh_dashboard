@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   /* config options here */
   images: {
     unoptimized: true,
-    domains: ["api.zenexcloud.com"],
+    domains: [""],
   },
 };
 

@@ -850,7 +850,6 @@ export default function AddEstimate() {
     }
   };
 
-  // Helper function to calculate line item total (includes markup and tax)
   const calculateLineTotal = (item: any) => {
     const rate = Number(item.rate ?? item.amount ?? 0) || 0;
     const quantity = Number(item.quantity) || 0;
