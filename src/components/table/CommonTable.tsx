@@ -12,8 +12,10 @@ import { CustomModal } from "../modal/CustomModal";
 
 export default function CommonTable({
   onDataChange,
+  initialItems,
 }: {
   onDataChange?: (data: any) => void;
+  initialItems?: any[];
 }) {
   const [items, setItems] = useState<{ id: number; format: FormatType }[]>([]);
   const [formatModalOpen, setFormatModalOpen] = useState(false);
@@ -69,6 +71,52 @@ export default function CommonTable({
     value: number;
     unit: "percent" | "dollar";
   } | null>(null);
+
+  useEffect(() => {
+    if (!initialItems?.length || items.length > 0) return;
+
+    const fallbackRowIdBase = Date.now();
+
+    const seededRows = initialItems.map((item: any, index: number) => {
+      const rowId = item?.rowId ?? item?.id ?? fallbackRowIdBase + index;
+      const selectedItem = item?.selectedItem ?? item ?? null;
+      const format = String(
+        item?.format ?? selectedItem?.format ?? "DESCRIPTION",
+      ).toUpperCase() as FormatType;
+
+      return {
+        id: rowId,
+        format,
+      };
+    });
+
+    const seededSelectedItems: Record<number, any> = {};
+    const seededRowData: Record<number, { rate: string; quantity: string }> =
+      {};
+    const seededMarkups: Record<number, any> = {};
+    const seededTaxes: Record<number, any> = {};
+
+    initialItems.forEach((item: any, index: number) => {
+      const rowId = item?.rowId ?? item?.id ?? fallbackRowIdBase + index;
+      const selectedItem = item?.selectedItem ?? item ?? null;
+
+      seededSelectedItems[rowId] = selectedItem;
+      seededRowData[rowId] = {
+        rate: String(
+          item?.rate ?? selectedItem?.rate ?? selectedItem?.amount ?? 0,
+        ),
+        quantity: String(item?.quantity ?? 1),
+      };
+      seededMarkups[rowId] = item?.selectedMarkup ?? null;
+      seededTaxes[rowId] = item?.selectedTax ?? null;
+    });
+
+    setItems(seededRows);
+    setSelectedItemsByTable(seededSelectedItems);
+    setRowData(seededRowData);
+    setSelectedMarkupsByRow(seededMarkups);
+    setSelectedTaxesByRow(seededTaxes);
+  }, [initialItems, items.length]);
 
   const [markupSummaryModal, setMarkupSummaryModal] = useState(false);
   const [taxSummaryModal, setTaxSummaryModal] = useState(false);

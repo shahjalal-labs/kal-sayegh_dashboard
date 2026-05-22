@@ -18,6 +18,7 @@ import { FiArrowLeft, FiDownload } from "react-icons/fi";
 import { ColorRing } from "react-loader-spinner";
 import { toast } from "sonner";
 
+import { Edit } from "lucide-react";
 import PaymentModal from "./Payment/PaymentModal";
 
 type ItemFormat = "TABLE" | "DESCRIPTION" | "IMAGE_PDF";
@@ -553,75 +554,75 @@ export default function InvoiceDetails({ format }: { format?: string }) {
 
   return (
     <>
-      <div className="mx-auto mt-4 px-4 py-10 w-full">
-        <div className="flex gap-20 items-center px-4 md:px-0">
+      <div className="mx-auto mt-4 w-full container px-4 py-6  lg:py-10">
+        <div className="flex items-center justify-between gap-3">
           <Link
             href="/admin/invoice"
-            className="flex items-center gap-2 hover:underline text-gray-500"
+            className="flex shrink-0 items-center gap-2 text-gray-500 hover:underline"
           >
-            <FiArrowLeft size={25} />
-            <span className="hidden md:block"> Back To Invoice List Page</span>
+            <FiArrowLeft size={22} />
+            <span className="text-xs font-medium sm:text-sm">Back</span>
           </Link>
 
-          <h1 className="text-2xl font-bold text-center mt-4 md:hidden block">
+          <h1 className="flex-1 text-center text-base font-bold sm:text-xl">
             Invoice Details
           </h1>
+
+          <div className="w-10 shrink-0" aria-hidden="true" />
         </div>
 
         <div className="flex flex-col items-start gap-6 lg:flex-row">
-          <div className="">
-            <div>
-              <div className="hidden md:flex md:flex-row md:justify-between  ">
-                <div className="flex items-center  gap-3 mt-4">
-                  {/* <Link
-            href={
-              editInvoiceId
-                ? `/admin/edit-invoice?id=${editInvoiceId}&format=table`
-                : "/admin/invoice"
-            }
-            onClick={() => {
-              if (typeof window !== "undefined" && editInvoiceId) {
-                localStorage.setItem("editingInvoiceId", editInvoiceId);
-              }
-            }}
-            className="flex items-center gap-2 px-4 py-2 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary"
-          >
-            <Edit size={16} />
-            Edit
-          </Link> */}
+          <div className="w-full">
+            <div className="hidden md:flex md:flex-row md:justify-between md:gap-4">
+              <div className="flex items-center gap-3">
+                <Link
+                  href={
+                    editInvoiceId
+                      ? `/admin/edit-invoice?id=${editInvoiceId}`
+                      : "/admin/invoice"
+                  }
+                  onClick={() => {
+                    if (typeof window !== "undefined" && editInvoiceId) {
+                      localStorage.setItem("editingInvoiceId", editInvoiceId);
+                    }
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary"
+                >
+                  <Edit size={16} />
+                  Edit
+                </Link>
 
-                  <button
-                    onClick={() => setIsReminderOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2 mt-7 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary"
-                  >
-                    <AiOutlineMail />
-                    Email
-                  </button>
-                </div>
+                <button
+                  onClick={() => setIsReminderOpen(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary"
+                >
+                  <AiOutlineMail />
+                  Email
+                </button>
+              </div>
 
-                <div className="flex items-center gap-3 mt-4">
-                  <button
-                    onClick={() => setIsPaymentModalOpen(true)}
-                    className="group flex items-center gap-2 px-4 py-2 border-primary transition-all duration-300 border text-primary rounded-lg hover:bg-primary hover:text-white ease-in"
-                  >
-                    <Image
-                      src={paymentIcon}
-                      alt="Payment"
-                      width={20}
-                      height={20}
-                      className="transition duration-300 group-hover:brightness-0 group-hover:invert"
-                    />
-                    Payment
-                  </button>
+              <div className="flex items-center gap-3 mt-4">
+                <button
+                  onClick={() => setIsPaymentModalOpen(true)}
+                  className="group flex items-center gap-2 px-4 py-2 border-primary transition-all duration-300 border text-primary rounded-lg hover:bg-primary hover:text-white ease-in"
+                >
+                  <Image
+                    src={paymentIcon}
+                    alt="Payment"
+                    width={20}
+                    height={20}
+                    className="transition duration-300 group-hover:brightness-0 group-hover:invert"
+                  />
+                  Payment
+                </button>
 
-                  <button
-                    onClick={handleDownload}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90"
-                  >
-                    <FiDownload />
-                    Download
-                  </button>
-                </div>
+                <button
+                  onClick={handleDownload}
+                  className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90"
+                >
+                  <FiDownload />
+                  Download
+                </button>
               </div>
             </div>
 
@@ -635,23 +636,23 @@ export default function InvoiceDetails({ format }: { format?: string }) {
 
             <div
               id="invoice"
-              className="mt-4 rounded-2xl bg-secondary p-4 py-9 md:p-6"
+              className="mt-4 rounded-2xl bg-secondary p-4 py-6 sm:p-5 md:p-6 md:py-9"
             >
-              <h1 className="text-center text-xl font-semibold uppercase tracking-[0.16em] text-gray-400">
+              <h1 className="text-center text-lg font-semibold uppercase tracking-[0.16em] text-gray-400 sm:text-xl">
                 Invoice
               </h1>
 
-              <div className="mt-5 flex items-start justify-between">
+              <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <Image
                   src={logo}
                   alt="Logo"
                   width={150}
                   height={80}
-                  className="h-auto w-[150px] md:w-[200px]"
+                  className="h-auto w-[120px] sm:w-[150px] md:w-[200px]"
                 />
 
-                <div className="space-y-3 text-right text-base leading-5 text-gray-700">
-                  <p className="text-xl font-semibold text-black">
+                <div className="space-y-2 text-left text-sm leading-5 text-gray-700 sm:text-right sm:text-base">
+                  <p className="text-lg font-semibold text-black sm:text-xl">
                     Prepared For
                   </p>
                   <p>{invoice?.client?.clientName || "-"}</p>
@@ -662,9 +663,9 @@ export default function InvoiceDetails({ format }: { format?: string }) {
                 </div>
               </div>
 
-              <div className="mt-7 grid grid-cols-1 gap-6 text-[10px] leading-5 text-gray-700 md:grid-cols-2">
-                <div className="space-y-3 text-base">
-                  <h2 className="text-xl font-semibold text-black">
+              <div className="mt-7 grid grid-cols-1 gap-4 text-[10px] leading-5 text-gray-700 sm:gap-6 md:grid-cols-2">
+                <div className="space-y-2 text-sm sm:space-y-3 sm:text-base">
+                  <h2 className="text-lg font-semibold text-black sm:text-xl">
                     Geo Paving and Sealcoating
                   </h2>
                   <p>9530 Juniper Crest Ct, Ste 1012 Rancho</p>
@@ -679,7 +680,7 @@ export default function InvoiceDetails({ format }: { format?: string }) {
                   </p>
                 </div>
 
-                <div className="space-y-3 text-left text-base md:justify-self-end md:text-right">
+                <div className="space-y-2 text-left text-sm sm:space-y-3 sm:text-base md:justify-self-end md:text-right">
                   <p>
                     <span className="font-semibold text-black">Invoice</span>
                     <span className="inline-block w-6 text-center">:</span>#
@@ -712,10 +713,10 @@ export default function InvoiceDetails({ format }: { format?: string }) {
 
               {invoice?.noteForClient ? (
                 <div className="mt-8 rounded-xl border border-[#d8d8d8] bg-white/70 p-4">
-                  <h2 className="mb-2 text-lg font-semibold text-black">
+                  <h2 className="mb-2 text-base font-semibold text-black sm:text-lg">
                     Note For Client
                   </h2>
-                  <p className="text-base leading-6 text-gray-700">
+                  <p className="text-sm leading-6 text-gray-700 sm:text-base">
                     {invoice.noteForClient}
                   </p>
                 </div>
@@ -732,44 +733,46 @@ export default function InvoiceDetails({ format }: { format?: string }) {
                 <Conditions className="mt-2" />
               </div>
 
-              <div>
-                <div className="md:hidden flex flex-wrap gap-3 md:justify-between  ">
-                  <div className="flex items-center  gap-3 mt-4">
-                    {/* <Link
-            href={
-              editInvoiceId
-                ? `/admin/edit-invoice?id=${editInvoiceId}&format=table`
-                : "/admin/invoice"
-            }
-            onClick={() => {
-              if (typeof window !== "undefined" && editInvoiceId) {
-                localStorage.setItem("editingInvoiceId", editInvoiceId);
-              }
-            }}
-            className="flex items-center gap-2 px-4 py-2 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary"
-          >
-            <Edit size={16} />
-            Edit
-          </Link> */}
-                  </div>
+              <div className="md:hidden mt-11">
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                  <div className="grid grid-cols-2 gap-3">
+                    <Link
+                      href={
+                        editInvoiceId
+                          ? `/admin/edit-invoice?id=${editInvoiceId}&format=table`
+                          : "/admin/invoice"
+                      }
+                      onClick={() => {
+                        if (typeof window !== "undefined" && editInvoiceId) {
+                          localStorage.setItem(
+                            "editingInvoiceId",
+                            editInvoiceId,
+                          );
+                        }
+                      }}
+                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-primary px-3 py-2 text-sm text-primary transition-colors hover:bg-primary hover:text-white"
+                    >
+                      <Edit size={16} />
+                      Edit
+                    </Link>
 
-                  <div className="flex flex-wrap items-center gap-3 ">
                     <button
                       onClick={() => setIsReminderOpen(true)}
-                      className="flex items-center gap-2 px-4 py-2  border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary text-sm"
+                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-primary px-3 py-2 text-sm text-primary transition-colors hover:bg-primary hover:text-white"
                     >
                       <AiOutlineMail />
                       Email
                     </button>
+
                     <button
                       onClick={() => setIsPaymentModalOpen(true)}
-                      className="group flex items-center gap-2 px-4 py-2  border-primary transition-all duration-300 border text-primary rounded-lg hover:bg-primary hover:text-white ease-in text-sm"
+                      className="group inline-flex items-center justify-center gap-2 rounded-lg border border-primary px-3 py-2 text-sm text-primary transition-all duration-300 hover:bg-primary hover:text-white"
                     >
                       <Image
                         src={paymentIcon}
                         alt="Payment"
-                        width={20}
-                        height={20}
+                        width={18}
+                        height={18}
                         className="transition duration-300 group-hover:brightness-0 group-hover:invert"
                       />
                       Payment
@@ -777,7 +780,7 @@ export default function InvoiceDetails({ format }: { format?: string }) {
 
                     <button
                       onClick={handleDownload}
-                      className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 text-sm"
+                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm text-white hover:opacity-90"
                     >
                       <FiDownload />
                       Download

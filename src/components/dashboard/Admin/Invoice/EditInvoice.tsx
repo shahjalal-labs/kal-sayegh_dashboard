@@ -67,6 +67,7 @@ export default function EditInvoice() {
   });
 
   const [tableData, setTableData] = useState<any>(null);
+  const [initialTableItems, setInitialTableItems] = useState<any[]>([]);
   const [tableKey, setTableKey] = useState(0);
 
   const [sideMaps, setSideMaps] = useState<File[]>([]);
@@ -202,11 +203,21 @@ export default function EditInvoice() {
     if (client) setSelectedClient(client);
 
     if (invoice.items) {
+      const seededItems = invoice.items.map((it: any, index: number) => ({
+        rowId: index + 1,
+        selectedItem: it,
+        rate: it.rate ?? it.amount ?? 0,
+        quantity: it.quantity || 1,
+        total: it.subTotal || it.total || 0,
+      }));
+
+      setInitialTableItems(seededItems);
+
       setTableData({
-        items: invoice.items.map((it: any) => ({
-          selectedItem: it,
-          quantity: it.quantity || 1,
-          total: it.subTotal || it.total || 0,
+        items: seededItems.map((it: any) => ({
+          selectedItem: it.selectedItem,
+          quantity: it.quantity,
+          total: it.total,
         })),
         grandTotal: invoice.grandTotal || 0,
       });
@@ -598,7 +609,11 @@ export default function EditInvoice() {
             </div>
           </div>
 
-          <CommonTable key={tableKey} onDataChange={setTableData} />
+          <CommonTable
+            key={tableKey}
+            onDataChange={setTableData}
+            initialItems={initialTableItems}
+          />
           <div className="mt-7">
             <label className="text-lg text-gray-600">Side Map</label>
 
@@ -709,7 +724,7 @@ export default function EditInvoice() {
             </div>
           </div>
 
-          <Summary data={tableData} onDataChange={setTableData} />
+          <Summary tableData={tableData} onDataChange={setTableData} />
 
           <div className="flex justify-end my-12">
             <div className="w-full md:w-80 space-y-3 border-t">

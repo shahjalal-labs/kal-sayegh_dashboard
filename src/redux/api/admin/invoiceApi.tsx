@@ -162,7 +162,7 @@ const invoiceApi = baseApi.injectEndpoints({
     updateInvoice: builder.mutation({
       query: ({ invoiceId, formData }) => ({
         url: `/invoice/update/${invoiceId}`,
-        method: "PUT",
+        method: "PATCH",
         body: formData,
       }),
     }),
