@@ -265,16 +265,24 @@ export default function ContractModal({
               {contracts.length > 0 ? (
                 contracts.map((contractItem: ContractItem) => {
                   const isSelected = selectedContractId === contractItem.id;
+                  const handleSelectContract = () => {
+                    if (onSelectContract) onSelectContract(contractItem.id);
+                    onClose();
+                  };
 
                   return (
-                    <button
+                    <div
                       key={contractItem.id}
-                      type="button"
-                      onClick={() => {
-                        if (onSelectContract) onSelectContract(contractItem.id);
-                        onClose();
+                      role="button"
+                      tabIndex={0}
+                      onClick={handleSelectContract}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          handleSelectContract();
+                        }
                       }}
-                      className={`w-full rounded-2xl border p-4 text-left transition ${isSelected ? "border-primary bg-orange-50" : "border-gray-200 hover:border-orange-300 hover:bg-orange-50/60"}`}
+                      className={`w-full rounded-2xl border p-4 text-left transition ${isSelected ? "border-primary bg-orange-50" : "border-gray-200 hover:border-orange-300 hover:bg-orange-50/60"} cursor-pointer`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="space-y-1">
@@ -326,7 +334,7 @@ export default function ContractModal({
                           ) : null}
                         </div>
                       </div>
-                    </button>
+                    </div>
                   );
                 })
               ) : (

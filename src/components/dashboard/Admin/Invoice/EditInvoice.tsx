@@ -4,12 +4,7 @@ import ContractModal from "@/components/modal/ContractModal";
 import CommonTable from "@/components/table/CommonTable";
 import Summary from "@/components/table/summary";
 import ToggleSwitch from "@/components/ui/ToggleSwitch";
-import {
-  useAddContractMutation,
-  useDeleteContractMutation,
-  useGetAllContractsQuery,
-  useUpdateContractMutation,
-} from "@/redux/api/admin/contractApi";
+import { useGetAllContractsQuery } from "@/redux/api/admin/contractApi";
 import { useGetMyClientsQuery } from "@/redux/api/admin/estimateApi";
 import {
   useGetInvoiceByIdQuery,
@@ -28,19 +23,33 @@ export default function EditInvoice() {
   const searchParams = useSearchParams();
   const invoiceIdParam = searchParams?.get("id") || "";
 
+  const [tableData, setTableData] = useState<any>(null);
+  const [initialTableItems, setInitialTableItems] = useState<any[]>([]);
+  const [tableKey, setTableKey] = useState(0);
+
+  const [sideMaps, setSideMaps] = useState<File[]>([]);
+  const [images, setImages] = useState<File[]>([]);
+  const sideMapRef = useRef<HTMLInputElement | null>(null);
+  const imageRef = useRef<HTMLInputElement | null>(null);
+
+  const [open, setOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<any>(null);
+
+  const [showAll, setShowAll] = useState(false);
+  const [openClientModal, setOpenClientModal] = useState(false);
+  const [addContractModalOpen, setAddContractModalOpen] = useState(false);
+
+  const { data } = useGetMyClientsQuery({});
+  const myClients = data?.result || [];
+  const { data: contractData } = useGetAllContractsQuery({});
+  const contracts = contractData?.result?.data ?? [];
+
   const { data: invoiceData, isLoading: isFetching } = useGetInvoiceByIdQuery(
     invoiceIdParam,
     { skip: !invoiceIdParam },
   );
 
   const [updateInvoice, { isLoading }] = useUpdateInvoiceMutation();
-  const [addContract, { isLoading: isAddingContract }] =
-    useAddContractMutation();
-  const [updateContract] = useUpdateContractMutation();
-  const [deleteContract] = useDeleteContractMutation();
-  const { data: allContracts, refetch: refetchContracts } =
-    useGetAllContractsQuery({});
-  const contracts = allContracts?.result?.data ?? [];
 
   const [formData, setFormData] = useState({
     additionalMarkUp: 0,
@@ -66,100 +75,10 @@ export default function EditInvoice() {
     privateNote: "",
   });
 
-  const [tableData, setTableData] = useState<any>(null);
-  const [initialTableItems, setInitialTableItems] = useState<any[]>([]);
-  const [tableKey, setTableKey] = useState(0);
-
-  const [sideMaps, setSideMaps] = useState<File[]>([]);
-  const [images, setImages] = useState<File[]>([]);
-  const sideMapRef = useRef<HTMLInputElement | null>(null);
-  const imageRef = useRef<HTMLInputElement | null>(null);
-
-  const [open, setOpen] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<any>(null);
-
-  const [showAll, setShowAll] = useState(false);
-  const [openClientModal, setOpenClientModal] = useState(false);
-  const [addContractModalOpen, setAddContractModalOpen] = useState(false);
-  const [newContract, setNewContract] = useState({
-    title: "",
-    description: "",
-  });
-  const [editContract, setEditContract] = useState<{
-    id: string | null;
-    title: string;
-    description: string;
-  }>({ id: null, title: "", description: "" });
-
-  const { data } = useGetMyClientsQuery({});
-  const myClients = data?.result || [];
   const selectedContractTitle =
     contracts.find(
       (contractItem: any) => contractItem.id === formData.contractId,
     )?.title ?? "";
-
-  const handleCreateContract = async () => {
-    try {
-      if (!newContract.title.trim() || !newContract.description.trim()) {
-        toast.error("Please fill both contract fields");
-        return;
-      }
-
-      const res = await addContract({
-        title: newContract.title.trim(),
-        description: newContract.description.trim(),
-      }).unwrap();
-
-      toast.success("Contract created successfully");
-
-      const newContractId =
-        res?.result?.id || res?.result?._id || res?.id || res?._id || "";
-
-      if (newContractId) {
-        setFormData((prev: any) => ({ ...prev, contractId: newContractId }));
-      }
-
-      setNewContract({ title: "", description: "" });
-
-      await refetchContracts();
-      setAddContractModalOpen(false);
-    } catch (error) {
-      console.error("Failed to create contract:", error);
-      toast.error("Failed to create contract");
-    }
-  };
-
-  const handleDeleteContract = async (contractId: any) => {
-    try {
-      await deleteContract(contractId).unwrap();
-      toast.success("Contract deleted successfully");
-    } catch (error) {
-      console.error("Failed to delete contract:", error);
-      toast.error("Failed to delete contract");
-    } finally {
-      await refetchContracts();
-    }
-  };
-
-  const handleUpdateContract = async () => {
-    if (!editContract.id) return;
-
-    try {
-      await updateContract({
-        contractId: editContract.id,
-        title: editContract.title,
-        description: editContract.description,
-      }).unwrap();
-
-      toast.success("Contract updated successfully");
-      setEditContract({ id: null, title: "", description: "" });
-      await refetchContracts();
-      setAddContractModalOpen(false);
-    } catch (error) {
-      console.error("Failed to update contract:", error);
-      toast.error("Failed to update contract");
-    }
-  };
 
   useEffect(() => {
     const invoice = (invoiceData as any)?.result;
@@ -169,7 +88,6 @@ export default function EditInvoice() {
       ...prev,
       invoiceName: invoice.invoiceName || invoice.name || "",
       invoiceNumber: invoice.invoiceNumber || "",
-      format: invoice.format || "TABLE",
       date: invoice.date || "",
       poNumber: invoice.poNumber || "",
       daysToPay: invoice.daysToPay || invoice.days_to_pay || "",
