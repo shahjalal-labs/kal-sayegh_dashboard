@@ -1,6 +1,6 @@
 "use client";
 
-import InvoiceContractModal from "@/components/dashboard/Admin/Invoice/InvoiceContractModal";
+import ContractModal from "@/components/modal/ContractModal";
 import CommonTable from "@/components/table/CommonTable";
 import Summary from "@/components/table/summary";
 import ToggleSwitch from "@/components/ui/ToggleSwitch";
@@ -801,22 +801,24 @@ export default function EditInvoice() {
           </button>
         </div>
 
-        <InvoiceContractModal
+        <div>
+          <label className="text-base text-gray-600">Contract </label>
+          <input
+            onClick={() => setAddContractModalOpen(true)}
+            placeholder="Contract "
+            value={selectedContractTitle}
+            readOnly
+            className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+        </div>
+        <ContractModal
           open={addContractModalOpen}
           onClose={() => setAddContractModalOpen(false)}
-          contracts={contracts}
           selectedContractId={formData.contractId}
-          onSelectContract={(contractId) =>
-            setFormData((prev: any) => ({ ...prev, contractId }))
-          }
-          newContract={newContract}
-          setNewContract={setNewContract}
-          editContract={editContract}
-          setEditContract={setEditContract}
-          onCreateContract={handleCreateContract}
-          onUpdateContract={handleUpdateContract}
-          onDeleteContract={handleDeleteContract}
-          isCreating={isAddingContract}
+          onSelectContract={(contractId: string) => {
+            setFormData((prev) => ({ ...prev, contractId: contractId }));
+            setAddContractModalOpen(false);
+          }}
         />
 
         {openClientModal && (

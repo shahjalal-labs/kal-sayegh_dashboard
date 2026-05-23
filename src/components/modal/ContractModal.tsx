@@ -1,5 +1,16 @@
+"use client";
+
+import {
+  useAddContractMutation,
+  useDeleteContractMutation,
+  useGetAllContractsQuery,
+  useUpdateContractMutation,
+} from "@/redux/api/admin/contractApi";
+import { useEffect, useState } from "react";
 import { CiEdit } from "react-icons/ci";
 import { RiDeleteBin4Line } from "react-icons/ri";
+import { toast } from "sonner";
+import Swal from "sweetalert2";
 
 type ContractItem = {
   id: string;
@@ -13,42 +24,123 @@ type ContractDraft = {
   description: string;
 };
 
-type InvoiceContractModalProps = {
+type Props = {
   open: boolean;
   onClose: () => void;
-  contracts: ContractItem[];
-  selectedContractId: string;
-  onSelectContract: (contractId: string) => void;
-  newContract: {
-    title: string;
-    description: string;
-  };
-  setNewContract: React.Dispatch<
-    React.SetStateAction<{ title: string; description: string }>
-  >;
-  editContract: ContractDraft;
-  setEditContract: React.Dispatch<React.SetStateAction<ContractDraft>>;
-  onCreateContract: () => void;
-  onUpdateContract: () => void;
-  onDeleteContract: (contractId: string) => void;
-  isCreating?: boolean;
+  selectedContractId?: string | null;
+  onSelectContract?: (contractId: string) => void;
 };
 
-export default function InvoiceContractModal({
+export default function ContractModal({
   open,
   onClose,
-  contracts,
-  selectedContractId,
+  selectedContractId = null,
   onSelectContract,
-  newContract,
-  setNewContract,
-  editContract,
-  setEditContract,
-  onCreateContract,
-  onUpdateContract,
-  onDeleteContract,
-  isCreating = false,
-}: InvoiceContractModalProps) {
+}: Props) {
+  const [newContract, setNewContract] = useState({
+    title: "",
+    description: "",
+  });
+  const [editContract, setEditContract] = useState<ContractDraft>({
+    id: null,
+    title: "",
+    description: "",
+  });
+
+  const [addContract, { isLoading: isAddingContract }] =
+    useAddContractMutation();
+  const { data: allContracts, refetch: refetchContracts } =
+    useGetAllContractsQuery({});
+  const [updateContract] = useUpdateContractMutation();
+  const [deleteContract] = useDeleteContractMutation();
+
+  const contracts: ContractItem[] = allContracts?.result?.data ?? [];
+
+  useEffect(() => {
+    if (open) refetchContracts();
+  }, [open, refetchContracts]);
+
+  const handleCreateContract = async () => {
+    try {
+      if (!newContract.title.trim() || !newContract.description.trim()) {
+        toast.error("Please fill both contract fields");
+        return;
+      }
+
+      const res = await addContract({
+        title: newContract.title.trim(),
+        description: newContract.description.trim(),
+      }).unwrap();
+
+      toast.success("Contract created successfully");
+
+      const newContractId =
+        res?.result?.id || res?.result?._id || res?.id || res?._id || "";
+
+      if (newContractId && onSelectContract) onSelectContract(newContractId);
+
+      setNewContract({ title: "", description: "" });
+      await refetchContracts();
+      onClose();
+    } catch (error) {
+      console.error("Failed to create contract:", error);
+      toast.error("Failed to create contract");
+    }
+  };
+
+  const handleDeleteContract = async (contractId: any) => {
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "You won't be able to recover this contract!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, delete it!",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await deleteContract(contractId).unwrap();
+      Swal.fire({
+        title: "Deleted!",
+        text: "Contract deleted successfully.",
+        icon: "success",
+        timer: 2000,
+      });
+    } catch (error) {
+      console.error("Failed to delete contract:", error);
+      Swal.fire({
+        title: "Error!",
+        text: "Failed to delete contract.",
+        icon: "error",
+        background: "#ffffff",
+      });
+    } finally {
+      await refetchContracts();
+    }
+  };
+
+  const handleUpdateContract = async () => {
+    if (!editContract.id) return;
+
+    try {
+      await updateContract({
+        contractId: editContract.id,
+        title: editContract.title,
+        description: editContract.description,
+      }).unwrap();
+      toast.success("Contract updated successfully");
+      setEditContract({ id: null, title: "", description: "" });
+      await refetchContracts();
+      onClose();
+    } catch (error) {
+      console.error("Failed to update contract:", error);
+      toast.error("Failed to update contract");
+    }
+  };
+
   if (!open) return null;
 
   return (
@@ -130,13 +222,12 @@ export default function InvoiceContractModal({
               {editContract.id ? (
                 <>
                   <button
-                    onClick={onUpdateContract}
+                    onClick={handleUpdateContract}
                     type="button"
                     className="flex-1 rounded-xl bg-primary px-4 py-3 font-medium text-white transition hover:bg-primary/90"
                   >
                     Update Contract
                   </button>
-
                   <button
                     onClick={() =>
                       setEditContract({ id: null, title: "", description: "" })
@@ -149,12 +240,12 @@ export default function InvoiceContractModal({
                 </>
               ) : (
                 <button
-                  onClick={onCreateContract}
-                  disabled={isCreating}
+                  onClick={handleCreateContract}
+                  disabled={isAddingContract}
                   type="button"
                   className="w-full rounded-xl bg-primary px-4 py-3 font-medium text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {isCreating ? "Saving..." : "Save Contract"}
+                  {isAddingContract ? "Saving..." : "Save Contract"}
                 </button>
               )}
             </div>
@@ -172,19 +263,18 @@ export default function InvoiceContractModal({
 
             <div className="max-h-[520px] space-y-3 overflow-y-auto pr-1">
               {contracts.length > 0 ? (
-                contracts.map((contractItem) => {
+                contracts.map((contractItem: ContractItem) => {
                   const isSelected = selectedContractId === contractItem.id;
 
                   return (
                     <button
                       key={contractItem.id}
                       type="button"
-                      onClick={() => onSelectContract(contractItem.id)}
-                      className={`w-full rounded-2xl border p-4 text-left transition ${
-                        isSelected
-                          ? "border-primary bg-orange-50"
-                          : "border-gray-200 hover:border-orange-300 hover:bg-orange-50/60"
-                      }`}
+                      onClick={() => {
+                        if (onSelectContract) onSelectContract(contractItem.id);
+                        onClose();
+                      }}
+                      className={`w-full rounded-2xl border p-4 text-left transition ${isSelected ? "border-primary bg-orange-50" : "border-gray-200 hover:border-orange-300 hover:bg-orange-50/60"}`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="space-y-1">
@@ -200,7 +290,7 @@ export default function InvoiceContractModal({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              onDeleteContract(contractItem.id);
+                              handleDeleteContract(contractItem.id);
                             }}
                             type="button"
                             aria-label={`Delete ${contractItem.title}`}

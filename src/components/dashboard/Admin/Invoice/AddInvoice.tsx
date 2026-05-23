@@ -1,16 +1,11 @@
 "use client";
 
-import InvoiceContractModal from "@/components/dashboard/Admin/Invoice/InvoiceContractModal";
+import ContractModal from "@/components/modal/ContractModal";
 import CommonTable from "@/components/table/CommonTable";
 import Summary from "@/components/table/summary";
 import { Textarea } from "@/components/ui/Textarea";
 import ToggleSwitch from "@/components/ui/ToggleSwitch";
-import {
-  useAddContractMutation,
-  useDeleteContractMutation,
-  useGetAllContractsQuery,
-  useUpdateContractMutation,
-} from "@/redux/api/admin/contractApi";
+import { useGetAllContractsQuery } from "@/redux/api/admin/contractApi";
 import {
   useCreateClientMutation,
   useGetMyClientsQuery,
@@ -23,18 +18,36 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { AiOutlineUserAdd } from "react-icons/ai";
 import { toast } from "sonner";
-import Swal from "sweetalert2";
 
 export default function AddInvoice() {
   const router = useRouter();
+  const [tableData, setTableData] = useState<any>(null);
+  const [tableKey, setTableKey] = useState(0);
+  const [sideMaps, setSideMaps] = useState<File[]>([]);
+  const [images, setImages] = useState<File[]>([]);
+  const sideMapRef = useRef<HTMLInputElement | null>(null);
+  const imageRef = useRef<HTMLInputElement | null>(null);
+  const [open, setOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [addContractModalOpen, setAddContractModalOpen] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const [openClientModal, setOpenClientModal] = useState(false);
+
+  const { data } = useGetMyClientsQuery({});
+  const myClients = data?.result;
+
+  const { data: contractData } = useGetAllContractsQuery({});
+  const contracts = contractData?.result?.data ?? [];
+
+  const [createClient] = useCreateClientMutation();
   const [createInvoice, { isLoading }] = useCreateInvoiceMutation();
 
   const [formData, setFormData] = useState({
     additionalMarkUp: 0,
     clientId: "",
-    clientSign: true,
+    clientSign: false,
     contractId: "",
-    coverPaymentProcessingFee: true,
+    coverPaymentProcessingFee: false,
     date: "",
     depositAmount: 0,
     discountAmount: 0,
@@ -43,35 +56,18 @@ export default function AddInvoice() {
     invoiceName: "",
     invoiceNumber: "",
     isGroupingEnabled: false,
-    isOnlinePayment: true,
+    isOnlinePayment: false,
     items: [],
     legendary: "",
-    mySign: true,
+    mySign: false,
     poNumber: "",
     daysToPay: "",
     noteForClient: "",
     privateNote: "",
   });
 
-  const [tableData, setTableData] = useState<any>(null);
-  console.log("table data", tableData);
-  const [tableKey, setTableKey] = useState(0);
-
-  const [sideMaps, setSideMaps] = useState<File[]>([]);
-  const [images, setImages] = useState<File[]>([]);
-  const sideMapRef = useRef<HTMLInputElement | null>(null);
-  const imageRef = useRef<HTMLInputElement | null>(null);
-
-  const [open, setOpen] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<any>(null);
-
-  const [showAll, setShowAll] = useState(false);
-  const [openClientModal, setOpenClientModal] = useState(false);
-
-  const { data } = useGetMyClientsQuery({});
-  const myClients = data?.result;
-
-  const [createClient] = useCreateClientMutation();
+  const selectedContractTitle =
+    contracts.find((c: any) => c.id === formData.contractId)?.title ?? "";
 
   const [clientForm, setClientForm] = useState({
     clientName: "",
@@ -82,30 +78,6 @@ export default function AddInvoice() {
     state: "",
     zip: "",
   });
-
-  const [addContractModalOpen, setAddContractModalOpen] = useState(false);
-  const [newContract, setNewContract] = useState({
-    title: "",
-    description: "",
-  });
-  const [editContract, setEditContract] = useState<{
-    id: string | null;
-    title: string;
-    description: string;
-  }>({ id: null, title: "", description: "" });
-
-  const [addContract, { isLoading: isAddingContract }] =
-    useAddContractMutation();
-  const { data: allContracts, refetch: refetchContracts } =
-    useGetAllContractsQuery({});
-  const contracts = allContracts?.result?.data ?? [];
-  const selectedContractTitle =
-    contracts.find(
-      (contractItem: any) => contractItem.id === formData.contractId,
-    )?.title ?? "";
-
-  const [updateContract] = useUpdateContractMutation();
-  const [deleteContract] = useDeleteContractMutation();
 
   const handleClientChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setClientForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -129,93 +101,6 @@ export default function AddInvoice() {
       });
     } catch (error: any) {
       toast.error("Failed to create client:", error);
-    }
-  };
-
-  const handleCreateContract = async () => {
-    try {
-      if (!newContract.title.trim() || !newContract.description.trim()) {
-        toast.error("Please fill both contract fields");
-        return;
-      }
-
-      const res = await addContract({
-        title: newContract.title.trim(),
-        description: newContract.description.trim(),
-      }).unwrap();
-
-      toast.success("Contract created successfully");
-
-      const newContractId =
-        res?.result?.id || res?.result?._id || res?.id || res?._id || "";
-
-      if (newContractId) {
-        setFormData((prev) => ({ ...prev, contractId: newContractId }));
-      }
-
-      setNewContract({ title: "", description: "" });
-
-      await refetchContracts();
-      setAddContractModalOpen(false);
-    } catch (error) {
-      console.error("Failed to create contract:", error);
-      toast.error("Failed to create contract");
-    }
-  };
-
-  const handleDeleteContract = async (contractId: any) => {
-    const result = await Swal.fire({
-      title: "Are you sure?",
-      text: "You won't be able to recover this contract!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Yes, delete it!",
-    });
-
-    if (!result.isConfirmed) return;
-
-    try {
-      await deleteContract(contractId).unwrap();
-
-      Swal.fire({
-        title: "Deleted!",
-        text: "Contract deleted successfully.",
-        icon: "success",
-        timer: 2000,
-      });
-    } catch (error) {
-      console.error("Failed to delete contract:", error);
-
-      Swal.fire({
-        title: "Error!",
-        text: "Failed to delete contract.",
-        icon: "error",
-        background: "#ffffff",
-      });
-    } finally {
-      await refetchContracts();
-    }
-  };
-
-  const handleUpdateContract = async () => {
-    if (!editContract.id) return;
-
-    try {
-      await updateContract({
-        contractId: editContract.id,
-        title: editContract.title,
-        description: editContract.description,
-      }).unwrap();
-
-      toast.success("Contract updated successfully");
-      setEditContract({ id: null, title: "", description: "" });
-      await refetchContracts();
-      setAddContractModalOpen(false);
-    } catch (error) {
-      console.error("Failed to update contract:", error);
-      toast.error("Failed to update contract");
     }
   };
 
@@ -665,6 +550,15 @@ export default function AddInvoice() {
                   className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
+              <ContractModal
+                open={addContractModalOpen}
+                onClose={() => setAddContractModalOpen(false)}
+                selectedContractId={formData.contractId}
+                onSelectContract={(contractId: string) => {
+                  setFormData((prev) => ({ ...prev, contractId: contractId }));
+                  setAddContractModalOpen(false);
+                }}
+              />
 
               <div className="space-y-2">
                 <label>Note For Client</label>
@@ -985,24 +879,6 @@ export default function AddInvoice() {
             </div>
           </div>
         )}
-
-        <InvoiceContractModal
-          open={addContractModalOpen}
-          onClose={() => setAddContractModalOpen(false)}
-          contracts={contracts}
-          selectedContractId={formData.contractId}
-          onSelectContract={(contractId) =>
-            setFormData((prev) => ({ ...prev, contractId }))
-          }
-          newContract={newContract}
-          setNewContract={setNewContract}
-          editContract={editContract}
-          setEditContract={setEditContract}
-          onCreateContract={handleCreateContract}
-          onUpdateContract={handleUpdateContract}
-          onDeleteContract={handleDeleteContract}
-          isCreating={isAddingContract}
-        />
 
         <style jsx>{`
           .input {

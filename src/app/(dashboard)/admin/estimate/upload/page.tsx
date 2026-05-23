@@ -1,4 +1,4 @@
-import Upload from "@/components/dashboard/Admin/Upload";
+import Upload from "@/components/dashboard/Admin/Estimate/Upload";
 
 export default function UploadImagePage() {
   return (

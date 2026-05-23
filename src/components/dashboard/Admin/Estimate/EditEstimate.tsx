@@ -586,18 +586,41 @@ export default function EditEstimate() {
     }
   }, [myClients, currentEstimate?.clientId]);
 
+  const resolveLineItemTotal = (item: any) => {
+    const storedTotal = Number(item?.total);
+    if (item?.total !== undefined && Number.isFinite(storedTotal)) {
+      return storedTotal;
+    }
+
+    const rate = Number(item?.rate ?? item?.amount ?? item?.markUp ?? 0) || 0;
+    const quantity = Number(item?.quantity) || 0;
+    const base = rate * quantity;
+
+    const markupSource = item?.selectedMarkup ?? item?.markUp ?? null;
+    const hasMarkupObject = markupSource && typeof markupSource === "object";
+    const markupValue = hasMarkupObject
+      ? markupSource.percentage != null
+        ? Number(markupSource.percentage) || 0
+        : Number(markupSource.amount) || 0
+      : Number(item?.percentage ?? item?.amount ?? 0) || 0;
+    const isMarkupPercentage = hasMarkupObject
+      ? markupSource.percentage != null
+      : item?.amount == null;
+
+    const markupAmount = isMarkupPercentage
+      ? (base * markupValue) / 100
+      : markupValue;
+    const afterMarkup = base + markupAmount;
+    const taxAmount = (afterMarkup * (Number(item?.tax) || 0)) / 100;
+
+    return afterMarkup + taxAmount;
+  };
+
   const grandSubtotal = lineItemTables.reduce((acc, table) => {
     return (
       acc +
       table.items.reduce((tAcc, item) => {
-        const rate = Number(item.rate ?? item.amount ?? item.markUp ?? 0) || 0;
-        const qty = Number(item.quantity) || 0;
-        const base = rate * qty;
-        const markupAmount = (base * (Number(item.percentage) || 0)) / 100;
-        const afterMarkup = base + markupAmount;
-        const taxAmount = (afterMarkup * (Number(item.tax) || 0)) / 100;
-        const total = afterMarkup + taxAmount;
-        return tAcc + total;
+        return tAcc + resolveLineItemTotal(item);
       }, 0)
     );
   }, 0);
@@ -1032,13 +1055,7 @@ export default function EditEstimate() {
 
   // Helper function to calculate line item total (includes markup and tax)
   const calculateLineTotal = (item: any) => {
-    const rate = Number(item.rate ?? item.amount ?? item.markUp ?? 0) || 0;
-    const quantity = Number(item.quantity) || 0;
-    const base = rate * quantity;
-    const markupAmount = (base * (Number(item.percentage) || 0)) / 100;
-    const afterMarkup = base + markupAmount;
-    const taxAmount = (afterMarkup * (Number(item.tax) || 0)) / 100;
-    return afterMarkup + taxAmount;
+    return resolveLineItemTotal(item);
   };
 
   if (isEstimateLoading) {
