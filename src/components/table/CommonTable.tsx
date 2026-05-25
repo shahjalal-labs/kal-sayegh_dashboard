@@ -6,7 +6,7 @@ import {
   useGetAllTaxesQuery,
 } from "@/redux/api/admin/estimateApi";
 import { FormatType } from "@/types/estimate.type";
-import { Check, Minus, Plus } from "lucide-react";
+import { Check, Minus, Plus, PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { CustomModal } from "../modal/CustomModal";
 
@@ -575,24 +575,28 @@ export default function CommonTable({
                     </div>
 
                     {/* Notes inside same box */}
-                    <div className="border-t p-2">
-                      {selectedItem ? (
-                        <div className=" rounded-xl ">
-                          <p className="mt-2 text-base text-gray-800 font-semibold">
-                            {selectedItem.itemName}
-                          </p>
-                          {selectedItem.description && (
-                            <p className="text-base text-gray-500 mt-1">
-                              {selectedItem.description}
+                    <div className="flex justify-between text-primary pr-2">
+                      <div className="border-t p-2">
+                        {selectedItem ? (
+                          <div className=" rounded-xl ">
+                            <p className="mt-2 text-base text-gray-800 font-semibold">
+                              {selectedItem.itemName}
                             </p>
-                          )}
-                        </div>
-                      ) : (
-                        <textarea
-                          placeholder="Notes"
-                          className="w-full p-2 text-sm outline-none"
-                        />
-                      )}
+                            {selectedItem.description && (
+                              <p className="text-base text-gray-500 mt-1">
+                                {selectedItem.description}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <textarea
+                            placeholder="Notes"
+                            className="w-full p-2 text-sm outline-none"
+                          />
+                        )}
+                      </div>
+
+                      <PlusIcon size={30} className="cursor-pointer" />
                     </div>
                   </div>
                 </div>
