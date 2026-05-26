@@ -548,7 +548,11 @@ export default function InvoiceDetails({ format }: { format?: string }) {
             </div>
           ))}
         </div>
-      ) : null}
+      ) : (
+        <p className="mt-4 flex h-[200px] items-center justify-center border-2 bg-[#f9f9f9] text-center text-gray-500 md:h-[350px]">
+          No attachments available
+        </p>
+      )}
     </div>
   );
 
@@ -564,7 +568,7 @@ export default function InvoiceDetails({ format }: { format?: string }) {
             <span className="text-xs font-medium sm:text-sm">Back</span>
           </Link>
 
-          <h1 className="flex-1 text-center text-base font-bold sm:text-xl">
+          <h1 className="flex-1 text-center text-base font-bold sm:text-xl md:hidden block">
             Invoice Details
           </h1>
 
@@ -578,7 +582,7 @@ export default function InvoiceDetails({ format }: { format?: string }) {
                 <Link
                   href={
                     editInvoiceId
-                      ? `/admin/edit-invoice?id=${editInvoiceId}`
+                      ? `/admin/invoice/edit-invoice?id=${editInvoiceId}`
                       : "/admin/invoice"
                   }
                   onClick={() => {
@@ -729,7 +733,7 @@ export default function InvoiceDetails({ format }: { format?: string }) {
 
               {renderSupportingMedia()}
 
-              <div className="mt-10 space-y-3 border-t pt-8">
+              <div className="mt-10 space-y-3 pt-8">
                 <Conditions className="mt-2" />
               </div>
 
@@ -739,7 +743,7 @@ export default function InvoiceDetails({ format }: { format?: string }) {
                     <Link
                       href={
                         editInvoiceId
-                          ? `/admin/edit-invoice?id=${editInvoiceId}&format=table`
+                          ? `/admin/invoice/edit-invoice?id=${editInvoiceId}&format=table`
                           : "/admin/invoice"
                       }
                       onClick={() => {

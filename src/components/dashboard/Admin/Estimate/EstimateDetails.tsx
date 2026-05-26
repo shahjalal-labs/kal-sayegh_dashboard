@@ -13,7 +13,7 @@ import html2pdf from "html2pdf.js";
 import { Edit } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
 import { AiOutlineMail } from "react-icons/ai";
 import { FiArrowLeft, FiDownload } from "react-icons/fi";
@@ -34,6 +34,8 @@ export default function EstimateDetails() {
     useUpdateEstimateStatusMutation();
   const [generateFromEstimate, { isLoading: isGeneratingInvoice }] =
     useGenerateFromEstimateMutation();
+
+  const router = useRouter();
 
   const [isReminderOpen, setIsReminderOpen] = useState(false);
   const [emailInput, setEmailInput] = useState("");
@@ -213,8 +215,27 @@ export default function EstimateDetails() {
   const handleGenerateInvoice = async () => {
     if (!editEstimateId) return;
     try {
-      await generateFromEstimate({ estimateId: editEstimateId }).unwrap();
+      const result = await generateFromEstimate({
+        estimateId: editEstimateId,
+      }).unwrap();
+
       toast.success("Invoice generated successfully");
+
+      // Try to robustly extract the created invoice id from the API response
+      const invoiceId =
+        result?.result?.id ||
+        result?.result?._id ||
+        result?.invoiceId ||
+        result?.id ||
+        result?.data?.id ||
+        result?.data?._id ||
+        result?.invoice?._id ||
+        result?.invoice?.id ||
+        (typeof result === "string" ? result : undefined);
+
+      if (invoiceId) {
+        router.push(`/admin/invoice/${String(invoiceId)}`);
+      }
     } catch {
       toast.error("Failed to generate invoice");
     }
@@ -448,6 +469,21 @@ export default function EstimateDetails() {
           );
         })}
 
+        <div className="flex justify-end py-8">
+          <div className="w-full max-w-[250px] space-y-2 text-base">
+            <div className="flex items-center justify-between border-b border-[#e1e1e1] pb-1">
+              <p className="font-semibold">Subtotal</p>
+              <p className="font-semibold">${subtotal.toFixed(2)}</p>
+            </div>
+            <div className="flex items-center justify-between border-b border-[#e1e1e1] pb-1">
+              <p className="font-semibold">Total</p>
+              <p className="font-semibold">
+                ${(Number(estimate?.grandTotal) || 0).toFixed(2)}
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="mt-9 space-y-4">
           <div>
             {sideMapUrls.length > 0 ? (
@@ -624,7 +660,7 @@ export default function EstimateDetails() {
           <Link
             href={
               editEstimateId
-                ? `/admin/edit-estimate?id=${editEstimateId}`
+                ? `/admin/estimate/edit-estimate?id=${editEstimateId}`
                 : "/admin/estimate"
             }
             onClick={() => {
@@ -798,21 +834,6 @@ export default function EstimateDetails() {
               <p>$0.00</p>
             </div>
           )}
-
-          <div className="flex justify-end">
-            <div className="w-full max-w-[250px] space-y-2 text-base">
-              <div className="flex items-center justify-between border-b border-[#e1e1e1] pb-1">
-                <p className="font-semibold">Subtotal</p>
-                <p className="font-semibold">${subtotal.toFixed(2)}</p>
-              </div>
-              <div className="flex items-center justify-between border-b border-[#e1e1e1] pb-1">
-                <p className="font-semibold">Total</p>
-                <p className="font-semibold">
-                  ${(Number(estimate?.grandTotal) || 0).toFixed(2)}
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
 
         <Conditions className="mt-8" />
@@ -982,7 +1003,7 @@ export default function EstimateDetails() {
           <Link
             href={
               editEstimateId
-                ? `/admin/edit-estimate?id=${editEstimateId}&format=table`
+                ? `/admin/estimate/edit-estimate?id=${editEstimateId}`
                 : "/admin/estimate"
             }
             onClick={() => {

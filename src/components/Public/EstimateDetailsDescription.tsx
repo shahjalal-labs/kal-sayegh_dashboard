@@ -127,9 +127,9 @@ export default function EstimateDetailsDescription() {
 
   return (
     <>
-      <div className="container mx-auto mt-4 px-4 pb-10 py-10">
+      <div className="w-full min-h-screen px-12 py-10">
         <div className="flex flex-col items-start gap-6 lg:flex-row">
-          <div className="min-w-0 flex-1">
+          <div className="">
             <div className="flex w-full items-center justify-between px-4">
               <h1 className="flex-1 text-center text-xl font-bold text-gray-600 md:hidden">
                 Estimate Details
@@ -139,7 +139,7 @@ export default function EstimateDetailsDescription() {
 
             <div
               id="invoice"
-              className="mt-4 rounded-2xl bg-secondary p-4 py-9 md:p-6"
+              className="mt-4 rounded-2xl bg-secondary p-4 py-9 md:p-6 w-full max-w-none"
             >
               <h1 className="text-center text-xl font-semibold uppercase tracking-[0.16em] text-gray-400">
                 Estimate

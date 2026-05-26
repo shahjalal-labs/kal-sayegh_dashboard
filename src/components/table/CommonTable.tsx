@@ -6,8 +6,9 @@ import {
   useGetAllTaxesQuery,
 } from "@/redux/api/admin/estimateApi";
 import { FormatType } from "@/types/estimate.type";
-import { Check, Minus, Plus, PlusIcon } from "lucide-react";
+import { Check, Minus, Plus, PlusIcon, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { CustomModal } from "../modal/CustomModal";
 
 export default function CommonTable({
@@ -21,6 +22,57 @@ export default function CommonTable({
   const [formatModalOpen, setFormatModalOpen] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<FormatType | null>(null);
   const [itemModalOpen, setItemModalOpen] = useState(false);
+
+  // Sub-items states
+  const [activeSubItemRowId, setActiveSubItemRowId] = useState<number | null>(
+    null,
+  );
+  const [subItemsByRow, setSubItemsByRow] = useState<Record<number, any[]>>({});
+  const [subItemTitle, setSubItemTitle] = useState("");
+  const [subItemQty, setSubItemQty] = useState("");
+  const [subItemUnitCost, setSubItemUnitCost] = useState("");
+
+  const handleAddSubItem = () => {
+    if (activeSubItemRowId === null) return;
+    if (!subItemTitle.trim()) {
+      toast.error("Please enter a title for the sub-item.");
+      return;
+    }
+    const qty = parseFloat(subItemQty) || 0;
+    const unitCost = parseFloat(subItemUnitCost) || 0;
+    if (qty <= 0) {
+      toast.error("Quantity must be greater than 0.");
+      return;
+    }
+    if (unitCost <= 0) {
+      toast.error("Unit cost must be greater than 0.");
+      return;
+    }
+
+    const newSubItem = {
+      title: subItemTitle.trim(),
+      quantity: qty,
+      unitCost: unitCost,
+      price: qty * unitCost,
+    };
+
+    setSubItemsByRow((prev) => ({
+      ...prev,
+      [activeSubItemRowId]: [...(prev[activeSubItemRowId] || []), newSubItem],
+    }));
+
+    // Reset inputs
+    setSubItemTitle("");
+    setSubItemQty("");
+    setSubItemUnitCost("");
+  };
+
+  const handleRemoveSubItem = (rowId: number, index: number) => {
+    setSubItemsByRow((prev) => ({
+      ...prev,
+      [rowId]: (prev[rowId] || []).filter((_, i) => i !== index),
+    }));
+  };
   const [activeTableId, setActiveTableId] = useState<number | null>(null);
   const [selectedItemsByTable, setSelectedItemsByTable] = useState<
     Record<number, any>
@@ -96,6 +148,7 @@ export default function CommonTable({
     const seededMarkups: Record<number, any> = {};
     const seededTaxes: Record<number, any> = {};
 
+    const seededSubItems: Record<number, any[]> = {};
     initialItems.forEach((item: any, index: number) => {
       const rowId = item?.rowId ?? item?.id ?? fallbackRowIdBase + index;
       const selectedItem = item?.selectedItem ?? item ?? null;
@@ -109,6 +162,15 @@ export default function CommonTable({
       };
       seededMarkups[rowId] = item?.selectedMarkup ?? null;
       seededTaxes[rowId] = item?.selectedTax ?? null;
+
+      if (Array.isArray(item?.subItems)) {
+        seededSubItems[rowId] = item.subItems.map((sub: any) => ({
+          title: sub.title,
+          quantity: Number(sub.quantity) || 0,
+          unitCost: Number(sub.unitCost) || 0,
+          price: Number(sub.price || sub.quantity * sub.unitCost) || 0,
+        }));
+      }
     });
 
     setItems(seededRows);
@@ -116,6 +178,7 @@ export default function CommonTable({
     setRowData(seededRowData);
     setSelectedMarkupsByRow(seededMarkups);
     setSelectedTaxesByRow(seededTaxes);
+    setSubItemsByRow(seededSubItems);
   }, [initialItems, items.length]);
 
   const [markupSummaryModal, setMarkupSummaryModal] = useState(false);
@@ -217,6 +280,12 @@ export default function CommonTable({
     });
 
     setSelectedTaxesByRow((prev) => {
+      const next = { ...prev };
+      delete next[lineId];
+      return next;
+    });
+
+    setSubItemsByRow((prev) => {
       const next = { ...prev };
       delete next[lineId];
       return next;
@@ -355,13 +424,39 @@ export default function CommonTable({
         };
       });
 
-      const subtotal = itemsData.reduce((sum, item) => sum + item.total, 0);
-      let grandTotal = subtotal;
+      const allSubItems: any[] = [];
+      let subItemsSubtotal = 0;
+
+      items.forEach((item) => {
+        const rowSubItems = subItemsByRow[item.id] || [];
+        const selectedItem = selectedItemsByTable[item.id];
+        const itemId = selectedItem?.id || selectedItem?._id || "";
+        if (itemId) {
+          rowSubItems.forEach((sub) => {
+            subItemsSubtotal += sub.price;
+            allSubItems.push({
+              itemId,
+              title: sub.title,
+              quantity: sub.quantity,
+              unitCost: sub.unitCost,
+              price: sub.price,
+            });
+          });
+        }
+      });
+
+      const itemsSubtotal = itemsData.reduce(
+        (sum, item) => sum + item.total,
+        0,
+      );
+      const combinedSubtotal = itemsSubtotal + subItemsSubtotal;
+
+      let grandTotal = combinedSubtotal;
       if (summaryMarkup) {
-        grandTotal += subtotal * (summaryMarkup.percentage / 100);
+        grandTotal += combinedSubtotal * (summaryMarkup.percentage / 100);
       }
       if (summaryTax) {
-        grandTotal += subtotal * (summaryTax.percentage / 100);
+        grandTotal += combinedSubtotal * (summaryTax.percentage / 100);
       }
       if (summaryDiscount) {
         if (summaryDiscount.unit === "percent") {
@@ -372,7 +467,7 @@ export default function CommonTable({
       }
       if (summaryDeposit) {
         if (summaryDeposit.unit === "percent") {
-          grandTotal += subtotal * (summaryDeposit.value / 100);
+          grandTotal += combinedSubtotal * (summaryDeposit.value / 100);
         } else {
           grandTotal += summaryDeposit.value;
         }
@@ -380,6 +475,7 @@ export default function CommonTable({
 
       onDataChange({
         items: itemsData,
+        subItems: allSubItems,
         summaryMarkup,
         summaryTax,
         summaryDiscount,
@@ -397,6 +493,7 @@ export default function CommonTable({
     summaryTax,
     summaryDiscount,
     summaryDeposit,
+    subItemsByRow,
     onDataChange,
   ]);
 
@@ -596,7 +693,26 @@ export default function CommonTable({
                         )}
                       </div>
 
-                      <PlusIcon size={30} className="cursor-pointer" />
+                      <PlusIcon
+                        size={30}
+                        className={`cursor-pointer shrink-0 ${
+                          selectedItem
+                            ? "text-primary hover:text-primary/80"
+                            : "text-gray-300 hover:text-gray-400"
+                        }`}
+                        onClick={() => {
+                          if (!selectedItem) {
+                            toast.error(
+                              "Please select an item from the Item List first.",
+                            );
+                            return;
+                          }
+                          setActiveSubItemRowId(item.id);
+                          setSubItemTitle("");
+                          setSubItemQty("");
+                          setSubItemUnitCost("");
+                        }}
+                      />
                     </div>
                   </div>
                 </div>
@@ -714,6 +830,103 @@ export default function CommonTable({
               );
             })
           )}
+        </div>
+      </CustomModal>
+
+      {/* Sub-Line Breakdown Items Modal */}
+      <CustomModal
+        open={activeSubItemRowId !== null}
+        onClose={() => setActiveSubItemRowId(null)}
+        title="Sub-Line Breakdown Items"
+        maxWidth="md"
+        actions={[
+          {
+            label: "Done",
+            variant: "primary",
+            onClick: () => setActiveSubItemRowId(null),
+          },
+        ]}
+      >
+        <div className="space-y-6">
+          {/* Card Form */}
+          <div className="bg-[#f0f2f5] p-4 rounded-xl space-y-3">
+            <div>
+              <input
+                type="text"
+                placeholder="Sub-item Title"
+                value={subItemTitle}
+                onChange={(e) => setSubItemTitle(e.target.value)}
+                className="w-full bg-white border border-gray-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                placeholder="Qty"
+                value={subItemQty}
+                onChange={(e) => setSubItemQty(e.target.value)}
+                className="w-24 bg-white border border-gray-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
+              />
+              <input
+                type="number"
+                placeholder="Unit Cost..."
+                value={subItemUnitCost}
+                onChange={(e) => setSubItemUnitCost(e.target.value)}
+                className="flex-1 bg-white border border-primary/50 focus:border-primary rounded-lg p-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary transition"
+              />
+              <button
+                type="button"
+                onClick={handleAddSubItem}
+                className="w-12 h-12 bg-[#e27932] text-white rounded-full flex items-center justify-center font-bold text-xl hover:bg-[#c9621f] transition-all shadow-md shrink-0"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          {/* Sub-items List */}
+          <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+            {activeSubItemRowId !== null &&
+            (subItemsByRow[activeSubItemRowId] || []).length > 0 ? (
+              (subItemsByRow[activeSubItemRowId] || []).map(
+                (subItem, index) => (
+                  <div
+                    key={index}
+                    className="bg-white border border-gray-200 rounded-xl p-4 flex justify-between items-center shadow-sm"
+                  >
+                    <div className="text-left">
+                      <h4 className="font-semibold text-gray-800 text-sm">
+                        {subItem.title}
+                      </h4>
+                      <p className="text-gray-500 text-xs mt-1">
+                        Qty: {subItem.quantity} &times; Cost: $
+                        {subItem.unitCost.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="font-bold text-gray-800 text-sm">
+                        ${subItem.price.toFixed(2)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleRemoveSubItem(activeSubItemRowId, index)
+                        }
+                        className="text-red-500 hover:text-red-700 transition"
+                        aria-label="Delete sub-item"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+                ),
+              )
+            ) : (
+              <p className="text-center text-gray-400 text-sm py-4">
+                No sub-items added yet.
+              </p>
+            )}
+          </div>
         </div>
       </CustomModal>
     </div>

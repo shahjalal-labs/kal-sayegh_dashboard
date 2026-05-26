@@ -1,6 +1,14 @@
 "use client";
 
-import { ArrowLeft, Check, Minus, Plus, Upload } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  Minus,
+  Plus,
+  PlusIcon,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import Link from "next/link";
 import { AiOutlineUserAdd } from "react-icons/ai";
 
@@ -176,12 +184,22 @@ export default function EditEstimate() {
 
   const [estimateForm, setEstimateForm] = useState({
     estimateName: "",
+    estimateNumber: "",
     clientId: "",
     contractId: "",
     date: "",
     endDate: "",
     poNumber: "",
     legendary: "",
+    clientSign: true,
+    mySign: true,
+    coverPaymentProcessingFee: true,
+    isOnlinePayment: true,
+    isAutoInvoice: true,
+    isGroupingEnabled: true,
+    noteForClient: "",
+    privateNote: "",
+    format: "TABLE" as FormatType,
     items: [] as any[],
     additionalMarkUp: 0,
     grandTotal: 0,
@@ -201,6 +219,57 @@ export default function EditEstimate() {
   const [addMarkUp, setAddMarkUp] = useState(false);
   const [prefilledSummary, setPrefilledSummary] =
     useState<PrefilledSummary | null>(null);
+
+  // Sub-items states
+  const [activeSubItemRowId, setActiveSubItemRowId] = useState<string | null>(
+    null,
+  );
+  const [subItemsByRow, setSubItemsByRow] = useState<Record<string, any[]>>({});
+  const [subItemTitle, setSubItemTitle] = useState("");
+  const [subItemQty, setSubItemQty] = useState("");
+  const [subItemUnitCost, setSubItemUnitCost] = useState("");
+
+  const handleAddSubItem = () => {
+    if (activeSubItemRowId === null) return;
+    if (!subItemTitle.trim()) {
+      toast.error("Please enter a title for the sub-item.");
+      return;
+    }
+    const qty = parseFloat(subItemQty) || 0;
+    const unitCost = parseFloat(subItemUnitCost) || 0;
+    if (qty <= 0) {
+      toast.error("Quantity must be greater than 0.");
+      return;
+    }
+    if (unitCost <= 0) {
+      toast.error("Unit cost must be greater than 0.");
+      return;
+    }
+
+    const newSubItem = {
+      title: subItemTitle.trim(),
+      quantity: qty,
+      unitCost: unitCost,
+      price: qty * unitCost,
+    };
+
+    setSubItemsByRow((prev) => ({
+      ...prev,
+      [activeSubItemRowId]: [...(prev[activeSubItemRowId] || []), newSubItem],
+    }));
+
+    // Reset inputs
+    setSubItemTitle("");
+    setSubItemQty("");
+    setSubItemUnitCost("");
+  };
+
+  const handleRemoveSubItem = (rowId: string, index: number) => {
+    setSubItemsByRow((prev) => ({
+      ...prev,
+      [rowId]: (prev[rowId] || []).filter((_, i) => i !== index),
+    }));
+  };
 
   const [createClient, { isLoading }] = useCreateClientMutation();
   const [addContract, { isLoading: isAddingContract }] =
@@ -283,11 +352,21 @@ export default function EditEstimate() {
     setEstimateForm((prev) => ({
       ...prev,
       estimateName: currentEstimate?.estimateName || "",
+      estimateNumber: currentEstimate?.estimateNumber || "",
       clientId: currentEstimate?.clientId || "",
       date: currentEstimate?.date || "",
       endDate: currentEstimate?.endDate || "",
       poNumber: currentEstimate?.poNumber || "",
       contractId: currentEstimate?.contractId || "",
+      clientSign: currentEstimate?.clientSign ?? true,
+      mySign: currentEstimate?.mySign ?? true,
+      coverPaymentProcessingFee:
+        currentEstimate?.coverPaymentProcessingFee ?? true,
+      isOnlinePayment: currentEstimate?.isOnlinePayment ?? true,
+      isAutoInvoice: currentEstimate?.isAutoInvoice ?? true,
+      isGroupingEnabled: currentEstimate?.isGroupingEnabled ?? true,
+      noteForClient: currentEstimate?.noteForClient || "",
+      privateNote: currentEstimate?.privateNote || "",
       additionalMarkUp: Number(currentEstimate?.additionalMarkUp || 0),
       grandTotal: Number(currentEstimate?.grandTotal || 0),
       discountAmount: Number(currentEstimate?.discountAmount || 0),
@@ -484,6 +563,24 @@ export default function EditEstimate() {
       depositAmount: Number(currentEstimate?.depositAmount || 0),
       grandTotal: Number(currentEstimate?.grandTotal || 0),
     });
+
+    // Populate sub-items from estimate
+    const initialSubItems: Record<string, any[]> = {};
+    if (Array.isArray(currentEstimate?.subItems)) {
+      currentEstimate.subItems.forEach((sub: any) => {
+        const key = String(sub.itemId);
+        if (!initialSubItems[key]) {
+          initialSubItems[key] = [];
+        }
+        initialSubItems[key].push({
+          title: sub.title,
+          quantity: toNumber(sub.quantity),
+          unitCost: toNumber(sub.unitCost),
+          price: toNumber(sub.price || sub.quantity * sub.unitCost),
+        });
+      });
+    }
+    setSubItemsByRow(initialSubItems);
   }, [currentEstimate, items]);
 
   const handleCreateContract = async () => {
@@ -616,6 +713,29 @@ export default function EditEstimate() {
     return afterMarkup + taxAmount;
   };
 
+  const resolveLineItemId = (item: any) => {
+    const directId =
+      item?.originalItem?._id ||
+      item?.originalItem?.id ||
+      item?.originalItem?.itemId ||
+      item?.originalItem?.item?._id ||
+      item?.originalItem?.item?.id ||
+      item?.itemId ||
+      item?.item?._id ||
+      item?.item?.id;
+
+    if (directId) return String(directId);
+
+    const catalogMatch = items.find((catalogItem: any) => {
+      const namesMatch =
+        catalogItem?.itemName === item?.itemName ||
+        catalogItem?.description === item?.description;
+      return namesMatch;
+    });
+
+    return catalogMatch?.id || catalogMatch?._id || catalogMatch?.itemId || "";
+  };
+
   const grandSubtotal = lineItemTables.reduce((acc, table) => {
     return (
       acc +
@@ -624,6 +744,11 @@ export default function EditEstimate() {
       }, 0)
     );
   }, 0);
+
+  const subItemsTotal = Object.values(subItemsByRow).reduce(
+    (sum, list) => sum + list.reduce((s, sub) => s + sub.price, 0),
+    0,
+  );
 
   const addLine = () => {
     setLineItemTables((prev) => [
@@ -649,7 +774,7 @@ export default function EditEstimate() {
   };
 
   const calculateFinalTotal = () => {
-    let total = grandSubtotal;
+    let total = grandSubtotal + subItemsTotal;
 
     if (selectedMarkup?.percentage) {
       total += (total * selectedMarkup.percentage) / 100;
@@ -670,8 +795,8 @@ export default function EditEstimate() {
     selectedMarkup !== null || discount !== null || deposit !== null;
 
   const displaySubtotal = hasSummaryOverride
-    ? grandSubtotal
-    : (prefilledSummary?.subtotal ?? grandSubtotal);
+    ? grandSubtotal + subItemsTotal
+    : (prefilledSummary?.subtotal ?? grandSubtotal + subItemsTotal);
 
   const displayGrandTotal = hasSummaryOverride
     ? calculateFinalTotal()
@@ -887,31 +1012,6 @@ export default function EditEstimate() {
 
   const handleUpdateEstimate = async () => {
     try {
-      const resolveLineItemId = (item: any) => {
-        const directId =
-          item?.originalItem?._id ||
-          item?.originalItem?.id ||
-          item?.originalItem?.itemId ||
-          item?.originalItem?.item?._id ||
-          item?.originalItem?.item?.id ||
-          item?.itemId ||
-          item?.item?._id ||
-          item?.item?.id;
-
-        if (directId) return String(directId);
-
-        const catalogMatch = items.find((catalogItem: any) => {
-          const namesMatch =
-            catalogItem?.itemName === item?.itemName ||
-            catalogItem?.description === item?.description;
-          return namesMatch;
-        });
-
-        return (
-          catalogMatch?.id || catalogMatch?._id || catalogMatch?.itemId || ""
-        );
-      };
-
       const calculateItemTotal = (item: any) => {
         const rate = Number(item.rate ?? item.amount ?? item.markUp ?? 0) || 0;
         const base = rate * (Number(item.quantity) || 0);
@@ -940,7 +1040,6 @@ export default function EditEstimate() {
             id: resolveLineItemId(item),
             quantity: Number(item.quantity) || 0,
             subTotal: Math.round(calculateItemTotal(item)),
-            format: table.format,
           })),
       );
 
@@ -955,24 +1054,56 @@ export default function EditEstimate() {
         return;
       }
 
+      const allSubItems: any[] = [];
+      lineItemTables.forEach((table) => {
+        table.items.forEach((item) => {
+          const directId = resolveLineItemId(item);
+          if (directId) {
+            const rowSubItems = subItemsByRow[String(directId)] || [];
+            rowSubItems.forEach((sub) => {
+              allSubItems.push({
+                itemId: String(directId),
+                title: sub.title,
+                quantity: sub.quantity,
+                unitCost: sub.unitCost,
+                price: sub.price,
+              });
+            });
+          }
+        });
+      });
+
       const bodyData = {
         estimateName: estimateForm.estimateName,
+        estimateNumber: estimateForm.estimateNumber,
         clientId: selectedClient?.id || currentEstimate?.clientId,
-        contractId:
-          estimateForm.contractId || currentEstimate?.contractId || "",
+        contractId: estimateForm.contractId || currentEstimate?.contractId,
         date: estimateForm.date,
         endDate: estimateForm.endDate,
         poNumber: estimateForm.poNumber,
         legendary: estimateForm.legendary,
+        clientSign: estimateForm.clientSign,
+        mySign: estimateForm.mySign,
+        coverPaymentProcessingFee: estimateForm.coverPaymentProcessingFee,
+        isOnlinePayment: estimateForm.isOnlinePayment,
+        isAutoInvoice: estimateForm.isAutoInvoice,
+        isGroupingEnabled: estimateForm.isGroupingEnabled,
+        noteForClient: estimateForm.noteForClient,
+        privateNote: estimateForm.privateNote,
+        format: estimateForm.format,
         items: submittedItems,
+        subItems: allSubItems,
 
-        additionalMarkUp: Math.round(markupAmount),
-        discountAmount: Math.round(discountAmountCalc),
-        depositAmount: Math.round(depositAmountCalc),
+        additionalMarkUp: Math.round(
+          Number(estimateForm.additionalMarkUp || 0),
+        ),
+        discountAmount: Math.round(Number(estimateForm.discountAmount || 0)),
+        depositAmount: Math.round(Number(estimateForm.depositAmount || 0)),
 
-        grandTotal: Math.round(calculateFinalTotal()),
-        sideMap: existingSideMapUrls,
-        fileUrls: existingImageUrls,
+        grandTotal: Math.round(
+          Number(estimateForm.grandTotal || calculateFinalTotal()),
+        ),
+        // side maps and files are uploaded separately via FormData
       };
 
       const formData = new FormData();
@@ -989,7 +1120,7 @@ export default function EditEstimate() {
       await updateEstimate({ id: estimateId, data: formData }).unwrap();
 
       toast.success("Estimate updated successfully");
-      router.push(`/admin/estimate/${estimateId}?format=${detailsFormat}`);
+      router.push(`/admin/estimate/${estimateId}`);
     } catch (err: any) {
       console.error("Estimate update error:", err);
       toast.error(err?.data?.message || "Failed to update estimate");
@@ -1730,25 +1861,42 @@ export default function EditEstimate() {
                           </div>
                         </div>
 
-                        {/* Notes */}
-                        <div className="border-t p-2">
-                          {!item.itemName ? (
-                            <textarea
-                              placeholder="Notes"
-                              className="w-full p-2 text-base outline-none"
+                        {/* Notes inside same box */}
+                        <div className="flex justify-between text-primary pr-2">
+                          <div className="border-t p-2">
+                            {!item.itemName ? (
+                              <textarea
+                                placeholder="Notes"
+                                className="w-full p-2 text-base outline-none"
+                              />
+                            ) : (
+                              <div className="mt-2">
+                                {item.description && (
+                                  <p className="text-base text-gray-500">
+                                    {item.description}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          {item.itemName && (
+                            <PlusIcon
+                              size={30}
+                              className="cursor-pointer shrink-0"
+                              onClick={() => {
+                                const directId = resolveLineItemId(item);
+                                if (directId) {
+                                  setActiveSubItemRowId(String(directId));
+                                  setSubItemTitle("");
+                                  setSubItemQty("");
+                                  setSubItemUnitCost("");
+                                } else {
+                                  toast.error(
+                                    "Please select an item from the Item List first.",
+                                  );
+                                }
+                              }}
                             />
-                          ) : (
-                            <div className="mt-2">
-                              {/* <p className="text-base font-semibold">
-                                {item.itemName}
-                              </p> */}
-
-                              {item.description && (
-                                <p className="text-base text-gray-500">
-                                  {item.description}
-                                </p>
-                              )}
-                            </div>
                           )}
                         </div>
                       </div>
@@ -2696,6 +2844,103 @@ export default function EditEstimate() {
           </div>
         </div>
       )}
+
+      {/* Sub-Line Breakdown Items Modal */}
+      <CustomModal
+        open={activeSubItemRowId !== null}
+        onClose={() => setActiveSubItemRowId(null)}
+        title="Sub-Line Breakdown Items"
+        maxWidth="md"
+        actions={[
+          {
+            label: "Done",
+            variant: "primary",
+            onClick: () => setActiveSubItemRowId(null),
+          },
+        ]}
+      >
+        <div className="space-y-6">
+          {/* Card Form */}
+          <div className="bg-[#f0f2f5] p-4 rounded-xl space-y-3">
+            <div>
+              <input
+                type="text"
+                placeholder="Sub-item Title"
+                value={subItemTitle}
+                onChange={(e) => setSubItemTitle(e.target.value)}
+                className="w-full bg-white border border-gray-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                placeholder="Qty"
+                value={subItemQty}
+                onChange={(e) => setSubItemQty(e.target.value)}
+                className="w-24 bg-white border border-gray-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
+              />
+              <input
+                type="number"
+                placeholder="Unit Cost..."
+                value={subItemUnitCost}
+                onChange={(e) => setSubItemUnitCost(e.target.value)}
+                className="flex-1 bg-white border border-primary/50 focus:border-primary rounded-lg p-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary transition"
+              />
+              <button
+                type="button"
+                onClick={handleAddSubItem}
+                className="w-12 h-12 bg-[#e27932] text-white rounded-full flex items-center justify-center font-bold text-xl hover:bg-[#c9621f] transition-all shadow-md shrink-0"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          {/* Sub-items List */}
+          <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+            {activeSubItemRowId !== null &&
+            (subItemsByRow[activeSubItemRowId] || []).length > 0 ? (
+              (subItemsByRow[activeSubItemRowId] || []).map(
+                (subItem, index) => (
+                  <div
+                    key={index}
+                    className="bg-white border border-gray-200 rounded-xl p-4 flex justify-between items-center shadow-sm"
+                  >
+                    <div className="text-left">
+                      <h4 className="font-semibold text-gray-800 text-sm">
+                        {subItem.title}
+                      </h4>
+                      <p className="text-gray-500 text-xs mt-1">
+                        Qty: {subItem.quantity} &times; Cost: $
+                        {subItem.unitCost.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="font-bold text-gray-800 text-sm">
+                        ${subItem.price.toFixed(2)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleRemoveSubItem(activeSubItemRowId, index)
+                        }
+                        className="text-red-500 hover:text-red-700 transition"
+                        aria-label="Delete sub-item"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+                ),
+              )
+            ) : (
+              <p className="text-center text-gray-400 text-sm py-4">
+                No sub-items added yet.
+              </p>
+            )}
+          </div>
+        </div>
+      </CustomModal>
     </div>
   );
 }

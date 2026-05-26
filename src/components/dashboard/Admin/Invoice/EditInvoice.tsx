@@ -1,6 +1,5 @@
 "use client";
 
-import ContractModal from "@/components/modal/ContractModal";
 import CommonTable from "@/components/table/CommonTable";
 import Summary from "@/components/table/summary";
 import ToggleSwitch from "@/components/ui/ToggleSwitch";
@@ -718,26 +717,6 @@ export default function EditInvoice() {
             Update
           </button>
         </div>
-
-        <div>
-          <label className="text-base text-gray-600">Contract </label>
-          <input
-            onClick={() => setAddContractModalOpen(true)}
-            placeholder="Contract "
-            value={selectedContractTitle}
-            readOnly
-            className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-        </div>
-        <ContractModal
-          open={addContractModalOpen}
-          onClose={() => setAddContractModalOpen(false)}
-          selectedContractId={formData.contractId}
-          onSelectContract={(contractId: string) => {
-            setFormData((prev) => ({ ...prev, contractId: contractId }));
-            setAddContractModalOpen(false);
-          }}
-        />
 
         {openClientModal && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 overflow-y-auto p-4">

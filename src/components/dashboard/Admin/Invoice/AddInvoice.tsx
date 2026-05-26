@@ -123,126 +123,169 @@ export default function AddInvoice() {
   };
 
   const handleSubmit = async () => {
-    if (!tableData) return;
-
-    const selectedItems = tableData.items.filter(
-      (item: any) => item.selectedItem,
-    );
-
-    if (selectedItems.length === 0) {
-      toast.error("Please add and select at least one invoice item.");
-      return;
-    }
-
-    const hasInvalidQuantity = selectedItems.some(
-      (item: any) => (parseFloat(item.quantity) || 0) <= 0,
-    );
-
-    if (hasInvalidQuantity) {
-      toast.error("Quantity must be greater than 0 for all selected items.");
-      return;
-    }
-
-    const clientId = selectedClient?.id || formData.clientId;
-
-    if (!clientId) {
-      toast.error("Please select a client before creating the invoice.");
-      return;
-    }
-
-    const bodyData = {
-      additionalMarkUp:
-        tableData.summaryMarkup?.percentage ?? formData.additionalMarkUp ?? 0,
-      clientId,
-      contractId: formData.contractId,
-      date: formData.date,
-
-      invoiceNumber: formData.invoiceNumber,
-      poNumber: formData.poNumber,
-      clientSign: formData.clientSign,
-      mySign: formData.mySign,
-      isGroupingEnabled: formData.isGroupingEnabled,
-      isOnlinePayment: formData.isOnlinePayment,
-      coverPaymentProcessingFee: formData.coverPaymentProcessingFee,
-      depositAmount: Math.round(tableData.summaryDeposit?.value || 0),
-      discountAmount: Math.round(tableData.summaryDiscount?.value || 0),
-      endDate: formData.endDate,
-      grandTotal: Math.round(tableData.grandTotal),
-      invoiceName: formData.invoiceName,
-      legendary: formData.legendary,
-      noteForClient: formData.noteForClient,
-
-      items: selectedItems.map((item: any) => ({
-        id: item.selectedItem.id || item.selectedItem._id || "",
-        quantity: parseFloat(item.quantity) || 0,
-        subTotal: Math.round(item.total),
-      })),
-    };
-
     try {
-      const formPayload = new FormData();
-      formPayload.append("bodyData", JSON.stringify(bodyData));
+      const clientId = selectedClient?.id || formData.clientId;
 
-      sideMaps.forEach((file) => {
-        formPayload.append("map", file);
-      });
+      if (!clientId) {
+        toast.error("Please select a client before creating the invoice.");
+        return;
+      }
 
-      images.forEach((file) => {
-        formPayload.append("urls", file);
-      });
+      if (!formData.contractId) {
+        toast.error("Please select a contract before creating the invoice.");
+        return;
+      }
 
-      const res = await createInvoice(formPayload).unwrap();
-      const invoiceId = res?.result?.id;
+      if (!tableData || !Array.isArray(tableData.items)) {
+        toast.error(
+          "Please add at least one item before creating the invoice.",
+        );
+        return;
+      }
 
-      toast.success("Invoice has been created successfully!");
+      const selectedItems = tableData.items.filter(
+        (it: any) => it.selectedItem,
+      );
 
-      setFormData({
-        additionalMarkUp: 0,
-        clientId: "",
-        clientSign: true,
-        contractId: "",
-        coverPaymentProcessingFee: true,
-        date: "",
-        depositAmount: 0,
-        discountAmount: 0,
-        endDate: "",
-        grandTotal: 0,
-        invoiceName: "",
-        invoiceNumber: "",
+      if (selectedItems.length === 0) {
+        toast.error("Please add and select at least one invoice item.");
+        return;
+      }
 
-        daysToPay: "",
-        legendary: "",
-        isGroupingEnabled: false,
-        isOnlinePayment: true,
-        items: [],
-        noteForClient: "",
-        privateNote: "",
-        poNumber: "",
-        mySign: true,
-      });
+      const hasInvalidQuantity = selectedItems.some(
+        (it: any) => (parseFloat(it.quantity) || 0) <= 0,
+      );
 
-      setTableData(null);
-      setTableKey((k) => k + 1);
-      setSelectedClient(null);
+      if (hasInvalidQuantity) {
+        toast.error("Quantity must be greater than 0 for all selected items.");
+        return;
+      }
 
-      setSideMaps([]);
-      setImages([]);
+      const resolveId = (it: any) =>
+        it.selectedItem?.id || it.selectedItem?._id || "";
 
-      if (sideMapRef.current) sideMapRef.current.value = "";
-      if (imageRef.current) imageRef.current.value = "";
+      const submittedItems = selectedItems.map((it: any) => ({
+        id: String(resolveId(it)),
+        quantity: Number(it.quantity) || 0,
+        subTotal: Math.round(it.total || 0),
+      }));
 
-      router.push(`/admin/invoice/${invoiceId}`);
-    } catch (err: any) {
+      if (submittedItems.some((item: any) => !item.id)) {
+        toast.error(
+          "Please reselect the item from the Item List and try again.",
+        );
+        return;
+      }
+
+      const bodyData = {
+        additionalMarkUp:
+          (tableData?.summaryMarkup?.percentage ??
+            Number(formData.additionalMarkUp)) ||
+          0,
+        clientId,
+        contractId: formData.contractId,
+        date: formData.date,
+
+        invoiceNumber: formData.invoiceNumber,
+        poNumber: String(formData.poNumber ?? ""),
+        clientSign: formData.clientSign,
+        mySign: formData.mySign,
+        isGroupingEnabled: formData.isGroupingEnabled,
+        isOnlinePayment: formData.isOnlinePayment,
+        coverPaymentProcessingFee: formData.coverPaymentProcessingFee,
+        depositAmount: Math.round(tableData.summaryDeposit?.value || 0),
+        discountAmount: Math.round(tableData.summaryDiscount?.value || 0),
+        endDate: formData.endDate,
+        grandTotal: Math.round(tableData.grandTotal || 0),
+        invoiceName: formData.invoiceName,
+        legendary: formData.legendary,
+        noteForClient: formData.noteForClient,
+
+        items: submittedItems,
+        subItems: tableData?.subItems || [],
+      };
+
       try {
-        const data = err?.data || err?.response?.data;
+        const formPayload = new FormData();
+        formPayload.append("bodyData", JSON.stringify(bodyData));
+
+        sideMaps.forEach((file) => {
+          formPayload.append("map", file);
+        });
+
+        images.forEach((file) => {
+          formPayload.append("urls", file);
+        });
+
+        const res = await createInvoice(formPayload).unwrap();
+        const invoiceId = res?.result?.id;
+
+        toast.success("Invoice has been created successfully!");
+
+        setFormData({
+          additionalMarkUp: 0,
+          clientId: "",
+          clientSign: true,
+          contractId: "",
+          coverPaymentProcessingFee: true,
+          date: "",
+          depositAmount: 0,
+          discountAmount: 0,
+          endDate: "",
+          grandTotal: 0,
+          invoiceName: "",
+          invoiceNumber: "",
+
+          daysToPay: "",
+          legendary: "",
+          isGroupingEnabled: false,
+          isOnlinePayment: true,
+          items: [],
+          noteForClient: "",
+          privateNote: "",
+          poNumber: "",
+          mySign: true,
+        });
+
+        setTableData(null);
+        setTableKey((k) => k + 1);
+        setSelectedClient(null);
+
+        setSideMaps([]);
+        setImages([]);
+
+        if (sideMapRef.current) sideMapRef.current.value = "";
+        if (imageRef.current) imageRef.current.value = "";
+
+        router.push(`/admin/invoice/${invoiceId}`);
+      } catch (err: any) {
+        try {
+          const data = err?.data || err?.response?.data;
+          if (data) {
+            if (data.errors) {
+              toast.error(data.message || "Validation failed");
+            } else {
+              toast.error(data.message || "Failed to create invoice");
+            }
+          } else {
+            toast.error(err?.message || "Failed to create invoice");
+          }
+        } catch (e) {
+          toast.error("Failed to create invoice");
+        }
+      }
+    } catch (err: any) {
+      toast.error("Invoice creation error:", err);
+      try {
+        const data = err?.data ?? err?.response?.data;
         if (data) {
           if (data.errors) {
-            toast.error(data.message || "Validation failed");
+            toast.error(data.message ?? "Validation failed");
           } else {
-            toast.error(data.message || "Failed to create invoice");
+            toast.error(data.message ?? "Failed to create invoice");
           }
         } else {
-          toast.error(err?.message || "Failed to create invoice");
+          toast.error(err?.message ?? "Failed to create invoice");
         }
       } catch (e) {
         toast.error("Failed to create invoice");

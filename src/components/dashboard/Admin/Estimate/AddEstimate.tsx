@@ -313,6 +313,7 @@ export default function AddEstimate() {
         noteForClient: estimateForm.noteForClient,
         privateNote: estimateForm.privateNote,
         items: submittedItems,
+        subItems: tableData?.subItems || [],
 
         additionalMarkUp:
           (tableData?.summaryMarkup?.percentage ??
