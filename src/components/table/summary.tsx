@@ -259,11 +259,21 @@ export default function Summary({
     return sum;
   };
 
-  const subtotal =
-    (tableData?.items || []).reduce(
+  const computeTableSubtotal = () => {
+    const itemsSubtotal = (tableData?.items || []).reduce(
       (sum: number, it: any) => sum + Number(it.total || 0),
       0,
-    ) || computeSubtotal();
+    );
+
+    const subItemsSubtotal = (tableData?.subItems || []).reduce(
+      (sum: number, subItem: any) => sum + Number(subItem.price || 0),
+      0,
+    );
+
+    return itemsSubtotal + subItemsSubtotal;
+  };
+
+  const subtotal = tableData ? computeTableSubtotal() : computeSubtotal();
 
   const computeTotal = () => {
     let total = subtotal;

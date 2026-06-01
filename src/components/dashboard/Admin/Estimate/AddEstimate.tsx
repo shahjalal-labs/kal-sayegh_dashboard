@@ -25,7 +25,7 @@ export default function AddEstimate() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
-  const [sideMaps, setSideMaps] = useState<File[]>([]);
+  const [sideMap, setSideMap] = useState<File | null>(null);
   const [images, setImages] = useState<File[]>([]);
   const [openClientModal, setOpenClientModal] = useState(false);
   const [showAll, setShowAll] = useState(false);
@@ -161,13 +161,6 @@ export default function AddEstimate() {
     zip: "",
   });
 
-  const normalizeItemFormat = (format?: string | null): FormatType => {
-    const value = String(format || "").toUpperCase();
-    if (value === "TABLE") return "TABLE";
-    if (value === "IMAGE_PDF") return "IMAGE_PDF";
-    return "DESCRIPTION";
-  };
-
   const [createClient] = useCreateClientMutation();
   const [createEstimate] = useCreateEstimateMutation();
 
@@ -188,11 +181,11 @@ export default function AddEstimate() {
 
   const handleSideMapFiles = (fileList: FileList | null) => {
     if (!fileList?.length) return;
-    setSideMaps((prev) => [...prev, ...Array.from(fileList)]);
+    setSideMap(Array.from(fileList)[0]);
   };
 
-  const removeSideMap = (index: number) => {
-    setSideMaps((prev) => prev.filter((_, i) => i !== index));
+  const removeSideMap = () => {
+    setSideMap(null);
   };
 
   const handleImageFiles = (fileList: FileList | null) => {
@@ -327,9 +320,7 @@ export default function AddEstimate() {
       const formData = new FormData();
       formData.append("bodyData", JSON.stringify(bodyData));
 
-      sideMaps.forEach((file) => {
-        formData.append("map", file);
-      });
+      if (sideMap) formData.append("map", sideMap);
 
       images.forEach((file) => {
         formData.append("urls", file);
@@ -389,7 +380,7 @@ export default function AddEstimate() {
       setDiscount(null);
       setDeposit(null);
       setSelectedClient(null);
-      setSideMaps([]);
+      setSideMap(null);
       setImages([]);
 
       if (sideMapRef.current) sideMapRef.current.value = "";
@@ -710,7 +701,6 @@ export default function AddEstimate() {
             id="sideMapInput"
             type="file"
             accept="image/*"
-            multiple
             className="hidden"
             onChange={(e) => handleSideMapFiles(e.target.files)}
           />
@@ -731,27 +721,25 @@ export default function AddEstimate() {
             </p>
           </label>
 
-          {sideMaps.length > 0 && (
+          {sideMap && (
             <div className="flex gap-3 mt-4 flex-wrap">
-              {sideMaps.map((file, idx) => (
-                <div key={idx} className="relative">
-                  <Image
-                    src={URL.createObjectURL(file)}
-                    alt="side map preview"
-                    width={120}
-                    height={120}
-                    className="rounded-lg object-cover w-[120px] h-[120px]"
-                  />
+              <div className="relative">
+                <Image
+                  src={URL.createObjectURL(sideMap)}
+                  alt="side map preview"
+                  width={120}
+                  height={120}
+                  className="rounded-lg object-cover w-[120px] h-[120px]"
+                />
 
-                  <button
-                    type="button"
-                    onClick={() => removeSideMap(idx)}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white text-base rounded-full px-2"
-                  >
-                    x
-                  </button>
-                </div>
-              ))}
+                <button
+                  type="button"
+                  onClick={removeSideMap}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white text-base rounded-full px-2"
+                >
+                  x
+                </button>
+              </div>
             </div>
           )}
         </div>

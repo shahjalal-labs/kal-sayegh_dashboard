@@ -672,7 +672,7 @@ export default function CommonTable({
                     </div>
 
                     {/* Notes inside same box */}
-                    <div className="flex justify-between text-primary pr-2">
+                    <div className="flex justify-between  pr-2">
                       <div className="border-t p-2">
                         {selectedItem ? (
                           <div className=" rounded-xl ">
@@ -683,6 +683,64 @@ export default function CommonTable({
                               <p className="text-base text-gray-500 mt-1">
                                 {selectedItem.description}
                               </p>
+                            )}
+
+                            {(subItemsByRow[item.id] || []).length > 0 && (
+                              <div className="mt-4 w-full overflow-hidden rounded-xl border bg-white text-lg shadow-sm">
+                                <div className="grid grid-cols-4 gap-3 border-b bg-gray-100 px-4 py-3 font-semibold">
+                                  <div>Scope of Work</div>
+                                  <div className="text-center">QTY</div>
+                                  <div className="text-right">UNIT COST</div>
+                                  <div className="text-right">PRICE</div>
+                                </div>
+                                {(() => {
+                                  const rowSubItems =
+                                    subItemsByRow[item.id] || [];
+                                  const rowSubItemsTotal = rowSubItems.reduce(
+                                    (acc, si) => {
+                                      const q = Number(si.quantity) || 0;
+                                      const u = Number(si.unitCost) || 0;
+                                      return acc + q * u;
+                                    },
+                                    0,
+                                  );
+                                  const rowSubtotal = rowSubItemsTotal;
+
+                                  return (
+                                    <>
+                                      {rowSubItems.map((si, idx) => {
+                                        const q = Number(si.quantity) || 0;
+                                        const u = Number(si.unitCost) || 0;
+                                        const price = q * u;
+                                        return (
+                                          <div
+                                            key={idx}
+                                            className="grid grid-cols-4 items-center gap-3 border-t px-4 py-3"
+                                          >
+                                            <div className="truncate pr-2">
+                                              {si.title}
+                                            </div>
+                                            <div className="text-center">
+                                              {q}
+                                            </div>
+                                            <div className="text-right">
+                                              ${u.toFixed(2)}
+                                            </div>
+                                            <div className="text-right">
+                                              ${price.toFixed(2)}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+
+                                      <div className="flex items-center justify-end gap-3 border-t px-4 py-3 font-semibold">
+                                        <span>Sub Total:</span>
+                                        <span>${rowSubtotal.toFixed(2)}</span>
+                                      </div>
+                                    </>
+                                  );
+                                })()}
+                              </div>
                             )}
                           </div>
                         ) : (
@@ -718,6 +776,56 @@ export default function CommonTable({
                 </div>
               );
             })}
+
+            <div className="mt-4 flex justify-end border-t pt-3 pr-2 md:pr-0">
+              {(() => {
+                const globalSubtotal = items.reduce((acc, item) => {
+                  const selectedItem = selectedItemsByTable[item.id];
+                  const rate = parseFloat(rowData[item.id]?.rate || "0") || 0;
+                  const quantity =
+                    parseFloat(rowData[item.id]?.quantity || "0") || 0;
+                  const selectedTax = selectedTaxesByRow[item.id] || null;
+                  const selectedMarkup = selectedMarkupsByRow[item.id];
+
+                  const markupValue = selectedMarkup
+                    ? selectedMarkup.percentage != null
+                      ? selectedMarkup.percentage
+                      : selectedMarkup.amount || 0
+                    : selectedItem?.markUp?.percentage != null
+                      ? selectedItem.markUp.percentage
+                      : selectedItem?.markUp?.amount || 0;
+                  const isMarkupPercentage = selectedMarkup
+                    ? selectedMarkup.percentage != null
+                    : selectedItem?.markUp?.percentage != null;
+                  const taxPercent = selectedTax?.percentage || 0;
+
+                  const base = rate * quantity;
+                  const markupAmount = isMarkupPercentage
+                    ? base * (markupValue / 100)
+                    : markupValue;
+                  const subtotal = base + markupAmount;
+                  const taxAmount = subtotal * (taxPercent / 100);
+                  const total = subtotal + taxAmount;
+                  const subItemsTotal = (subItemsByRow[item.id] || []).reduce(
+                    (subAcc, si) => {
+                      const q = Number(si.quantity) || 0;
+                      const u = Number(si.unitCost) || 0;
+                      return subAcc + q * u;
+                    },
+                    0,
+                  );
+
+                  return acc + total + subItemsTotal;
+                }, 0);
+
+                return (
+                  <div className="inline-flex items-center gap-3 rounded-lg border bg-gray-50 px-4 py-2 text-base font-semibold text-gray-800">
+                    <span>Sub Total:</span>
+                    <span>${globalSubtotal.toFixed(2)}</span>
+                  </div>
+                );
+              })()}
+            </div>
           </>
         )}
 
