@@ -394,11 +394,10 @@ export default function AddInvoice() {
                                 setOpen(false);
                               }}
                               className={`p-4 border rounded-xl cursor-pointer transition shadow-sm
-                              ${
-                                selectedClient?.id === client.id
+                              ${selectedClient?.id === client.id
                                   ? "bg-primary text-white border-primary"
                                   : "hover:bg-orange-50"
-                              }`}
+                                }`}
                             >
                               <p className="font-semibold text-base">
                                 {client.clientName}

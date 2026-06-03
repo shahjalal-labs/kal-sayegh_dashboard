@@ -290,7 +290,7 @@ export default function EstimateDetails() {
     return (
       <div className="space-y-3" key="TABLE">
         <div className="text-2xl font-semibold">
-          <h2>Table </h2>
+          <h2>Detailed Work Items</h2>
         </div>
 
         <div

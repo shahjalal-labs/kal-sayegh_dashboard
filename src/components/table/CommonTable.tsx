@@ -1,1042 +1,691 @@
-import {
-  useCreateMarkupMutation,
-  useCreateTaxMutation,
-  useGetAllItemsQuery,
-  useGetAllMarkupsQuery,
-  useGetAllTaxesQuery,
-} from "@/redux/api/admin/estimateApi";
+"use client";
+
+import { CustomModal } from "@/components/modal/CustomModal";
+import { useGetAllItemsQuery } from "@/redux/api/admin/estimateApi";
 import { FormatType } from "@/types/estimate.type";
-import { Check, Minus, Plus, PlusIcon, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { CustomModal } from "../modal/CustomModal";
+import { Camera, Check, Plus, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
-export default function CommonTable({
-  onDataChange,
-  initialItems,
-}: {
+type FormatOption = "description" | "table" | "upload";
+
+interface CommonTableProps {
   onDataChange?: (data: any) => void;
-  initialItems?: any[];
-}) {
-  const [items, setItems] = useState<{ id: number; format: FormatType }[]>([]);
-  const [formatModalOpen, setFormatModalOpen] = useState(false);
-  const [selectedFormat, setSelectedFormat] = useState<FormatType | null>(null);
-  const [itemModalOpen, setItemModalOpen] = useState(false);
+}
 
-  // Sub-items states
-  const [activeSubItemRowId, setActiveSubItemRowId] = useState<number | null>(
-    null,
-  );
-  const [subItemsByRow, setSubItemsByRow] = useState<Record<number, any[]>>({});
+const OPTIONS: Array<{ id: FormatOption; label: string }> = [
+  { id: "description", label: "Description" },
+  { id: "table", label: "Table Format" },
+  { id: "upload", label: "Upload Picture ,PDF , Document" },
+];
+
+const formatMap: Record<FormatOption, FormatType> = {
+  description: "DESCRIPTION",
+  table: "TABLE",
+  upload: "IMAGE_PDF",
+};
+
+type SubItemRow = {
+  title: string;
+  quantity: number;
+  unitCost: number;
+  price: number;
+};
+
+const money = (value: number) => `$${Number(value || 0).toFixed(2)}`;
+
+export default function CommonTable({ onDataChange }: CommonTableProps) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [itemListOpen, setItemListOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedFormat, setSelectedFormat] = useState<FormatOption>("table");
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [committedItem, setCommittedItem] = useState<any>(null);
+  const [committedQuantity, setCommittedQuantity] = useState("1");
+  const [committedDescription, setCommittedDescription] = useState("");
+  const [committedSubItems, setCommittedSubItems] = useState<SubItemRow[]>([]);
+
+  const [quantity, setQuantity] = useState("1");
+  const [description, setDescription] = useState("");
+  const [privateNote, setPrivateNote] = useState("");
   const [subItemTitle, setSubItemTitle] = useState("");
-  const [subItemQty, setSubItemQty] = useState("");
+  const [subItemQty, setSubItemQty] = useState("1");
   const [subItemUnitCost, setSubItemUnitCost] = useState("");
+  const [subItems, setSubItems] = useState<SubItemRow[]>([]);
+
+  const { data } = useGetAllItemsQuery({});
+  const items = data?.result || [];
+  const activeFormat = formatMap[selectedFormat];
+
+  const filteredItems = useMemo(
+    () =>
+      items.filter(
+        (item: any) => (item?.format || "DESCRIPTION") === activeFormat,
+      ),
+    [activeFormat, items],
+  );
+
+  const baseRate = useMemo(() => {
+    const subItemTotal = subItems.reduce((sum, item) => sum + item.price, 0);
+    if (subItemTotal > 0) return subItemTotal;
+
+    return Number(selectedItem?.rate || 0);
+  }, [selectedItem, subItems]);
+
+  const markupValue = useMemo(() => {
+    const markup = selectedItem?.markUp;
+    if (!markup) return 0;
+
+    if (markup.percentage != null) {
+      return (baseRate * Number(markup.percentage || 0)) / 100;
+    }
+
+    return Number(markup.amount || 0);
+  }, [baseRate, selectedItem?.markUp]);
+
+  const taxValue = useMemo(() => {
+    const taxableBase = baseRate + markupValue;
+    return (selectedItem?.taxes || []).reduce((sum: number, tax: any) => {
+      return sum + (taxableBase * Number(tax?.percentage || 0)) / 100;
+    }, 0);
+  }, [baseRate, markupValue, selectedItem?.taxes]);
+
+  const lineTotal = useMemo(() => {
+    return (baseRate + markupValue + taxValue) * Number(quantity || 0);
+  }, [baseRate, markupValue, quantity, taxValue]);
+
+  const previewItem = committedItem || selectedItem;
+  const previewQuantity = committedItem ? committedQuantity : quantity;
+  const previewDescription = committedItem ? committedDescription : description;
+  const previewSubItems = committedItem ? committedSubItems : subItems;
+
+  const previewBaseRate = useMemo(() => {
+    return previewSubItems.reduce((sum, item) => sum + item.price, 0);
+  }, [previewItem, previewSubItems]);
+
+  const previewMarkupValue = useMemo(() => {
+    const markup = previewItem?.markUp;
+    if (!markup) return 0;
+
+    if (markup.percentage != null) {
+      return (previewBaseRate * Number(markup.percentage || 0)) / 100;
+    }
+
+    return Number(markup.amount || 0);
+  }, [previewBaseRate, previewItem?.markUp]);
+
+  const previewTaxValue = useMemo(() => {
+    const taxableBase = previewBaseRate + previewMarkupValue;
+
+    return (previewItem?.taxes || []).reduce((sum: number, tax: any) => {
+      return sum + (taxableBase * Number(tax?.percentage || 0)) / 100;
+    }, 0);
+  }, [previewBaseRate, previewMarkupValue, previewItem?.taxes]);
+
+  const previewLineTotal = useMemo(() => {
+    return (
+      (previewBaseRate + previewMarkupValue + previewTaxValue) *
+      Number(previewQuantity || 0)
+    );
+  }, [previewBaseRate, previewMarkupValue, previewQuantity, previewTaxValue]);
+
+  const emitData = () => {
+    if (!onDataChange || !selectedItem) return;
+
+    onDataChange({
+      items: [
+        {
+          id: selectedItem.id,
+          description: description || selectedItem.description || "",
+          itemName: selectedItem.itemName,
+          markUp: markupValue,
+          quantity: Number(quantity || 0),
+          tax: taxValue,
+          total: lineTotal,
+          originalItem: selectedItem,
+          percentage: Number(selectedItem?.markUp?.percentage || 0),
+          amount: Number(selectedItem?.markUp?.amount || 0),
+          rate: Number(selectedItem?.rate || 0),
+          format: selectedItem?.format || activeFormat,
+        },
+      ],
+      subItems: subItems.map((subItem) => ({
+        title: subItem.title,
+        quantity: subItem.quantity,
+        unitCost: subItem.unitCost,
+        price: subItem.price,
+      })),
+      grandTotal: lineTotal,
+      summaryMarkup: selectedItem?.markUp
+        ? {
+            ...selectedItem.markUp,
+            value: markupValue,
+          }
+        : null,
+      summaryDiscount: null,
+      summaryDeposit: null,
+    });
+  };
+
+  useEffect(() => {
+    emitData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedItem, quantity, description, privateNote, subItems]);
+
+  const openFormatPicker = () => setPickerOpen(true);
+
+  const openItemList = () => {
+    setPickerOpen(false);
+    setItemListOpen(true);
+  };
+
+  const handleSelectItem = (item: any) => {
+    setSelectedItem(item);
+    setQuantity("1");
+    setDescription(item?.description || "");
+    setPrivateNote(item?.notes || "");
+    setSubItemTitle("");
+    setSubItemQty("1");
+    setSubItemUnitCost("");
+    setSubItems([]);
+    setItemListOpen(false);
+    setDetailOpen(true);
+  };
+
+  const handleCommitItem = () => {
+    if (!selectedItem) return;
+
+    setCommittedItem(selectedItem);
+    setCommittedQuantity(quantity);
+    setCommittedDescription(description);
+    setCommittedSubItems(subItems);
+    emitData();
+    setDetailOpen(false);
+  };
 
   const handleAddSubItem = () => {
-    if (activeSubItemRowId === null) return;
-    if (!subItemTitle.trim()) {
-      toast.error("Please enter a title for the sub-item.");
-      return;
-    }
-    const qty = parseFloat(subItemQty) || 0;
-    const unitCost = parseFloat(subItemUnitCost) || 0;
-    if (qty <= 0) {
-      toast.error("Quantity must be greater than 0.");
-      return;
-    }
-    if (unitCost <= 0) {
-      toast.error("Unit cost must be greater than 0.");
-      return;
-    }
+    const title = subItemTitle.trim();
+    const qty = Number(subItemQty || 0);
+    const unitCost = Number(subItemUnitCost || 0);
 
-    const newSubItem = {
-      title: subItemTitle.trim(),
-      quantity: qty,
-      unitCost: unitCost,
-      price: qty * unitCost,
-    };
+    if (!title || qty <= 0 || unitCost <= 0) return;
 
-    setSubItemsByRow((prev) => ({
+    setSubItems((prev) => [
       ...prev,
-      [activeSubItemRowId]: [...(prev[activeSubItemRowId] || []), newSubItem],
-    }));
+      {
+        title,
+        quantity: qty,
+        unitCost,
+        price: qty * unitCost,
+      },
+    ]);
 
-    // Reset inputs
     setSubItemTitle("");
-    setSubItemQty("");
+    setSubItemQty("1");
     setSubItemUnitCost("");
   };
 
-  const handleRemoveSubItem = (rowId: number, index: number) => {
-    setSubItemsByRow((prev) => ({
-      ...prev,
-      [rowId]: (prev[rowId] || []).filter((_, i) => i !== index),
-    }));
-  };
-  const [activeTableId, setActiveTableId] = useState<number | null>(null);
-  const [selectedItemsByTable, setSelectedItemsByTable] = useState<
-    Record<number, any>
-  >({});
-
-  const [openCreateMarkupModal, setOpenCreateMarkupModal] = useState(false);
-  const [markupValue, setMarkupValue] = useState({ name: "", percentage: "" });
-
-  const { data } = useGetAllItemsQuery({});
-  const allItems = data?.result ?? [];
-
-  const { data: allMarkup } = useGetAllMarkupsQuery();
-  const markups = allMarkup?.result ?? [];
-
-  const { data: allTax } = useGetAllTaxesQuery({});
-  const taxes = allTax?.result ?? [];
-
-  const [createMarkup] = useCreateMarkupMutation();
-  const [createTax] = useCreateTaxMutation();
-
-  const [markupModalOpen, setMarkupModalOpen] = useState(false);
-  const [activeMarkupRowId, setActiveMarkupRowId] = useState<number | null>(
-    null,
-  );
-  const [selectedMarkupsByRow, setSelectedMarkupsByRow] = useState<
-    Record<number, any>
-  >({});
-
-  const [addTax, setAddTax] = useState(false);
-  const [taxModalOpen, setTaxModalOpen] = useState(false);
-  const [taxValue, setTaxValue] = useState({ name: "", percentage: "" });
-  const [activeTaxRowId, setActiveTaxRowId] = useState<number | null>(null);
-  const [selectedTaxesByRow, setSelectedTaxesByRow] = useState<
-    Record<number, any>
-  >({});
-
-  const [rowData, setRowData] = useState<
-    Record<number, { rate: string; quantity: string }>
-  >({});
-
-  const [summaryMarkup, setSummaryMarkup] = useState<any>(null);
-  const [summaryTax, setSummaryTax] = useState<any>(null);
-  const [summaryDiscount, setSummaryDiscount] = useState<{
-    value: number;
-    unit: "percent" | "dollar";
-  } | null>(null);
-  const [summaryDeposit, setSummaryDeposit] = useState<{
-    value: number;
-    unit: "percent" | "dollar";
-  } | null>(null);
-
-  useEffect(() => {
-    if (!initialItems?.length || items.length > 0) return;
-
-    const fallbackRowIdBase = Date.now();
-
-    const seededRows = initialItems.map((item: any, index: number) => {
-      const rowId = item?.rowId ?? item?.id ?? fallbackRowIdBase + index;
-      const selectedItem = item?.selectedItem ?? item ?? null;
-      const format = String(
-        item?.format ?? selectedItem?.format ?? "DESCRIPTION",
-      ).toUpperCase() as FormatType;
-
-      return {
-        id: rowId,
-        format,
-      };
-    });
-
-    const seededSelectedItems: Record<number, any> = {};
-    const seededRowData: Record<number, { rate: string; quantity: string }> =
-      {};
-    const seededMarkups: Record<number, any> = {};
-    const seededTaxes: Record<number, any> = {};
-
-    const seededSubItems: Record<number, any[]> = {};
-    initialItems.forEach((item: any, index: number) => {
-      const rowId = item?.rowId ?? item?.id ?? fallbackRowIdBase + index;
-      const selectedItem = item?.selectedItem ?? item ?? null;
-
-      seededSelectedItems[rowId] = selectedItem;
-      seededRowData[rowId] = {
-        rate: String(
-          item?.rate ?? selectedItem?.rate ?? selectedItem?.amount ?? 0,
-        ),
-        quantity: String(item?.quantity ?? 1),
-      };
-      seededMarkups[rowId] = item?.selectedMarkup ?? null;
-      seededTaxes[rowId] = item?.selectedTax ?? null;
-
-      if (Array.isArray(item?.subItems)) {
-        seededSubItems[rowId] = item.subItems.map((sub: any) => ({
-          title: sub.title,
-          quantity: Number(sub.quantity) || 0,
-          unitCost: Number(sub.unitCost) || 0,
-          price: Number(sub.price || sub.quantity * sub.unitCost) || 0,
-        }));
-      }
-    });
-
-    setItems(seededRows);
-    setSelectedItemsByTable(seededSelectedItems);
-    setRowData(seededRowData);
-    setSelectedMarkupsByRow(seededMarkups);
-    setSelectedTaxesByRow(seededTaxes);
-    setSubItemsByRow(seededSubItems);
-  }, [initialItems, items.length]);
-
-  const [markupSummaryModal, setMarkupSummaryModal] = useState(false);
-  const [taxSummaryModal, setTaxSummaryModal] = useState(false);
-  const [discountModal, setDiscountModal] = useState(false);
-  const [depositModal, setDepositModal] = useState(false);
-
-  const formatOptions = [
-    { id: "DESCRIPTION", label: "Description" },
-    { id: "TABLE", label: "Table Format" },
-    { id: "IMAGE_PDF", label: "Upload Picture, PDF, Document" },
-  ] as const;
-
-  const mapSelectedToFormat = (sel: string): FormatType => {
-    switch ((sel || "").toLowerCase()) {
-      case "table":
-        return "TABLE";
-      case "upload picture, pdf, document":
-      case "image_pdf":
-        return "IMAGE_PDF";
-      case "description":
-      default:
-        return "DESCRIPTION";
-    }
+  const handleRemoveSubItem = (index: number) => {
+    setSubItems((prev) =>
+      prev.filter((_, currentIndex) => currentIndex !== index),
+    );
   };
 
-  const getRowFormat = (rowId: number): FormatType => {
-    return items.find((item) => item.id === rowId)?.format || "DESCRIPTION";
-  };
-
-  const getFormatLabel = (format: FormatType) => {
-    switch (format) {
-      case "TABLE":
-        return "Table Format";
-      case "IMAGE_PDF":
-        return "Upload Picture, PDF, Document";
-      case "DESCRIPTION":
-      default:
-        return "Description";
-    }
-  };
-
-  const getItemsByFormat = (format: FormatType) => {
-    return allItems.filter((item: any) => {
-      const itemFormat = String(item?.format || "DESCRIPTION").toUpperCase();
-      return itemFormat === format;
-    });
-  };
-
-  const openItemModal = (tableId: number) => {
-    setActiveTableId(tableId);
-    setItemModalOpen(true);
-  };
-
-  const handleToggleItem = (item: any) => {
-    if (activeTableId === null) return;
-
-    const isDeselecting = selectedItemsByTable[activeTableId]?.id === item.id;
-
-    setSelectedItemsByTable((prev) => ({
-      ...prev,
-      [activeTableId]: isDeselecting ? null : item,
-    }));
-
-    setRowData((prev) => ({
-      ...prev,
-      [activeTableId]: {
-        ...prev[activeTableId],
-        rate: isDeselecting ? "" : String(item?.rate ?? item?.amount ?? 0),
-        quantity: isDeselecting ? "0" : "1",
-      },
-    }));
-  };
-
-  const addLine = (format: FormatType) => {
-    setItems((prev) => [...prev, { id: Date.now(), format }]);
-    setFormatModalOpen(false);
-  };
-
-  const removeLine = (lineId: number) => {
-    setItems((prev) => prev.filter((item) => item.id !== lineId));
-
-    setRowData((prev) => {
-      const next = { ...prev };
-      delete next[lineId];
-      return next;
-    });
-
-    setSelectedItemsByTable((prev) => {
-      const next = { ...prev };
-      delete next[lineId];
-      return next;
-    });
-
-    setSelectedMarkupsByRow((prev) => {
-      const next = { ...prev };
-      delete next[lineId];
-      return next;
-    });
-
-    setSelectedTaxesByRow((prev) => {
-      const next = { ...prev };
-      delete next[lineId];
-      return next;
-    });
-
-    setSubItemsByRow((prev) => {
-      const next = { ...prev };
-      delete next[lineId];
-      return next;
-    });
-
-    setActiveMarkupRowId((prev) => (prev === lineId ? null : prev));
-    setActiveTaxRowId((prev) => (prev === lineId ? null : prev));
-    setActiveTableId((prev) => (prev === lineId ? null : prev));
-  };
-
-  const openMarkupPicker = (rowId: number) => {
-    setActiveMarkupRowId(rowId);
-    setMarkupModalOpen(true);
-  };
-
-  const handleSelectMarkup = (markup: any) => {
-    if (activeMarkupRowId === null) return;
-    setSelectedMarkupsByRow((prev) => ({
-      ...prev,
-      [activeMarkupRowId]: markup,
-    }));
-    setMarkupModalOpen(false);
-  };
-
-  const handleCreateMarkup = async () => {
-    try {
-      await createMarkup({
-        name: markupValue.name,
-        percentage: parseFloat(markupValue.percentage),
-      }).unwrap();
-      setOpenCreateMarkupModal(false);
-      setMarkupValue({ name: "", percentage: "" });
-    } catch (error) {
-      console.error("Failed to create markup:", error);
-    }
-  };
-
-  const openTaxPicker = (rowId: number) => {
-    setActiveTaxRowId(rowId);
-    setAddTax(true);
-  };
-
-  const handleSelectTax = (tax: any) => {
-    if (activeTaxRowId === null) return;
-    setSelectedTaxesByRow((prev) => ({ ...prev, [activeTaxRowId]: tax }));
-    setAddTax(false);
-  };
-
-  const handleCreateTax = async () => {
-    try {
-      await createTax({
-        name: taxValue.name,
-        percentage: parseFloat(taxValue.percentage),
-      }).unwrap();
-      setTaxModalOpen(false);
-      setTaxValue({ name: "", percentage: "" });
-    } catch (error) {
-      console.error("Failed to create tax:", error);
-    }
-  };
-
-  const handleSelectSummaryMarkup = (markup: any) => {
-    setSummaryMarkup(markup);
-    setMarkupSummaryModal(false);
-  };
-
-  const handleSelectSummaryTax = (tax: any) => {
-    setSummaryTax(tax);
-    setTaxSummaryModal(false);
-  };
-
-  const updateQuantity = (rowId: number, nextQuantity: number) => {
-    const safeQuantity = Math.max(0, nextQuantity);
-
-    setRowData((prev) => ({
-      ...prev,
-      [rowId]: {
-        ...prev[rowId],
-        quantity: String(safeQuantity),
-      },
-    }));
-  };
-
-  const incrementQuantity = (rowId: number) => {
-    const currentQuantity = parseFloat(rowData[rowId]?.quantity || "0") || 0;
-    updateQuantity(rowId, currentQuantity + 1);
-  };
-
-  const decrementQuantity = (rowId: number) => {
-    const currentQuantity = parseFloat(rowData[rowId]?.quantity || "0") || 0;
-    updateQuantity(rowId, currentQuantity - 1);
-  };
-
-  // Provide data to parent
-  useEffect(() => {
-    if (onDataChange) {
-      const itemsData = items.map((item) => {
-        const rate = parseFloat(rowData[item.id]?.rate || "0") || 0;
-        const quantity = parseFloat(rowData[item.id]?.quantity || "0") || 0;
-        const selectedItem = selectedItemsByTable[item.id];
-        const selectedTax = selectedTaxesByRow[item.id] || null;
-        const selectedMarkup = selectedMarkupsByRow[item.id];
-
-        const markupValue = selectedMarkup
-          ? selectedMarkup.percentage != null
-            ? selectedMarkup.percentage
-            : selectedMarkup.amount || 0
-          : selectedItem?.markUp?.percentage != null
-            ? selectedItem.markUp.percentage
-            : selectedItem?.markUp?.amount || 0;
-        const isMarkupPercentage = selectedMarkup
-          ? selectedMarkup.percentage != null
-          : selectedItem?.markUp?.percentage != null;
-
-        const taxPercent = selectedTax?.percentage || 0;
-        const base = rate * quantity;
-        const markupAmount = isMarkupPercentage
-          ? base * (markupValue / 100)
-          : markupValue;
-        const subtotal = base + markupAmount;
-        const taxAmount = subtotal * (taxPercent / 100);
-        const total = subtotal + taxAmount;
-        const roundedTotal = Math.round(total);
-
-        return {
-          selectedItem,
-          rate,
-          quantity,
-          selectedMarkup: selectedItem?.markUp
-            ? { ...selectedItem.markUp, isPercentage: isMarkupPercentage }
-            : null,
-          selectedTax,
-          taxPercent,
-          taxAmount: Math.round(taxAmount),
-          total: roundedTotal,
-        };
-      });
-
-      const allSubItems: any[] = [];
-      let subItemsSubtotal = 0;
-
-      items.forEach((item) => {
-        const rowSubItems = subItemsByRow[item.id] || [];
-        const selectedItem = selectedItemsByTable[item.id];
-        const itemId = selectedItem?.id || selectedItem?._id || "";
-        if (itemId) {
-          rowSubItems.forEach((sub) => {
-            subItemsSubtotal += sub.price;
-            allSubItems.push({
-              itemId,
-              title: sub.title,
-              quantity: sub.quantity,
-              unitCost: sub.unitCost,
-              price: sub.price,
-            });
-          });
-        }
-      });
-
-      const itemsSubtotal = itemsData.reduce(
-        (sum, item) => sum + item.total,
-        0,
-      );
-      const combinedSubtotal = itemsSubtotal + subItemsSubtotal;
-
-      let grandTotal = combinedSubtotal;
-      if (summaryMarkup) {
-        grandTotal += combinedSubtotal * (summaryMarkup.percentage / 100);
-      }
-      if (summaryTax) {
-        grandTotal += combinedSubtotal * (summaryTax.percentage / 100);
-      }
-      if (summaryDiscount) {
-        if (summaryDiscount.unit === "percent") {
-          grandTotal -= grandTotal * (summaryDiscount.value / 100);
-        } else {
-          grandTotal -= summaryDiscount.value;
-        }
-      }
-      if (summaryDeposit) {
-        if (summaryDeposit.unit === "percent") {
-          grandTotal += combinedSubtotal * (summaryDeposit.value / 100);
-        } else {
-          grandTotal += summaryDeposit.value;
-        }
-      }
-
-      onDataChange({
-        items: itemsData,
-        subItems: allSubItems,
-        summaryMarkup,
-        summaryTax,
-        summaryDiscount,
-        summaryDeposit,
-        grandTotal: Math.round(grandTotal),
-      });
-    }
-  }, [
-    items,
-    rowData,
-    selectedItemsByTable,
-    selectedMarkupsByRow,
-    selectedTaxesByRow,
-    summaryMarkup,
-    summaryTax,
-    summaryDiscount,
-    summaryDeposit,
-    subItemsByRow,
-    onDataChange,
-  ]);
+  const itemImages = selectedItem?.imageUrls || [];
 
   return (
     <div>
-      {/* Table */}
-      <div className="mt-8">
-        {items.length > 0 && (
-          <>
-            <div className="hidden md:grid md:grid-cols-6 text-base font-semibold border-b pb-2 ml-8">
-              <p>Description</p>
-              <p>Rate</p>
-              <p>Markup</p>
-              <p>Quantity</p>
-              <p>Tax</p>
-              <p>Total</p>
-            </div>
-
-            {items.map((item) => {
-              const selectedItem = selectedItemsByTable[item.id];
-              const rate = parseFloat(rowData[item.id]?.rate || "0") || 0;
-              const quantity =
-                parseFloat(rowData[item.id]?.quantity || "0") || 0;
-              const selectedTax = selectedTaxesByRow[item.id] || null;
-              const selectedMarkup = selectedMarkupsByRow[item.id];
-
-              const markupValue = selectedMarkup
-                ? selectedMarkup.percentage != null
-                  ? selectedMarkup.percentage
-                  : selectedMarkup.amount || 0
-                : selectedItem?.markUp?.percentage != null
-                  ? selectedItem.markUp.percentage
-                  : selectedItem?.markUp?.amount || 0;
-              const isMarkupPercentage = selectedMarkup
-                ? selectedMarkup.percentage != null
-                : selectedItem?.markUp?.percentage != null;
-              const taxPercent = selectedTax?.percentage || 0;
-
-              const base = rate * quantity;
-              const markupAmount = isMarkupPercentage
-                ? base * (markupValue / 100)
-                : markupValue;
-              const subtotal = base + markupAmount;
-              const taxAmount = subtotal * (taxPercent / 100);
-              const total = subtotal + taxAmount;
-
-              return (
-                <div key={item.id} className="relative mt-3 pl-8 md:pl-10">
-                  <button
-                    type="button"
-                    onClick={() => removeLine(item.id)}
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-[#E45C38] text-white flex items-center justify-center hover:bg-[#cf4f2f] transition-colors"
-                    aria-label="Remove line item"
-                  >
-                    <Minus size={14} strokeWidth={3} />
-                  </button>
-
-                  <div className="border rounded-xl overflow-hidden">
-                    <div className="grid grid-cols-1 md:grid-cols-6 border">
-                      <div className="col-span-1 md:col-span-1 border-r md:border-r p-2 text-sm text-gray-500">
-                        <label className="block md:hidden font-medium mb-1">
-                          Description
-                        </label>
-                        <div className="flex items-center justify-between  border-b md:border-b-0 p-2 md:p-0">
-                          <span className="hidden md:inline">
-                            {selectedItem?.itemName || "Description"}
-                          </span>
-                          <span
-                            onClick={() => openItemModal(item.id)}
-                            className="text-orange-500 text-base cursor-pointer mt-3 md:mt-0"
-                          >
-                            Item List
-                          </span>
-                        </div>
-                        <p className="mt-2 text-xs text-gray-400 md:hidden">
-                          {getFormatLabel(item.format)}
-                        </p>
-                      </div>
-
-                      <div className="md:col-span-1 p-2 border-r  md:border-r border-b md:border-b-0  md:p-0 flex items-center ">
-                        <label className="block md:hidden text-basefont-medium mb-1">
-                          Rate
-                        </label>
-                        <input
-                          className="cell w-full focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition p-2"
-                          placeholder="$0.00"
-                          value={rowData[item.id]?.rate || ""}
-                          readOnly
-                          onChange={(e) =>
-                            setRowData((prev) => ({
-                              ...prev,
-                              [item.id]: {
-                                ...prev[item.id],
-                                rate: e.target.value,
-                              },
-                            }))
-                          }
-                        />
-                      </div>
-
-                      <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0  md:p-0 flex items-center">
-                        <label className="block md:hidden text-sm font-medium mb-1  ">
-                          Markup
-                        </label>
-                        <input
-                          className="cell bg-white/90 w-full p-2 hover:cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary transition"
-                          placeholder="Markup"
-                          value={
-                            selectedMarkupsByRow[item.id]
-                              ? selectedMarkupsByRow[item.id].percentage
-                                ? `${selectedMarkupsByRow[item.id].percentage}%`
-                                : `$${selectedMarkupsByRow[item.id].amount}`
-                              : selectedItem?.markUp?.percentage != null
-                                ? `${selectedItem.markUp.percentage}%`
-                                : selectedItem?.markUp?.amount
-                                  ? `$${selectedItem.markUp.amount}`
-                                  : ""
-                          }
-                          readOnly
-                        />
-                      </div>
-
-                      <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0  md:p-0 flex items-center">
-                        <label className="block md:hidden text-sm font-medium mb-1">
-                          Quantity
-                        </label>
-                        <div className="flex w-full items-center gap-2">
-                          <input
-                            type="number"
-                            className="cell w-full focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition p-2 "
-                            placeholder="0"
-                            value={rowData[item.id]?.quantity ?? "0"}
-                            onChange={(e) =>
-                              updateQuantity(
-                                item.id,
-                                Number(e.target.value || 0),
-                              )
-                            }
-                            min={0}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0  md:p-0 flex items-center">
-                        <label className="block md:hidden text-sm font-medium mb-1">
-                          Tax
-                        </label>
-                        <input
-                          className="cell w-full p-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary transition bg-white/90 cursor-pointer"
-                          placeholder="Tax"
-                          value={
-                            selectedTax ? `${selectedTax.percentage}%` : ""
-                          }
-                          readOnly
-                          onClick={() => openTaxPicker(item.id)}
-                        />
-                        <span
-                          className="md:hidden text-orange-500 ml-2 cursor-pointer"
-                          onClick={() => openTaxPicker(item.id)}
-                        >
-                          {selectedTax ? `${selectedTax.percentage}%` : "Add"}
-                        </span>
-                      </div>
-
-                      <div className="md:col-span-1 p-2 border-r md:border-r border-b md:border-b-0  md:p-0 flex items-center">
-                        <label className="block md:hidden text-sm font-medium mb-1">
-                          Total
-                        </label>
-                        <input
-                          className="ell w-full p-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary transition bg-white/90"
-                          placeholder="$0.00"
-                          value={`$${total.toFixed(2)}`}
-                          readOnly
-                        />
-                      </div>
-                    </div>
-
-                    {/* Notes inside same box */}
-                    <div className="flex justify-between  pr-2">
-                      <div className="border-t p-2">
-                        {selectedItem ? (
-                          <div className=" rounded-xl ">
-                            <p className="mt-2 text-base text-gray-800 font-semibold">
-                              {selectedItem.itemName}
-                            </p>
-                            {selectedItem.description && (
-                              <p className="text-base text-gray-500 mt-1">
-                                {selectedItem.description}
-                              </p>
-                            )}
-
-                            {(subItemsByRow[item.id] || []).length > 0 && (
-                              <div className="mt-4 w-full overflow-hidden rounded-xl border bg-white text-lg shadow-sm">
-                                <div className="grid grid-cols-4 gap-3 border-b bg-gray-100 px-4 py-3 font-semibold">
-                                  <div>Scope of Work</div>
-                                  <div className="text-center">QTY</div>
-                                  <div className="text-right">UNIT COST</div>
-                                  <div className="text-right">PRICE</div>
-                                </div>
-                                {(() => {
-                                  const rowSubItems =
-                                    subItemsByRow[item.id] || [];
-                                  const rowSubItemsTotal = rowSubItems.reduce(
-                                    (acc, si) => {
-                                      const q = Number(si.quantity) || 0;
-                                      const u = Number(si.unitCost) || 0;
-                                      return acc + q * u;
-                                    },
-                                    0,
-                                  );
-                                  const rowSubtotal = rowSubItemsTotal;
-
-                                  return (
-                                    <>
-                                      {rowSubItems.map((si, idx) => {
-                                        const q = Number(si.quantity) || 0;
-                                        const u = Number(si.unitCost) || 0;
-                                        const price = q * u;
-                                        return (
-                                          <div
-                                            key={idx}
-                                            className="grid grid-cols-4 items-center gap-3 border-t px-4 py-3"
-                                          >
-                                            <div className="truncate pr-2">
-                                              {si.title}
-                                            </div>
-                                            <div className="text-center">
-                                              {q}
-                                            </div>
-                                            <div className="text-right">
-                                              ${u.toFixed(2)}
-                                            </div>
-                                            <div className="text-right">
-                                              ${price.toFixed(2)}
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
-
-                                      <div className="flex items-center justify-end gap-3 border-t px-4 py-3 font-semibold">
-                                        <span>Sub Total:</span>
-                                        <span>${rowSubtotal.toFixed(2)}</span>
-                                      </div>
-                                    </>
-                                  );
-                                })()}
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <textarea
-                            placeholder="Notes"
-                            className="w-full p-2 text-sm outline-none"
-                          />
-                        )}
-                      </div>
-
-                      <PlusIcon
-                        size={30}
-                        className={`cursor-pointer shrink-0 ${
-                          selectedItem
-                            ? "text-primary hover:text-primary/80"
-                            : "text-gray-300 hover:text-gray-400"
-                        }`}
-                        onClick={() => {
-                          if (!selectedItem) {
-                            toast.error(
-                              "Please select an item from the Item List first.",
-                            );
-                            return;
-                          }
-                          setActiveSubItemRowId(item.id);
-                          setSubItemTitle("");
-                          setSubItemQty("");
-                          setSubItemUnitCost("");
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-
-            <div className="mt-4 flex justify-end border-t pt-3 pr-2 md:pr-0">
-              {(() => {
-                const globalSubtotal = items.reduce((acc, item) => {
-                  const selectedItem = selectedItemsByTable[item.id];
-                  const rate = parseFloat(rowData[item.id]?.rate || "0") || 0;
-                  const quantity =
-                    parseFloat(rowData[item.id]?.quantity || "0") || 0;
-                  const selectedTax = selectedTaxesByRow[item.id] || null;
-                  const selectedMarkup = selectedMarkupsByRow[item.id];
-
-                  const markupValue = selectedMarkup
-                    ? selectedMarkup.percentage != null
-                      ? selectedMarkup.percentage
-                      : selectedMarkup.amount || 0
-                    : selectedItem?.markUp?.percentage != null
-                      ? selectedItem.markUp.percentage
-                      : selectedItem?.markUp?.amount || 0;
-                  const isMarkupPercentage = selectedMarkup
-                    ? selectedMarkup.percentage != null
-                    : selectedItem?.markUp?.percentage != null;
-                  const taxPercent = selectedTax?.percentage || 0;
-
-                  const base = rate * quantity;
-                  const markupAmount = isMarkupPercentage
-                    ? base * (markupValue / 100)
-                    : markupValue;
-                  const subtotal = base + markupAmount;
-                  const taxAmount = subtotal * (taxPercent / 100);
-                  const total = subtotal + taxAmount;
-                  const subItemsTotal = (subItemsByRow[item.id] || []).reduce(
-                    (subAcc, si) => {
-                      const q = Number(si.quantity) || 0;
-                      const u = Number(si.unitCost) || 0;
-                      return subAcc + q * u;
-                    },
-                    0,
-                  );
-
-                  return acc + total + subItemsTotal;
-                }, 0);
-
-                return (
-                  <div className="inline-flex items-center gap-3 rounded-lg border bg-gray-50 px-4 py-2 text-base font-semibold text-gray-800">
-                    <span>Sub Total:</span>
-                    <span>${globalSubtotal.toFixed(2)}</span>
-                  </div>
-                );
-              })()}
-            </div>
-          </>
-        )}
-
-        <button
-          onClick={() => setFormatModalOpen(true)}
-          className="mt-4 w-full border border-orange-400 text-orange-500 rounded-lg py-2 flex items-center justify-center md:justify-start p-4 gap-2"
-        >
-          <Plus size={16} /> Add Line Item
-        </button>
-      </div>
+      <button
+        type="button"
+        className="text-primary border-primary border p-2 rounded-lg cursor-pointer flex items-center gap-2 w-full"
+        onClick={openFormatPicker}
+      >
+        <Plus size={16} />
+        Add Line Item
+      </button>
 
       <CustomModal
-        open={formatModalOpen}
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        title="Add Line item"
         maxWidth="md"
-        onClose={() => {
-          setFormatModalOpen(false);
-          setSelectedFormat(null);
-        }}
-        title="Add Line Item"
         actions={[
           {
-            label: "Cancel",
+            label: "Close",
             variant: "secondary",
-            onClick: () => {
-              setFormatModalOpen(false);
-              setSelectedFormat(null);
-            },
+            onClick: () => setPickerOpen(false),
           },
           {
-            label: "Add",
+            label: "Add Line",
             variant: "primary",
-            onClick: () => {
-              if (selectedFormat) {
-                addLine(selectedFormat);
-                setSelectedFormat(null);
-              }
-            },
+            onClick: openItemList,
           },
         ]}
       >
         <div className="space-y-3">
-          {formatOptions.map((option) => (
+          {OPTIONS.map((opt) => (
             <button
-              key={option.id}
+              key={opt.id}
               type="button"
-              onClick={() =>
-                setSelectedFormat(option.id as unknown as FormatType)
-              }
-              className="w-full flex items-center justify-between rounded-xl border border-gray-200 p-4 text-left hover:border-orange-400 hover:bg-orange-50 transition"
+              onClick={() => setSelectedFormat(opt.id)}
+              className={`w-full text-left rounded-xl border p-4 flex items-center justify-between transition-colors ${
+                selectedFormat === opt.id
+                  ? "border-orange-400 bg-orange-50"
+                  : "border-gray-200 bg-white"
+              }`}
             >
-              <span className="font-medium text-gray-800">{option.label}</span>
-              <div className="w-5 h-5 flex items-center justify-end">
-                {selectedFormat === option.id && (
-                  <Check
-                    className="text-white bg-primary rounded-full p-1"
-                    size={20}
-                  />
-                )}
-              </div>
+              <span className="font-medium text-gray-800">{opt.label}</span>
+              {selectedFormat === opt.id ? (
+                <span className="bg-[#e27932] text-white rounded-full p-1">
+                  <Check size={14} />
+                </span>
+              ) : (
+                <span className="w-5 h-5 rounded-full border border-gray-300" />
+              )}
             </button>
           ))}
         </div>
       </CustomModal>
 
-      {/* Item picker modal */}
       <CustomModal
-        open={itemModalOpen}
-        onClose={() => setItemModalOpen(false)}
-        title={`Item List - ${getFormatLabel(getRowFormat(activeTableId || 0))}`}
+        open={itemListOpen}
+        onClose={() => setItemListOpen(false)}
+        title="Item List"
+        maxWidth="xl"
         actions={[
           {
-            label: "Cancel",
+            label: "Close",
             variant: "secondary",
-            onClick: () => setItemModalOpen(false),
+            onClick: () => setItemListOpen(false),
           },
           {
             label: "Add",
             variant: "primary",
-            onClick: () => setItemModalOpen(false),
+            onClick: () => setItemListOpen(false),
           },
         ]}
       >
-        <div className="space-y-3">
-          {activeTableId === null ? (
-            <p className="text-sm text-gray-500">Select a line item first.</p>
-          ) : getItemsByFormat(getRowFormat(activeTableId)).length === 0 ? (
-            <p className="text-sm text-gray-500">No items available.</p>
-          ) : (
-            getItemsByFormat(getRowFormat(activeTableId)).map((it: any) => {
-              const isSelected =
-                activeTableId !== null &&
-                selectedItemsByTable[activeTableId]?.id === it.id;
-              return (
-                <div
-                  key={it.id}
-                  onClick={() => handleToggleItem(it)}
-                  className={`flex justify-between items-start border p-3 rounded-xl cursor-pointer transition ${isSelected ? "bg-orange-50 border-orange-400" : "border-gray-200"}`}
-                >
-                  <div className="space-y-1">
-                    <p className="font-semibold text-gray-800">{it.itemName}</p>
-                    <p className="text-sm text-gray-500">{it.description}</p>
-                  </div>
-
-                  <div className="text-right min-w-[80px]">
-                    <p className="font-semibold text-gray-800">
-                      ${it?.rate || 0}
-                    </p>
-                  </div>
+        <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+          {filteredItems.length > 0 ? (
+            filteredItems.map((item: any) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => handleSelectItem(item)}
+                className="w-full flex items-start justify-between gap-4 border border-gray-200 rounded-xl p-4 text-left hover:bg-orange-50 transition-colors"
+              >
+                <div className="min-w-0 space-y-1">
+                  <p className="font-semibold text-gray-800 truncate">
+                    {item.itemName}
+                  </p>
+                  <p className="text-sm text-gray-500 line-clamp-2">
+                    {item.description || "No description"}
+                  </p>
+                  <p className="text-xs text-gray-400 uppercase tracking-wide">
+                    {item.format || "DESCRIPTION"}
+                  </p>
                 </div>
-              );
-            })
+              </button>
+            ))
+          ) : (
+            <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">
+              No items found for {activeFormat} format.
+            </div>
           )}
         </div>
       </CustomModal>
 
-      {/* Sub-Line Breakdown Items Modal */}
       <CustomModal
-        open={activeSubItemRowId !== null}
-        onClose={() => setActiveSubItemRowId(null)}
-        title="Sub-Line Breakdown Items"
-        maxWidth="md"
+        open={detailOpen && !!selectedItem}
+        onClose={() => setDetailOpen(false)}
+        title="Add Line Item"
+        maxWidth="3xl"
         actions={[
           {
-            label: "Done",
+            label: "Close",
+            variant: "secondary",
+            onClick: () => setDetailOpen(false),
+          },
+          {
+            label: "Add to Estimate",
             variant: "primary",
-            onClick: () => setActiveSubItemRowId(null),
+            onClick: handleCommitItem,
           },
         ]}
       >
-        <div className="space-y-6">
-          {/* Card Form */}
-          <div className="bg-[#f0f2f5] p-4 rounded-xl space-y-3">
+        {selectedItem && (
+          <div className="space-y-6">
             <div>
+              <label className="block text-sm font-medium text-gray-600 mb-2">
+                Item Name
+              </label>
               <input
                 type="text"
-                placeholder="Sub-item Title"
-                value={subItemTitle}
-                onChange={(e) => setSubItemTitle(e.target.value)}
-                className="w-full bg-white border border-gray-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
+                value={selectedItem.itemName}
+                readOnly
+                className="w-full rounded-xl border border-gray-200 px-5 py-4 text-lg text-gray-800 focus:outline-none"
               />
             </div>
-            <div className="flex items-center gap-3">
-              <input
-                type="number"
-                placeholder="Qty"
-                value={subItemQty}
-                onChange={(e) => setSubItemQty(e.target.value)}
-                className="w-24 bg-white border border-gray-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
+
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-2">
+                Item Images
+              </label>
+              <div className="h-24 w-24 rounded-xl border border-slate-300 bg-slate-100 flex items-center justify-center text-[#e27932]">
+                {itemImages[0] ? (
+                  <img
+                    src={itemImages[0]}
+                    alt={selectedItem.itemName}
+                    className="h-full w-full rounded-xl object-cover"
+                  />
+                ) : (
+                  <Camera size={28} />
+                )}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-2xl font-semibold text-gray-800 mb-3">
+                Sub-Line Breakdown Items
+              </h3>
+              <div className="rounded-xl border border-slate-300 bg-[#f0f2f5] p-4 space-y-3">
+                <input
+                  type="text"
+                  placeholder="Sub-item Title"
+                  value={subItemTitle}
+                  onChange={(e) => setSubItemTitle(e.target.value)}
+                  className="w-full rounded-xl border border-orange-400 bg-white px-5 py-4 text-base focus:outline-none"
+                />
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    placeholder="Qty"
+                    value={subItemQty}
+                    onChange={(e) => setSubItemQty(e.target.value)}
+                    className="w-[38%] rounded-xl border border-gray-200 bg-white px-5 py-4 text-base focus:outline-none"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Unit Cost ..."
+                    value={subItemUnitCost}
+                    onChange={(e) => setSubItemUnitCost(e.target.value)}
+                    className="flex-1 rounded-xl border border-gray-200 bg-white px-5 py-4 text-base focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddSubItem}
+                    className="h-12 w-16 rounded-full bg-[#e27932] text-white text-2xl leading-none flex items-center justify-center shrink-0"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-3 space-y-3">
+                {subItems.length > 0 ? (
+                  subItems.map((subItem, index) => (
+                    <div
+                      key={`${subItem.title}-${index}`}
+                      className="rounded-xl border border-gray-200 bg-white px-4 py-3 flex items-center justify-between gap-4"
+                    >
+                      <div>
+                        <p className="font-semibold text-gray-800">
+                          {subItem.title}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Qty: {subItem.quantity.toFixed(1)} × Cost:{" "}
+                          {money(subItem.unitCost)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="font-semibold text-gray-700">
+                          {money(subItem.price)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSubItem(index)}
+                          className="text-red-500 hover:text-red-700"
+                          aria-label="Delete sub-item"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500">
+                    No subline breakdown items added yet.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="h-px bg-gray-200" />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-2">
+                  Quantity
+                </label>
+                <input
+                  type="number"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 px-5 py-4 text-base focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-2">
+                  Base Rate ($)
+                  <span className="block text-sm font-medium text-gray-600">
+                    (Calculated)
+                  </span>
+                </label>
+                <input
+                  type="text"
+                  value={money(baseRate)}
+                  readOnly
+                  className="w-full rounded-xl border border-gray-200 px-5 py-4 text-base focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-gray-200 bg-[#f0f2f5] p-4 space-y-2 text-base">
+              <div className="flex items-center justify-between gap-4 border-b border-gray-200 pb-2">
+                <span className="text-gray-600">
+                  Base Rate (Subtotal items):
+                </span>
+                <span className="font-semibold text-gray-800">
+                  {money(baseRate)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-4 border-b border-gray-200 pb-2">
+                <span className="text-gray-600">
+                  Adjusted Unit Rate (With Markup):
+                </span>
+                <span className="font-semibold text-gray-800">
+                  {money(baseRate + markupValue)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-gray-600">Item Taxes Total:</span>
+                <span className="font-semibold text-[#e27932]">
+                  +{money(taxValue)}
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-2">
+                Description
+              </label>
+              <textarea
+                rows={4}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 px-5 py-4 text-base focus:outline-none"
               />
-              <input
-                type="number"
-                placeholder="Unit Cost..."
-                value={subItemUnitCost}
-                onChange={(e) => setSubItemUnitCost(e.target.value)}
-                className="flex-1 bg-white border border-primary/50 focus:border-primary rounded-lg p-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary transition"
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-2">
+                Private Note
+              </label>
+              <textarea
+                rows={4}
+                value={privateNote}
+                onChange={(e) => setPrivateNote(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 px-5 py-4 text-base focus:outline-none"
               />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <h4 className="text-2xl font-semibold text-gray-800">Markups</h4>
               <button
                 type="button"
-                onClick={handleAddSubItem}
-                className="w-12 h-12 bg-[#e27932] text-white rounded-full flex items-center justify-center font-bold text-xl hover:bg-[#c9621f] transition-all shadow-md shrink-0"
+                className="rounded-full bg-orange-50 px-4 py-2 text-[#e27932] font-semibold"
               >
-                +
+                + Add
               </button>
             </div>
+
+            <div className="flex flex-wrap gap-2">
+              {selectedItem?.markUp ? (
+                <span className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm text-gray-800">
+                  {selectedItem.markUp.name}
+                  <span className="text-gray-500">
+                    (
+                    {selectedItem.markUp.percentage != null
+                      ? `${selectedItem.markUp.percentage}%`
+                      : money(selectedItem.markUp.amount || 0)}
+                    )
+                  </span>
+                </span>
+              ) : (
+                <span className="text-sm text-gray-500">
+                  No markup selected
+                </span>
+              )}
+            </div>
+
+            <div>
+              <h4 className="text-2xl font-semibold text-gray-800 mb-3">
+                Applied Line Taxes
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {(selectedItem?.taxes || []).length > 0 ? (
+                  selectedItem.taxes.map((tax: any) => (
+                    <span
+                      key={tax.id}
+                      className="inline-flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm text-gray-800"
+                    >
+                      {tax.name} ({tax.percentage}%)
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-sm text-gray-500">
+                    No line taxes applied
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-orange-200 bg-[#fff8f3] px-5 py-4 flex items-center justify-between">
+              <span className="text-lg font-semibold text-gray-800">
+                Total Line Value (Inc. Tax):
+              </span>
+              <span className="text-2xl font-bold text-[#e27932]">
+                {money(lineTotal)}
+              </span>
+            </div>
+          </div>
+        )}
+      </CustomModal>
+
+      {previewItem && previewSubItems.length > 0 && (
+        <div className="mt-6 overflow-hidden border border-gray-300 bg-white">
+          <div className="flex items-center justify-between border-b border-gray-300 px-4 py-3 bg-[#f7f7f7]">
+            <span className="text-sm font-bold uppercase tracking-wide text-gray-900">
+              {selectedFormat}
+            </span>
+            <span className="text-lg font-semibold text-gray-900">
+              Organize
+            </span>
           </div>
 
-          {/* Sub-items List */}
-          <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-            {activeSubItemRowId !== null &&
-            (subItemsByRow[activeSubItemRowId] || []).length > 0 ? (
-              (subItemsByRow[activeSubItemRowId] || []).map(
-                (subItem, index) => (
-                  <div
-                    key={index}
-                    className="bg-white border border-gray-200 rounded-xl p-4 flex justify-between items-center shadow-sm"
+          <div className="p-4">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border border-gray-400 bg-white uppercase text-xs font-semibold text-gray-900">
+                  <th className="w-[52%] border-r border-gray-300 px-2 py-3 text-left">
+                    Scope of Work
+                  </th>
+                  <th className="w-[12%] border-r border-gray-300 px-2 py-3 text-center">
+                    Qty
+                  </th>
+                  <th className="w-[18%] border-r border-gray-300 px-2 py-3 text-center">
+                    Unit Cost
+                  </th>
+                  <th className="w-[18%] px-2 py-3 text-center">Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-x border-b border-gray-400 bg-gray-100">
+                  <td
+                    colSpan={4}
+                    className="px-2 py-1 text-base font-semibold text-gray-800"
                   >
-                    <div className="text-left">
-                      <h4 className="font-semibold text-gray-800 text-sm">
-                        {subItem.title}
-                      </h4>
-                      <p className="text-gray-500 text-xs mt-1">
-                        Qty: {subItem.quantity} &times; Cost: $
-                        {subItem.unitCost.toFixed(2)}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <span className="font-bold text-gray-800 text-sm">
-                        ${subItem.price.toFixed(2)}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleRemoveSubItem(activeSubItemRowId, index)
-                        }
-                        className="text-red-500 hover:text-red-700 transition"
-                        aria-label="Delete sub-item"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </div>
-                ),
-              )
-            ) : (
-              <p className="text-center text-gray-400 text-sm py-4">
-                No sub-items added yet.
-              </p>
-            )}
+                    {previewItem.itemName}
+                  </td>
+                </tr>
+                {previewSubItems.map((subItem, index) => (
+                  <tr
+                    key={`${subItem.title}-${index}`}
+                    className="border-x border-b border-gray-300 bg-white align-top"
+                  >
+                    <td className="border-r border-gray-200 px-2 py-1 pl-6 text-gray-800">
+                      {subItem.title}
+                    </td>
+                    <td className="border-r border-gray-200 px-2 py-1 text-center text-gray-800">
+                      {subItem.quantity}
+                    </td>
+                    <td className="border-r border-gray-200 px-2 py-1 text-center text-gray-800">
+                      {money(subItem.unitCost)}
+                    </td>
+                    <td className="px-2 py-1 text-right font-semibold text-gray-800">
+                      {money(subItem.price)}
+                    </td>
+                  </tr>
+                ))}
+
+                <tr className="border-x border-b border-gray-300 bg-white">
+                  <td colSpan={2} />
+                  <td className="px-2 py-1 text-right font-semibold text-gray-900">
+                    Sub Total:
+                  </td>
+                  <td className="px-2 py-1 text-right font-semibold text-gray-900">
+                    {money(previewBaseRate + previewMarkupValue)}
+                  </td>
+                </tr>
+                <tr className="border-x border-b border-gray-400 bg-white">
+                  <td colSpan={2} />
+                  <td className="px-2 py-2 text-right font-bold uppercase text-gray-900">
+                    Grand Total:
+                  </td>
+                  <td className="px-2 py-2 text-right font-bold text-gray-900">
+                    {money(previewLineTotal)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
-      </CustomModal>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setDetailOpen(true)}
+        className="hidden"
+      />
     </div>
   );
 }

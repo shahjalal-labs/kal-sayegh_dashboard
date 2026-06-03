@@ -632,11 +632,11 @@ export default function InvoiceDetails({ format }: { format?: string }) {
 
             {(emailMarkedRead ||
               (invoice?.emailStatus || "").toString().toUpperCase() ===
-                "READ") && (
-              <div className="mt-3 text-center text-sm text-green-700 bg-green-50 rounded-md py-2 px-3">
-                ✓ Email opened
-              </div>
-            )}
+              "READ") && (
+                <div className="mt-3 text-center text-sm text-green-700 bg-green-50 rounded-md py-2 px-3">
+                  ✓ Email opened
+                </div>
+              )}
 
             <div
               id="invoice"
@@ -910,15 +910,13 @@ export default function InvoiceDetails({ format }: { format?: string }) {
                       sendMeCopy: !prev.sendMeCopy,
                     }))
                   }
-                  className={`relative inline-flex h-8 w-16 items-center rounded-full px-1 transition-colors ${
-                    formData.sendMeCopy ? "bg-primary" : "bg-gray-200"
-                  }`}
+                  className={`relative inline-flex h-8 w-16 items-center rounded-full px-1 transition-colors ${formData.sendMeCopy ? "bg-primary" : "bg-gray-200"
+                    }`}
                   aria-label="Send me a copy toggle"
                 >
                   <span
-                    className={`inline-block h-6 w-6 rounded-full bg-white shadow transition-transform ${
-                      formData.sendMeCopy ? "translate-x-8" : "translate-x-0"
-                    }`}
+                    className={`inline-block h-6 w-6 rounded-full bg-white shadow transition-transform ${formData.sendMeCopy ? "translate-x-8" : "translate-x-0"
+                      }`}
                   />
                 </button>
                 <span className="text-sm font-medium text-gray-700">
@@ -973,10 +971,10 @@ export default function InvoiceDetails({ format }: { format?: string }) {
 
       {(emailMarkedRead ||
         (invoice?.emailStatus || "").toString().toUpperCase() === "READ") && (
-        <div className="mx-auto mt-3 max-w-6xl rounded-md bg-green-50 px-3 py-2 text-center text-sm text-green-700">
-          Email opened
-        </div>
-      )}
+          <div className="mx-auto mt-3 max-w-6xl rounded-md bg-green-50 px-3 py-2 text-center text-sm text-green-700">
+            Email opened
+          </div>
+        )}
     </>
   );
 }
