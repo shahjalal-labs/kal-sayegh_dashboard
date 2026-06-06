@@ -10,6 +10,7 @@ type FormatOption = "description" | "table" | "upload";
 
 interface CommonTableProps {
   onDataChange?: (data: any) => void;
+  initialItems?: any[];
 }
 
 const OPTIONS: Array<{ id: FormatOption; label: string }> = [
@@ -33,16 +34,26 @@ type SubItemRow = {
 
 const money = (value: number) => `$${Number(value || 0).toFixed(2)}`;
 
-export default function CommonTable({ onDataChange }: CommonTableProps) {
+export default function CommonTable({ onDataChange, initialItems }: CommonTableProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [itemListOpen, setItemListOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<FormatOption>("table");
   const [selectedItem, setSelectedItem] = useState<any>(null);
-  const [committedItem, setCommittedItem] = useState<any>(null);
-  const [committedQuantity, setCommittedQuantity] = useState("1");
-  const [committedDescription, setCommittedDescription] = useState("");
-  const [committedSubItems, setCommittedSubItems] = useState<SubItemRow[]>([]);
+
+  const [committedItems, setCommittedItems] = useState<any[]>(() => {
+    if (!initialItems || !initialItems.length) return [];
+    return initialItems.map(it => ({
+      item: it.selectedItem,
+      quantity: it.quantity,
+      description: it.selectedItem?.description || "",
+      subItems: [],
+      baseRate: it.rate || 0,
+      markupValue: 0,
+      taxValue: 0,
+      lineTotal: it.total || 0,
+    }));
+  });
 
   const [quantity, setQuantity] = useState("1");
   const [description, setDescription] = useState("");
@@ -93,74 +104,65 @@ export default function CommonTable({ onDataChange }: CommonTableProps) {
     return (baseRate + markupValue + taxValue) * Number(quantity || 0);
   }, [baseRate, markupValue, quantity, taxValue]);
 
-  const previewItem = committedItem || selectedItem;
-  const previewQuantity = committedItem ? committedQuantity : quantity;
-  const previewDescription = committedItem ? committedDescription : description;
-  const previewSubItems = committedItem ? committedSubItems : subItems;
+  const emitData = () => {
+    if (!onDataChange) return;
 
-  const previewBaseRate = useMemo(() => {
-    return previewSubItems.reduce((sum, item) => sum + item.price, 0);
-  }, [previewItem, previewSubItems]);
+    const itemsToEmit = committedItems.map(c => ({
+      id: c.item.id,
+      description: c.description || c.item.description || "",
+      itemName: c.item.itemName,
+      markUp: c.markupValue,
+      quantity: Number(c.quantity || 0),
+      tax: c.taxValue,
+      total: c.lineTotal,
+      originalItem: c.item,
+      percentage: Number(c.item?.markUp?.percentage || 0),
+      amount: Number(c.item?.markUp?.amount || 0),
+      rate: Number(c.item?.rate || 0),
+      format: c.item?.format || activeFormat,
+      selectedItem: c.item,
+    }));
 
-  const previewMarkupValue = useMemo(() => {
-    const markup = previewItem?.markUp;
-    if (!markup) return 0;
-
-    if (markup.percentage != null) {
-      return (previewBaseRate * Number(markup.percentage || 0)) / 100;
+    if (selectedItem) {
+      itemsToEmit.push({
+        id: selectedItem.id,
+        description: description || selectedItem.description || "",
+        itemName: selectedItem.itemName,
+        markUp: markupValue,
+        quantity: Number(quantity || 0),
+        tax: taxValue,
+        total: lineTotal,
+        originalItem: selectedItem,
+        percentage: Number(selectedItem?.markUp?.percentage || 0),
+        amount: Number(selectedItem?.markUp?.amount || 0),
+        rate: Number(selectedItem?.rate || 0),
+        format: selectedItem?.format || activeFormat,
+        selectedItem: selectedItem,
+      });
     }
 
-    return Number(markup.amount || 0);
-  }, [previewBaseRate, previewItem?.markUp]);
+    const allSubItems = [
+      ...committedItems.flatMap(c => c.subItems.map((s: any) => ({
+        title: s.title,
+        quantity: s.quantity,
+        unitCost: s.unitCost,
+        price: s.price,
+      }))),
+      ...subItems.map((s: any) => ({
+        title: s.title,
+        quantity: s.quantity,
+        unitCost: s.unitCost,
+        price: s.price,
+      }))
+    ];
 
-  const previewTaxValue = useMemo(() => {
-    const taxableBase = previewBaseRate + previewMarkupValue;
-
-    return (previewItem?.taxes || []).reduce((sum: number, tax: any) => {
-      return sum + (taxableBase * Number(tax?.percentage || 0)) / 100;
-    }, 0);
-  }, [previewBaseRate, previewMarkupValue, previewItem?.taxes]);
-
-  const previewLineTotal = useMemo(() => {
-    return (
-      (previewBaseRate + previewMarkupValue + previewTaxValue) *
-      Number(previewQuantity || 0)
-    );
-  }, [previewBaseRate, previewMarkupValue, previewQuantity, previewTaxValue]);
-
-  const emitData = () => {
-    if (!onDataChange || !selectedItem) return;
+    const grandTotal = committedItems.reduce((sum, c) => sum + c.lineTotal, 0) + (selectedItem ? lineTotal : 0);
 
     onDataChange({
-      items: [
-        {
-          id: selectedItem.id,
-          description: description || selectedItem.description || "",
-          itemName: selectedItem.itemName,
-          markUp: markupValue,
-          quantity: Number(quantity || 0),
-          tax: taxValue,
-          total: lineTotal,
-          originalItem: selectedItem,
-          percentage: Number(selectedItem?.markUp?.percentage || 0),
-          amount: Number(selectedItem?.markUp?.amount || 0),
-          rate: Number(selectedItem?.rate || 0),
-          format: selectedItem?.format || activeFormat,
-        },
-      ],
-      subItems: subItems.map((subItem) => ({
-        title: subItem.title,
-        quantity: subItem.quantity,
-        unitCost: subItem.unitCost,
-        price: subItem.price,
-      })),
-      grandTotal: lineTotal,
-      summaryMarkup: selectedItem?.markUp
-        ? {
-            ...selectedItem.markUp,
-            value: markupValue,
-          }
-        : null,
+      items: itemsToEmit,
+      subItems: allSubItems,
+      grandTotal: grandTotal,
+      summaryMarkup: null,
       summaryDiscount: null,
       summaryDeposit: null,
     });
@@ -169,7 +171,7 @@ export default function CommonTable({ onDataChange }: CommonTableProps) {
   useEffect(() => {
     emitData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedItem, quantity, description, privateNote, subItems]);
+  }, [committedItems, selectedItem, quantity, description, privateNote, subItems]);
 
   const openFormatPicker = () => setPickerOpen(true);
 
@@ -194,11 +196,25 @@ export default function CommonTable({ onDataChange }: CommonTableProps) {
   const handleCommitItem = () => {
     if (!selectedItem) return;
 
-    setCommittedItem(selectedItem);
-    setCommittedQuantity(quantity);
-    setCommittedDescription(description);
-    setCommittedSubItems(subItems);
-    emitData();
+    setCommittedItems(prev => [
+      ...prev,
+      {
+        item: selectedItem,
+        quantity,
+        description,
+        subItems: [...subItems],
+        baseRate,
+        markupValue,
+        taxValue,
+        lineTotal
+      }
+    ]);
+
+    setSelectedItem(null);
+    setQuantity("1");
+    setDescription("");
+    setPrivateNote("");
+    setSubItems([]);
     setDetailOpen(false);
   };
 
@@ -234,14 +250,170 @@ export default function CommonTable({ onDataChange }: CommonTableProps) {
 
   return (
     <div>
-      <button
-        type="button"
-        className="text-primary border-primary border p-2 rounded-lg cursor-pointer flex items-center gap-2 w-full"
-        onClick={openFormatPicker}
-      >
-        <Plus size={16} />
-        Add Line Item
-      </button>
+
+      {(committedItems.length > 0 || selectedItem) && (
+        <div className="flex items-center justify-between border-b-2 px-4 py-3 bg-[#f7f7f7]">
+          <span className="text-lg font-bold uppercase tracking-wide text-gray-900">
+            Description
+          </span>
+          <span className="text-lg font-semibold text-gray-900">
+            Organize
+          </span>
+        </div>
+      )}
+
+      {committedItems.map((cItem, index) => {
+        const cBaseRate = cItem.baseRate;
+        const cMarkupValue = cItem.markupValue;
+        const cLineTotal = cItem.lineTotal;
+
+        return (
+          <div key={`${cItem.item.id}-${index}`} className="mt-6 overflow-hidden bg-white">
+            <div className="p-4 pt-0">
+              <table className="w-full border-collapse text-lg">
+                <thead>
+                  <tr className="border-2 border-black/50 bg-white uppercase text-base font-semibold text-gray-900">
+                    <th className="w-[52%] border-r-2 border-black/50 px-2 py-3 text-left">
+                      Scope of Work
+                    </th>
+                    <th className="w-[12%] border-r-2 border-black/50 px-2 py-3 text-center">
+                      Qty
+                    </th>
+                    <th className="w-[18%] border-r-2 border-black/50 px-2 py-3 text-center">
+                      Unit Cost
+                    </th>
+                    <th className="w-[18%] px-2 py-3 text-center">Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-x-2 border-b-2 border-black/50 bg-gray-100">
+                    <td
+                      colSpan={4}
+                      className="px-2 py-1 text-base font-semibold text-gray-800"
+                    >
+                      {cItem.item.itemName}
+                    </td>
+                  </tr>
+                  {cItem.subItems.map((subItem: any, subIndex: number) => (
+                    <tr
+                      key={`${subItem.title}-${subIndex}`}
+                      className="border-x-2 border-b-2 border-black/50 bg-white align-top"
+                    >
+                      <td className="border-r-2 border-black/50 px-2 py-1 pl-6 text-gray-800">
+                        {subItem.title}
+                      </td>
+                      <td className="border-r-2 border-black/50 px-2 py-1 text-center text-gray-800">
+                        {subItem.quantity}
+                      </td>
+                      <td className="border-r-2 border-black/50 px-2 py-1 text-center text-gray-800">
+                        {money(subItem.unitCost)}
+                      </td>
+                      <td className="px-2 py-1 text-center font-semibold text-gray-800">
+                        {money(subItem.price)}
+                      </td>
+                    </tr>
+                  ))}
+
+                  <tr className="border-x-2 border-b-2 border-black/50 bg-white">
+                    <td colSpan={2} />
+                    <td className="px-2 py-1 text-right font-semibold text-gray-900">
+                      Sub Total:
+                    </td>
+                    <td className="px-2 py-1 text-center font-semibold text-gray-900">
+                      {money(cBaseRate + cMarkupValue)}
+                    </td>
+                  </tr>
+
+                </tbody>
+                <div className="w-full text-right pr-6 pt-6 pb-6  text-right font-semibold text-gray-900 text-lg">Grand Total: {money(cBaseRate + cMarkupValue)}</div>
+              </table>
+            </div>
+          </div>
+        );
+      })}
+
+      {selectedItem && (
+        <div className="mt-6 overflow-hidden bg-white">
+          <div className="p-4 pt-0">
+            <table className="w-full border-collapse text-lg">
+              <thead>
+                <tr className="border-2 border-black/50 bg-white uppercase text-xs font-semibold text-gray-900">
+                  <th className="w-[52%] border-r-2 border-black/50 px-2 py-3 text-left">
+                    Scope of Work
+                  </th>
+                  <th className="w-[12%] border-r-2 border-black/50 px-2 py-3 text-center">
+                    Qty
+                  </th>
+                  <th className="w-[18%] border-r-2 border-black/50 px-2 py-3 text-center">
+                    Unit Cost
+                  </th>
+                  <th className="w-[18%] px-2 py-3 text-center">Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-x-2 border-b-2 border-black/50 bg-gray-100">
+                  <td
+                    colSpan={4}
+                    className="px-2 py-1 text-base font-semibold text-gray-800"
+                  >
+                    {selectedItem.itemName}
+                  </td>
+                </tr>
+                {subItems.map((subItem: any, subIndex: number) => (
+                  <tr
+                    key={`${subItem.title}-${subIndex}`}
+                    className="border-x-2 border-b-2 border-black/50 bg-white align-top"
+                  >
+                    <td className="border-r-2 border-black/50 px-2 py-1 pl-6 text-gray-800">
+                      {subItem.title}
+                    </td>
+                    <td className="border-r-2 border-black/50 px-2 py-1 text-center text-gray-800">
+                      {subItem.quantity}
+                    </td>
+                    <td className="border-r-2 border-black/50 px-2 py-1 text-center text-gray-800">
+                      {money(subItem.unitCost)}
+                    </td>
+                    <td className="px-2 py-1 text-right font-semibold text-gray-800">
+                      {money(subItem.price)}
+                    </td>
+                  </tr>
+                ))}
+
+                <tr className="border-x-2 border-b-2 border-black/50 bg-white">
+                  <td colSpan={2} />
+                  <td className="px-2 py-1 text-right font-semibold text-gray-900">
+                    Sub Total:
+                  </td>
+                  <td className="px-2 py-1 text-right font-semibold text-gray-900">
+                    {money(baseRate + markupValue)}
+                  </td>
+                </tr>
+                <tr className="border-x-2 border-b-2 border-black/50 bg-white">
+                  <td colSpan={2} />
+                  <td className="px-2 py-2 text-right font-bold uppercase text-gray-900">
+                    Grand Total:
+                  </td>
+                  <td className="px-2 py-2 text-right font-bold text-gray-900">
+                    {money(lineTotal)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <div className="flex w-full mt-6">
+        <button
+          type="button"
+          className="text-primary border-primary border px-4 py-2 rounded-lg cursor-pointer flex items-center gap-2 w-full"
+          onClick={openFormatPicker}
+        >
+          <Plus size={16} />
+          Add Line Item
+        </button>
+      </div>
+
 
       <CustomModal
         open={pickerOpen}
@@ -267,11 +439,10 @@ export default function CommonTable({ onDataChange }: CommonTableProps) {
               key={opt.id}
               type="button"
               onClick={() => setSelectedFormat(opt.id)}
-              className={`w-full text-left rounded-xl border p-4 flex items-center justify-between transition-colors ${
-                selectedFormat === opt.id
-                  ? "border-orange-400 bg-orange-50"
-                  : "border-gray-200 bg-white"
-              }`}
+              className={`w-full text-left rounded-xl border p-4 flex items-center justify-between transition-colors ${selectedFormat === opt.id
+                ? "border-orange-400 bg-orange-50"
+                : "border-gray-200 bg-white"
+                }`}
             >
               <span className="font-medium text-gray-800">{opt.label}</span>
               {selectedFormat === opt.id ? (
@@ -601,85 +772,7 @@ export default function CommonTable({ onDataChange }: CommonTableProps) {
         )}
       </CustomModal>
 
-      {previewItem && previewSubItems.length > 0 && (
-        <div className="mt-6 overflow-hidden border border-gray-300 bg-white">
-          <div className="flex items-center justify-between border-b border-gray-300 px-4 py-3 bg-[#f7f7f7]">
-            <span className="text-sm font-bold uppercase tracking-wide text-gray-900">
-              {selectedFormat}
-            </span>
-            <span className="text-lg font-semibold text-gray-900">
-              Organize
-            </span>
-          </div>
 
-          <div className="p-4">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="border border-gray-400 bg-white uppercase text-xs font-semibold text-gray-900">
-                  <th className="w-[52%] border-r border-gray-300 px-2 py-3 text-left">
-                    Scope of Work
-                  </th>
-                  <th className="w-[12%] border-r border-gray-300 px-2 py-3 text-center">
-                    Qty
-                  </th>
-                  <th className="w-[18%] border-r border-gray-300 px-2 py-3 text-center">
-                    Unit Cost
-                  </th>
-                  <th className="w-[18%] px-2 py-3 text-center">Price</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-x border-b border-gray-400 bg-gray-100">
-                  <td
-                    colSpan={4}
-                    className="px-2 py-1 text-base font-semibold text-gray-800"
-                  >
-                    {previewItem.itemName}
-                  </td>
-                </tr>
-                {previewSubItems.map((subItem, index) => (
-                  <tr
-                    key={`${subItem.title}-${index}`}
-                    className="border-x border-b border-gray-300 bg-white align-top"
-                  >
-                    <td className="border-r border-gray-200 px-2 py-1 pl-6 text-gray-800">
-                      {subItem.title}
-                    </td>
-                    <td className="border-r border-gray-200 px-2 py-1 text-center text-gray-800">
-                      {subItem.quantity}
-                    </td>
-                    <td className="border-r border-gray-200 px-2 py-1 text-center text-gray-800">
-                      {money(subItem.unitCost)}
-                    </td>
-                    <td className="px-2 py-1 text-right font-semibold text-gray-800">
-                      {money(subItem.price)}
-                    </td>
-                  </tr>
-                ))}
-
-                <tr className="border-x border-b border-gray-300 bg-white">
-                  <td colSpan={2} />
-                  <td className="px-2 py-1 text-right font-semibold text-gray-900">
-                    Sub Total:
-                  </td>
-                  <td className="px-2 py-1 text-right font-semibold text-gray-900">
-                    {money(previewBaseRate + previewMarkupValue)}
-                  </td>
-                </tr>
-                <tr className="border-x border-b border-gray-400 bg-white">
-                  <td colSpan={2} />
-                  <td className="px-2 py-2 text-right font-bold uppercase text-gray-900">
-                    Grand Total:
-                  </td>
-                  <td className="px-2 py-2 text-right font-bold text-gray-900">
-                    {money(previewLineTotal)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
 
       <button
         type="button"
