@@ -1,61 +1,88 @@
 "use client";
 
+import ContractModal from "@/components/modal/ContractModal";
 import CommonTable from "@/components/table/CommonTable";
 import Summary from "@/components/table/summary";
+import { Textarea } from "@/components/ui/Textarea";
 import ToggleSwitch from "@/components/ui/ToggleSwitch";
 import { useGetAllContractsQuery } from "@/redux/api/admin/contractApi";
-import { useGetMyClientsQuery } from "@/redux/api/admin/estimateApi";
 import {
-  useGetInvoiceByIdQuery,
-  useUpdateInvoiceMutation,
-} from "@/redux/api/admin/invoiceApi";
+  useCreateClientMutation,
+  useGetMyClientsQuery,
+} from "@/redux/api/admin/estimateApi";
+import { useGetInvoiceByIdQuery, useUpdateInvoiceMutation, } from "@/redux/api/admin/invoiceApi";
 import { ArrowLeft, MapPin, Upload } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AiOutlineUserAdd } from "react-icons/ai";
 import { toast } from "sonner";
 
 export default function EditInvoice() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const invoiceIdParam = searchParams?.get("id") || "";
-
   const [tableData, setTableData] = useState<any>(null);
-  const [initialTableItems, setInitialTableItems] = useState<any[]>([]);
   const [tableKey, setTableKey] = useState(0);
-
   const [sideMaps, setSideMaps] = useState<File[]>([]);
   const [images, setImages] = useState<File[]>([]);
   const sideMapRef = useRef<HTMLInputElement | null>(null);
   const imageRef = useRef<HTMLInputElement | null>(null);
-
   const [open, setOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any>(null);
-
+  const [addContractModalOpen, setAddContractModalOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [openClientModal, setOpenClientModal] = useState(false);
-  const [addContractModalOpen, setAddContractModalOpen] = useState(false);
 
   const { data } = useGetMyClientsQuery({});
-  const myClients = data?.result || [];
+  const myClients = data?.result;
+
+  const searchParams = useSearchParams();
+  const [invoiceId, setInvoiceId] = useState<string>("");
+
+  useEffect(() => {
+    const queryInvoiceId = searchParams?.get("invoiceId");
+    if (queryInvoiceId) {
+      setInvoiceId(queryInvoiceId);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("editingInvoiceId", queryInvoiceId);
+      }
+      return;
+    }
+
+    if (typeof window !== "undefined") {
+      const storedInvoiceId = localStorage.getItem("editingInvoiceId") || "";
+      if (storedInvoiceId) {
+        setInvoiceId(storedInvoiceId);
+      }
+    }
+  }, [searchParams]);
+
+  const { data: invoiceData, isLoading: isInvoiceLoading } = useGetInvoiceByIdQuery(invoiceId, { skip: !invoiceId });
+  const currentInvoice = (invoiceData as any)?.result || (invoiceData as any)?.data;
+  const [initialItems, setInitialItems] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (currentInvoice?.clientId && myClients?.length) {
+      const client = myClients.find((c: any) => c.id === currentInvoice.clientId);
+      if (client) setSelectedClient(client);
+    }
+  }, [currentInvoice, myClients]);
+
   const { data: contractData } = useGetAllContractsQuery({});
   const contracts = contractData?.result?.data ?? [];
 
-  const { data: invoiceData, isLoading: isFetching } = useGetInvoiceByIdQuery(
-    invoiceIdParam,
-    { skip: !invoiceIdParam },
-  );
+  const [createClient] = useCreateClientMutation();
 
   const [updateInvoice, { isLoading }] = useUpdateInvoiceMutation();
+
+
 
   const [formData, setFormData] = useState({
     additionalMarkUp: 0,
     clientId: "",
-    clientSign: true,
+    clientSign: false,
     contractId: "",
-    coverPaymentProcessingFee: true,
+    coverPaymentProcessingFee: false,
     date: "",
     depositAmount: 0,
     discountAmount: 0,
@@ -64,83 +91,61 @@ export default function EditInvoice() {
     invoiceName: "",
     invoiceNumber: "",
     isGroupingEnabled: false,
-    isOnlinePayment: true,
+    isOnlinePayment: false,
     items: [],
     legendary: "",
-    mySign: true,
+    mySign: false,
     poNumber: "",
     daysToPay: "",
     noteForClient: "",
     privateNote: "",
   });
 
-  const selectedContractTitle =
-    contracts.find(
-      (contractItem: any) => contractItem.id === formData.contractId,
-    )?.title ?? "";
-
   useEffect(() => {
-    const invoice = (invoiceData as any)?.result;
-    if (!invoice) return;
-
-    setFormData((prev: any) => ({
-      ...prev,
-      invoiceName: invoice.invoiceName || invoice.name || "",
-      invoiceNumber: invoice.invoiceNumber || "",
-      date: invoice.date || "",
-      poNumber: invoice.poNumber || "",
-      daysToPay: invoice.daysToPay || invoice.days_to_pay || "",
-      legendary: invoice.legendary || "",
-      endDate: invoice.endDate || "",
-      clientId:
-        invoice.clientId || invoice.client?.id || invoice.client?._id || "",
-      contractId:
-        invoice.contractId ||
-        invoice.contract?.id ||
-        invoice.contract?._id ||
-        "",
-      isGroupingEnabled:
-        typeof invoice.isGroupingEnabled === "boolean"
-          ? invoice.isGroupingEnabled
-          : false,
-      clientSign:
-        typeof invoice.clientSign === "boolean" ? invoice.clientSign : true,
-      mySign: typeof invoice.mySign === "boolean" ? invoice.mySign : true,
-      isOnlinePayment:
-        typeof invoice.isOnlinePayment === "boolean"
-          ? invoice.isOnlinePayment
-          : true,
-      coverPaymentProcessingFee:
-        typeof invoice.coverPaymentProcessingFee === "boolean"
-          ? invoice.coverPaymentProcessingFee
-          : true,
-    }));
-
-    const client = invoice.client || null;
-    if (client) setSelectedClient(client);
-
-    if (invoice.items) {
-      const seededItems = invoice.items.map((it: any, index: number) => ({
-        rowId: index + 1,
-        selectedItem: it,
-        rate: it.rate ?? it.amount ?? 0,
-        quantity: it.quantity || 1,
-        total: it.subTotal || it.total || 0,
+    if (currentInvoice) {
+      setFormData(prev => ({
+        ...prev,
+        invoiceName: currentInvoice.invoiceName || "",
+        invoiceNumber: currentInvoice.invoiceNumber || "",
+        clientId: currentInvoice.clientId || "",
+        contractId: currentInvoice.contractId || "",
+        date: currentInvoice.date || "",
+        endDate: currentInvoice.endDate || "",
+        poNumber: currentInvoice.poNumber || "",
+        daysToPay: currentInvoice.daysToPay || "",
+        legendary: currentInvoice.legendary || "",
+        clientSign: currentInvoice.clientSign ?? true,
+        mySign: currentInvoice.mySign ?? true,
+        coverPaymentProcessingFee: currentInvoice.coverPaymentProcessingFee ?? true,
+        isOnlinePayment: currentInvoice.isOnlinePayment ?? true,
+        isGroupingEnabled: currentInvoice.isGroupingEnabled ?? true,
+        noteForClient: currentInvoice.noteForClient || "",
+        privateNote: currentInvoice.privateNote || "",
+        additionalMarkUp: currentInvoice.additionalMarkUp || 0,
+        grandTotal: currentInvoice.grandTotal || 0,
+        discountAmount: currentInvoice.discountAmount || 0,
+        depositAmount: currentInvoice.depositAmount || 0,
       }));
 
-      setInitialTableItems(seededItems);
-
-      setTableData({
-        items: seededItems.map((it: any) => ({
-          selectedItem: it.selectedItem,
-          quantity: it.quantity,
-          total: it.total,
-        })),
-        grandTotal: invoice.grandTotal || 0,
+      const normalizedItems = currentInvoice.items || currentInvoice.lineItems || [];
+      const mappedInitialItems = normalizedItems.map((item: any) => {
+        const itemSubItems = (currentInvoice.subItems || []).filter((sub: any) => String(sub.itemId) === String(item.id || item.itemId || item._id));
+        return {
+          selectedItem: item.item || item,
+          quantity: item.quantity || 1,
+          description: item.description || "",
+          rate: item.rate || item.unitCost || item.amount || 0,
+          total: item.subTotal || item.total || item.lineTotal || 0,
+          subItems: itemSubItems,
+        };
       });
-      setTableKey((k) => k + 1);
+      setInitialItems(mappedInitialItems);
+      setTableKey(Date.now());
     }
-  }, [invoiceData]);
+  }, [currentInvoice]);
+
+  const selectedContractTitle =
+    contracts.find((c: any) => c.id === formData.contractId)?.title ?? "";
 
   const [clientForm, setClientForm] = useState({
     clientName: "",
@@ -154,6 +159,27 @@ export default function EditInvoice() {
 
   const handleClientChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setClientForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleCreateClient = async () => {
+    try {
+      await createClient(clientForm).unwrap();
+
+      toast.success("Client created successfully!");
+      setOpenClientModal(false);
+
+      setClientForm({
+        clientName: "",
+        email: "",
+        phoneNumber: "",
+        address: "",
+        city: "",
+        state: "",
+        zip: "",
+      });
+    } catch (error: any) {
+      toast.error("Failed to create client:", error);
+    }
   };
 
   const handleSideMapFiles = (fileList: FileList | null) => {
@@ -175,93 +201,171 @@ export default function EditInvoice() {
   };
 
   const handleSubmit = async () => {
-    if (!tableData) return;
-
-    const selectedItems = tableData.items.filter(
-      (item: any) => item.selectedItem,
-    );
-
-    if (selectedItems.length === 0) {
-      toast.error("Please add and select at least one invoice item.");
-      return;
-    }
-
-    const hasInvalidQuantity = selectedItems.some(
-      (item: any) => (parseFloat(item.quantity) || 0) <= 0,
-    );
-
-    if (hasInvalidQuantity) {
-      toast.error("Quantity must be greater than 0 for all selected items.");
-      return;
-    }
-
-    const clientId = selectedClient?.id || formData.clientId;
-
-    if (!clientId) {
-      toast.error("Please select a client before updating the invoice.");
-      return;
-    }
-
-    const bodyData = {
-      additionalMarkUp: tableData.summaryMarkup?.percentage || 0,
-      clientId,
-      contractId: formData.contractId,
-      date: formData.date,
-
-      invoiceNumber: formData.invoiceNumber,
-      poNumber: formData.poNumber,
-      clientSign: formData.clientSign,
-      mySign: formData.mySign,
-      isGroupingEnabled: formData.isGroupingEnabled,
-      isOnlinePayment: formData.isOnlinePayment,
-      coverPaymentProcessingFee: formData.coverPaymentProcessingFee,
-      depositAmount: Math.round(tableData.summaryDeposit?.value || 0),
-      discountAmount: Math.round(tableData.summaryDiscount?.value || 0),
-      endDate: formData.endDate,
-      grandTotal: Math.round(tableData.grandTotal || 0),
-      invoiceName: formData.invoiceName,
-      legendary: formData.legendary,
-      items: selectedItems.map((item: any) => ({
-        id: item.selectedItem.id || item.selectedItem._id || "",
-        quantity: parseFloat(item.quantity) || 0,
-        subTotal: Math.round(item.total),
-      })),
-    };
-
     try {
-      const formPayload = new FormData();
-      formPayload.append("bodyData", JSON.stringify(bodyData));
+      const clientId = selectedClient?.id || formData.clientId;
 
-      sideMaps.forEach((file) => {
-        formPayload.append("map", file);
-      });
+      if (!clientId) {
+        toast.error("Please select a client before creating the invoice.");
+        return;
+      }
 
-      images.forEach((file) => {
-        formPayload.append("urls", file);
-      });
+      if (!formData.contractId) {
+        toast.error("Please select a contract before creating the invoice.");
+        return;
+      }
 
-      const res = await updateInvoice({
-        invoiceId: invoiceIdParam,
-        formData: formPayload,
-      }).unwrap();
+      if (!tableData || !Array.isArray(tableData.items)) {
+        toast.error(
+          "Please add at least one item before creating the invoice.",
+        );
+        return;
+      }
 
-      toast.success("Invoice has been updated successfully!");
+      const selectedItems = tableData.items.filter(
+        (it: any) => it.selectedItem,
+      );
 
-      router.push(`/admin/invoice/${invoiceIdParam}`);
-    } catch (err: any) {
+      if (selectedItems.length === 0) {
+        toast.error("Please add and select at least one invoice item.");
+        return;
+      }
+
+      const hasInvalidQuantity = selectedItems.some(
+        (it: any) => (parseFloat(it.quantity) || 0) <= 0,
+      );
+
+      if (hasInvalidQuantity) {
+        toast.error("Quantity must be greater than 0 for all selected items.");
+        return;
+      }
+
+      const resolveId = (it: any) =>
+        it.selectedItem?.id || it.selectedItem?._id || "";
+
+      const submittedItems = selectedItems.map((it: any) => ({
+        id: String(resolveId(it)),
+        quantity: Number(it.quantity) || 0,
+        subTotal: Math.round(it.total || 0),
+      }));
+
+      if (submittedItems.some((item: any) => !item.id)) {
+        toast.error(
+          "Please reselect the item from the Item List and try again.",
+        );
+        return;
+      }
+
+      const bodyData = {
+        additionalMarkUp:
+          (tableData?.summaryMarkup?.percentage ??
+            Number(formData.additionalMarkUp)) ||
+          0,
+        clientId,
+        contractId: formData.contractId,
+        date: formData.date,
+
+        invoiceNumber: formData.invoiceNumber,
+        poNumber: String(formData.poNumber ?? ""),
+        clientSign: formData.clientSign,
+        mySign: formData.mySign,
+        isGroupingEnabled: formData.isGroupingEnabled,
+        isOnlinePayment: formData.isOnlinePayment,
+        coverPaymentProcessingFee: formData.coverPaymentProcessingFee,
+        depositAmount: Math.round(tableData.summaryDeposit?.value || 0),
+        discountAmount: Math.round(tableData.summaryDiscount?.value || 0),
+        endDate: formData.endDate,
+        grandTotal: Math.round(tableData.grandTotal || 0),
+        invoiceName: formData.invoiceName,
+        legendary: formData.legendary,
+        noteForClient: formData.noteForClient,
+
+        items: submittedItems,
+        subItems: tableData?.subItems || [],
+      };
+
       try {
-        const data = err?.data || err?.response?.data;
+        const formPayload = new FormData();
+        formPayload.append("bodyData", JSON.stringify(bodyData));
+
+        sideMaps.forEach((file) => {
+          formPayload.append("map", file);
+        });
+
+        images.forEach((file) => {
+          formPayload.append("urls", file);
+        });
+
+        const res = await updateInvoice({ invoiceId, formData: formPayload }).unwrap();
+
+        toast.success("Invoice has been updated successfully!");
+
+        setFormData({
+          additionalMarkUp: 0,
+          clientId: "",
+          clientSign: true,
+          contractId: "",
+          coverPaymentProcessingFee: true,
+          date: "",
+          depositAmount: 0,
+          discountAmount: 0,
+          endDate: "",
+          grandTotal: 0,
+          invoiceName: "",
+          invoiceNumber: "",
+
+          daysToPay: "",
+          legendary: "",
+          isGroupingEnabled: false,
+          isOnlinePayment: true,
+          items: [],
+          noteForClient: "",
+          privateNote: "",
+          poNumber: "",
+          mySign: true,
+        });
+
+        setTableData(null);
+        setTableKey((k) => k + 1);
+        setSelectedClient(null);
+
+        setSideMaps([]);
+        setImages([]);
+
+        if (sideMapRef.current) sideMapRef.current.value = "";
+        if (imageRef.current) imageRef.current.value = "";
+
+        router.push(`/admin/invoice/${invoiceId}`);
+      } catch (err: any) {
+        try {
+          const data = err?.data || err?.response?.data;
+          if (data) {
+            if (data.errors) {
+              toast.error(data.message || "Validation failed");
+            } else {
+              toast.error(data.message || "Failed to create invoice");
+            }
+          } else {
+            toast.error(err?.message || "Failed to create invoice");
+          }
+        } catch (e) {
+          toast.error("Failed to create invoice");
+        }
+      }
+    } catch (err: any) {
+      toast.error("Invoice creation error:", err);
+      try {
+        const data = err?.data ?? err?.response?.data;
         if (data) {
           if (data.errors) {
-            toast.error(data.message || "Validation failed");
+            toast.error(data.message ?? "Validation failed");
           } else {
-            toast.error(data.message || "Failed to update invoice");
+            toast.error(data.message ?? "Failed to create invoice");
           }
         } else {
-          toast.error(err?.message || "Failed to update invoice");
+          toast.error(err?.message ?? "Failed to create invoice");
         }
       } catch (e) {
-        toast.error("Failed to update invoice");
+        toast.error("Failed to create invoice");
       }
     }
   };
@@ -275,10 +379,10 @@ export default function EditInvoice() {
         <ArrowLeft className="mt-[1px]" size={20} />
         <span>Back to invoices</span>
       </Link>
-
       <div className="min-h-screen p-6 bg-secondary rounded-2xl shadow-sm mt-4 md:px-12">
         <div className="">
           <div className="flex items-center justify-between mb-4  md:hidden">
+            {/* Left Arrow */}
             <Link
               href={"/admin/invoice"}
               className="p-2 rounded-lg  flex items-center gap-2"
@@ -286,8 +390,9 @@ export default function EditInvoice() {
               <ArrowLeft size={20} />
             </Link>
 
+            {/* Title */}
             <h2 className="text-2xl font-semibold text-center flex-1 block">
-              Edit Invoice
+              Invoices
             </h2>
 
             <div className="w-8" />
@@ -305,16 +410,18 @@ export default function EditInvoice() {
               disabled={isLoading}
               className="px-8 py-2 bg-primary hover:bg-primary/80 transition-colors text-white rounded-lg"
             >
-              Update Invoice
+              Submit Invoice
             </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 ">
+            {/* Left */}
             <div className="col-span-2 hidden md:block text-lg">
               <p className="text-base text-gray-500">United States</p>
               <p className="text-base text-gray-500">kal@geopaving.com</p>
             </div>
 
+            {/* Right Form */}
             <div className="space-y-4 mt-10 md:mt-10">
               <div
                 onClick={() => setOpenClientModal(true)}
@@ -323,8 +430,8 @@ export default function EditInvoice() {
                 <AiOutlineUserAdd className="mr-2 inline-block" size={20} />
                 <span>Add Client</span>
               </div>
-
               <div>
+                {/* Button */}
                 <button
                   onClick={() => setOpen(true)}
                   className="border-primary border rounded-xl px-6 py-2 text-primary hover:bg-primary hover:text-white transition w-full md:w-auto"
@@ -334,9 +441,11 @@ export default function EditInvoice() {
                     : "View All Client"}
                 </button>
 
+                {/* Modal */}
                 {open && (
                   <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
                     <div className="bg-white w-[90%] md:w-[600px] max-h-[80vh] rounded-2xl shadow-xl flex flex-col">
+                      {/* Header */}
                       <div className="flex justify-between items-center p-4 border-b">
                         <h2 className="text-lg font-semibold">Select Client</h2>
                         <button
@@ -347,6 +456,7 @@ export default function EditInvoice() {
                         </button>
                       </div>
 
+                      {/* Body */}
                       <div className="p-4 overflow-y-auto space-y-3">
                         {myClients.length > 0 ? (
                           myClients.map((client: any) => (
@@ -354,17 +464,22 @@ export default function EditInvoice() {
                               key={client.id}
                               onClick={() => {
                                 setSelectedClient(client);
-                                setFormData((prev: any) => ({
+                                setFormData((prev) => ({
                                   ...prev,
                                   clientId: client.id,
                                 }));
                                 setOpen(false);
                               }}
-                              className={`p-4 border rounded-xl cursor-pointer transition shadow-sm ${selectedClient?.id === client.id ? "bg-primary text-white border-primary" : "hover:bg-orange-50"}`}
+                              className={`p-4 border rounded-xl cursor-pointer transition shadow-sm
+                              ${selectedClient?.id === client.id
+                                  ? "bg-primary text-white border-primary"
+                                  : "hover:bg-orange-50"
+                                }`}
                             >
                               <p className="font-semibold text-base">
                                 {client.clientName}
                               </p>
+
                               <p className="text-sm opacity-80">
                                 {client.email}
                               </p>
@@ -381,6 +496,7 @@ export default function EditInvoice() {
                         )}
                       </div>
 
+                      {/* Footer */}
                       <div className="p-4 border-t text-right">
                         <button
                           onClick={() => setOpen(false)}
@@ -394,9 +510,11 @@ export default function EditInvoice() {
                 )}
               </div>
 
+              {/* Modal */}
               {showAll && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
                   <div className="bg-white w-[90%] md:w-[500px] max-h-[80vh] rounded-2xl p-5 shadow-xl flex flex-col">
+                    {/* Header */}
                     <div className="flex justify-between items-center mb-4">
                       <h2 className="text-lg font-semibold">All Clients</h2>
                       <button
@@ -407,6 +525,7 @@ export default function EditInvoice() {
                       </button>
                     </div>
 
+                    {/* Client List */}
                     <div className="overflow-y-auto space-y-2 pr-2">
                       {myClients?.length > 0 ? (
                         myClients.map((client: any) => (
@@ -427,6 +546,7 @@ export default function EditInvoice() {
                       )}
                     </div>
 
+                    {/* Footer */}
                     <div className="mt-4 text-right">
                       <button
                         onClick={() => setShowAll(false)}
@@ -440,15 +560,30 @@ export default function EditInvoice() {
               )}
 
               <div className="space-y-2">
-                <label>Invoice</label>
+                <label>Invoice Name</label>
                 <input
-                  placeholder="Invoice#"
+                  placeholder="Invoice name"
                   className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
                   value={formData.invoiceName}
                   onChange={(e) =>
-                    setFormData((prev: any) => ({
+                    setFormData((prev) => ({
                       ...prev,
                       invoiceName: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label>Invoice Number</label>
+                <input
+                  placeholder="Invoice number"
+                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
+                  value={formData.invoiceNumber}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      invoiceNumber: e.target.value,
                     }))
                   }
                 />
@@ -461,10 +596,7 @@ export default function EditInvoice() {
                   className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
                   value={formData.date}
                   onChange={(e) =>
-                    setFormData((prev: any) => ({
-                      ...prev,
-                      date: e.target.value,
-                    }))
+                    setFormData((prev) => ({ ...prev, date: e.target.value }))
                   }
                 />
               </div>
@@ -476,7 +608,7 @@ export default function EditInvoice() {
                   className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
                   value={formData.endDate}
                   onChange={(e) =>
-                    setFormData((prev: any) => ({
+                    setFormData((prev) => ({
                       ...prev,
                       endDate: e.target.value,
                     }))
@@ -490,14 +622,28 @@ export default function EditInvoice() {
                   className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
                   value={formData.daysToPay}
                   onChange={(e) =>
-                    setFormData((prev: any) => ({
+                    setFormData((prev) => ({
                       ...prev,
                       daysToPay: e.target.value,
                     }))
                   }
                 />
               </div>
-
+              <div className="space-y-2">
+                <label>PO Number</label>
+                <input
+                  placeholder="PO Number"
+                  type="number"
+                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
+                  value={formData.poNumber}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      poNumber: e.target.value,
+                    }))
+                  }
+                />
+              </div>
               <div className="space-y-2">
                 <label>Legendary</label>
                 <input
@@ -505,7 +651,7 @@ export default function EditInvoice() {
                   className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
                   value={formData.legendary}
                   onChange={(e) =>
-                    setFormData((prev: any) => ({
+                    setFormData((prev) => ({
                       ...prev,
                       legendary: e.target.value,
                     }))
@@ -513,24 +659,60 @@ export default function EditInvoice() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <label>Contract</label>
-                <button
-                  type="button"
+              <div>
+                <label className="text-base text-gray-600">Contract </label>
+                <input
                   onClick={() => setAddContractModalOpen(true)}
-                  className="input w-full text-left focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
-                >
-                  {selectedContractTitle || "Select contract"}
-                </button>
+                  placeholder="Contract "
+                  value={selectedContractTitle}
+                  readOnly
+                  className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <ContractModal
+                open={addContractModalOpen}
+                onClose={() => setAddContractModalOpen(false)}
+                selectedContractId={formData.contractId}
+                onSelectContract={(contractId: string) => {
+                  setFormData((prev) => ({ ...prev, contractId: contractId }));
+                  setAddContractModalOpen(false);
+                }}
+              />
+
+              <div className="space-y-2">
+                <label>Note For Client</label>
+                <Textarea
+                  placeholder="Note for Client"
+                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
+                  value={formData.noteForClient}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      noteForClient: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label>Private Note</label>
+                <Textarea
+                  placeholder="Private note"
+                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
+                  value={formData.privateNote}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      privateNote: e.target.value,
+                    }))
+                  }
+                />
               </div>
             </div>
           </div>
 
-          <CommonTable
-            key={tableKey}
-            onDataChange={setTableData}
-            initialItems={initialTableItems}
-          />
+          <CommonTable key={tableKey} initialItems={initialItems} onDataChange={setTableData} />
+
           <div className="mt-7">
             <label className="text-lg text-gray-600">Side Map</label>
 
@@ -643,13 +825,26 @@ export default function EditInvoice() {
 
           <Summary tableData={tableData} onDataChange={setTableData} />
 
-          <div className="flex justify-end my-12">
-            <div className="w-full md:w-80 space-y-3 border-t">
+          <div className="flex justify-end ">
+            <div className="grid grid-cols-1  gap-3 my-12 w-full md:w-80 border-t">
+              <ToggleSwitch
+                label="Stripe"
+                description="Accept Debit/Credit, Apple pay, Google pay Stripe Link or Bank Transfer(ACH)"
+                checked={formData.isOnlinePayment}
+                onToggle={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    isOnlinePayment: !prev.isOnlinePayment,
+                  }))
+                }
+                className="px-4 py-3 border border-gray-200"
+              />
+
               <ToggleSwitch
                 label="Client Sign"
                 checked={formData.clientSign}
                 onToggle={() =>
-                  setFormData((prev: any) => ({
+                  setFormData((prev) => ({
                     ...prev,
                     clientSign: !prev.clientSign,
                   }))
@@ -661,7 +856,7 @@ export default function EditInvoice() {
                 label="My Sign"
                 checked={formData.mySign}
                 onToggle={() =>
-                  setFormData((prev: any) => ({
+                  setFormData((prev) => ({
                     ...prev,
                     mySign: !prev.mySign,
                   }))
@@ -673,39 +868,12 @@ export default function EditInvoice() {
                 label="Group Items"
                 checked={formData.isGroupingEnabled}
                 onToggle={() =>
-                  setFormData((prev: any) => ({
+                  setFormData((prev) => ({
                     ...prev,
                     isGroupingEnabled: !prev.isGroupingEnabled,
                   }))
                 }
                 className="px-4 py-3 border border-gray-200"
-              />
-
-              <ToggleSwitch
-                label="Stripe"
-                description="Accept Debit/Credit, Apple pay, Google pay Stripe Link or Bank Transfer(ACH)"
-                checked={formData.isOnlinePayment}
-                onToggle={() =>
-                  setFormData((prev: any) => ({
-                    ...prev,
-                    isOnlinePayment: !prev.isOnlinePayment,
-                  }))
-                }
-                className="px-4 py-3 border border-gray-200"
-              />
-
-              <ToggleSwitch
-                label="Cover Payment Processing Fee"
-                description="Applies a markup to cover your processing fee"
-                checked={formData.coverPaymentProcessingFee}
-                onToggle={() =>
-                  setFormData((prev: any) => ({
-                    ...prev,
-                    coverPaymentProcessingFee: !prev.coverPaymentProcessingFee,
-                  }))
-                }
-                className="px-4 py-3 border border-gray-200"
-                descriptionClassName="mt-1"
               />
             </div>
           </div>
@@ -714,7 +882,7 @@ export default function EditInvoice() {
             onClick={handleSubmit}
             className="px-5 py-2 mt-12 md:hidden rounded-lg bg-primary text-white hover:bg-primary/90 w-full transition-colors"
           >
-            Update
+            Submit
           </button>
         </div>
 
@@ -723,6 +891,7 @@ export default function EditInvoice() {
             <div className="bg-white w-full max-w-[700px] p-4 md:p-6 rounded-xl shadow-lg space-y-4 max-h-[90vh] overflow-y-auto">
               <h2 className="text-2xl font-semibold mb-4">Add Client</h2>
 
+              {/* Client Name */}
               <div>
                 <label className="text-sm">Client Name</label>
                 <input
@@ -734,6 +903,7 @@ export default function EditInvoice() {
                 />
               </div>
 
+              {/* Email + Phone */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm">Email Address</label>
@@ -760,6 +930,7 @@ export default function EditInvoice() {
 
               <p className="text-base font-normal">Address Information</p>
 
+              {/* Address */}
               <div>
                 <label className="text-sm">Address</label>
                 <input
@@ -771,6 +942,7 @@ export default function EditInvoice() {
                 />
               </div>
 
+              {/* City + State */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm">City</label>
@@ -795,6 +967,7 @@ export default function EditInvoice() {
                 </div>
               </div>
 
+              {/* Zip */}
               <div>
                 <label className="text-sm">Zip</label>
                 <input
@@ -806,6 +979,7 @@ export default function EditInvoice() {
                 />
               </div>
 
+              {/* Buttons */}
               <div className="flex justify-end gap-2 mt-4">
                 <button
                   onClick={() => setOpenClientModal(false)}
@@ -815,7 +989,7 @@ export default function EditInvoice() {
                 </button>
 
                 <button
-                  onClick={() => setOpenClientModal(false)}
+                  onClick={handleCreateClient}
                   className="px-8 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors"
                 >
                   Save

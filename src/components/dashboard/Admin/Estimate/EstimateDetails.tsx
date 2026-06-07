@@ -148,6 +148,7 @@ export default function EstimateDetails() {
         format: "a4",
         orientation: "portrait" as const,
       },
+      pagebreak: { mode: "css", avoid: "tr, img, video, .break-inside-avoid" },
     };
 
     html2pdf()
@@ -289,42 +290,30 @@ export default function EstimateDetails() {
 
     return (
       <div className="space-y-3" key="TABLE">
-        <div className="text-2xl font-semibold">
+        <div className="text-xl font-semibold text-black">
           <h2>Detailed Work Items</h2>
         </div>
 
         <div
           data-pdf-table-wrapper
-          className="border border-gray-500 overflow-x-auto"
+          className="overflow-x-auto border-2 border-black/50 bg-white"
         >
           <table
             data-pdf-table
-            className="w-full min-w-[760px] border-collapse text-sm md:text-base text-gray-700"
+            className="w-full min-w-[760px] border-collapse text-base md:text-lg text-gray-900"
           >
             <thead>
-              <tr className="bg-gray-100">
-                <th className="border border-gray-500 px-3 py-2 text-left font-semibold text-black w-[35%]">
+              <tr className="bg-gray-100 uppercase text-base font-semibold">
+                <th className="w-[52%] border-r-2 border-b-2 border-black/50 px-2 py-3 text-left">
                   SCOPE OF WORK
                 </th>
-                <th className="border border-gray-500 px-3 py-2 font-semibold text-black">
+                <th className="w-[12%] border-r-2 border-b-2 border-black/50 px-2 py-3 text-center">
                   QTY
                 </th>
-                <th className="border border-gray-500 px-3 py-2 font-semibold text-black">
-                  UNIT
-                </th>
-                <th className="border border-gray-500 px-3 py-2 font-semibold text-black">
+                <th className="w-[18%] border-r-2 border-b-2 border-black/50 px-2 py-3 text-center">
                   UNIT COST
                 </th>
-                <th className="border border-gray-500 px-3 py-2 font-semibold text-black">
-                  MARKUP
-                </th>
-                <th className="border border-gray-500 px-3 py-2 font-semibold text-black">
-                  TAX
-                </th>
-                <th className="border border-gray-500 px-3 py-2 font-semibold text-black">
-                  DISCOUNT
-                </th>
-                <th className="border border-gray-500 px-3 py-2 font-semibold text-black">
+                <th className="w-[18%] border-b-2 border-black/50 px-2 py-3 text-right">
                   PRICE
                 </th>
               </tr>
@@ -332,89 +321,64 @@ export default function EstimateDetails() {
 
             <tbody>
               {items.map((item: any, index: number) => {
-                const qty = Number(item?.quantity || 1);
-                const unit = item?.unit || "SF";
-                const unitCostVal = Number(item?.rate ?? item?.amount ?? 0);
-
-                const rawMarkUp = item?.markUp;
-                let markUpDisplay = "0%";
-                if (rawMarkUp != null) {
-                  if (typeof rawMarkUp === "object") {
-                    if (rawMarkUp.percentage != null) {
-                      markUpDisplay = `${rawMarkUp.percentage}%`;
-                    } else if (rawMarkUp.amount != null) {
-                      markUpDisplay = formatCurrency(rawMarkUp.amount);
-                    }
-                  } else {
-                    markUpDisplay = `${Number(rawMarkUp) || 0}%`;
-                  }
-                }
-
-                const rawTax =
-                  item?.tax ??
-                  item?.taxPercentage ??
-                  item?.item?.taxPercentage ??
-                  item?.tax?.percentage ??
-                  0;
-
-                const taxDisplay =
-                  typeof rawTax === "object"
-                    ? rawTax?.percentage != null
-                      ? `${rawTax.percentage}%`
-                      : "0%"
-                    : `${Number(rawTax) || 0}%`;
-
-                const discountVal = Number(item?.discount ?? 0);
-                const rowPrice = Number(item?.subTotal ?? unitCostVal * qty);
+                const itemSubItems = (estimate?.subItems || []).filter((s: any) => String(s.itemId) === String(item.id));
+                const itemTotal = Number(item?.subTotal || 0);
 
                 return (
                   <Fragment key={`table-row-${index}`}>
-                    <tr className="bg-gray-200">
-                      <td className="border border-gray-500 px-3 py-2 font-medium text-black">
-                        {item?.description || "-"}
+                    <tr className="bg-gray-100 border-b-2 border-black/50">
+                      <td className="border-r-2 border-black/50 px-2 py-1 text-base font-bold text-gray-900">
+                        {item?.itemName || "-"}
                       </td>
-                      <td
-                        className="border border-gray-500 px-3 py-2"
-                        colSpan={7}
-                      />
-                    </tr>
-
-                    <tr>
-                      <td className="border border-gray-500 px-3 py-2 text-gray-600">
-                        &nbsp;
+                      <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800">
                       </td>
-                      <td className="border border-gray-500 px-3 py-2 text-center">
-                        {qty}
+                      <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800">
                       </td>
-                      <td className="border border-gray-500 px-3 py-2 text-center">
-                        {unit}
-                      </td>
-                      <td className="border border-gray-500 px-3 py-2 text-center">
-                        {formatCurrency(unitCostVal)}
-                      </td>
-                      <td className="border border-gray-500 px-3 py-2 text-center">
-                        {markUpDisplay}
-                      </td>
-                      <td className="border border-gray-500 px-3 py-2 text-center">
-                        {taxDisplay}
-                      </td>
-                      <td className="border border-gray-500 px-3 py-2 text-center">
-                        {discountVal}%
-                      </td>
-                      <td className="border border-gray-500 px-3 py-2 text-center font-medium">
-                        {formatCurrency(rowPrice)}
+                      <td className="px-2 py-1 text-right font-semibold text-gray-800">
                       </td>
                     </tr>
+                    
+                    {item?.description && (
+                      <tr className="bg-white border-b-2 border-black/50">
+                        <td className="border-r-2 border-black/50 px-2 py-1 text-base text-gray-700">
+                          {item.description}
+                        </td>
+                        <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800">
+                        </td>
+                        <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800">
+                        </td>
+                        <td className="px-2 py-1 text-right font-semibold text-gray-800">
+                        </td>
+                      </tr>
+                    )}
 
-                    <tr>
-                      <td
-                        className="border border-gray-500 px-3 py-2 text-right font-semibold text-black"
-                        colSpan={7}
+                    {itemSubItems.map((subItem: any, subIndex: number) => (
+                      <tr
+                        key={`${subItem.id || subItem.title}-${subIndex}`}
+                        className="bg-white border-b-2 border-black/50 align-top"
                       >
-                        Subtotal
+                        <td className="border-r-2 border-black/50 px-2 py-1 pl-6 text-gray-800">
+                          {subItem.title}
+                        </td>
+                        <td className="border-r-2 border-black/50 px-2 py-1 text-center text-gray-800">
+                          {subItem.quantity}
+                        </td>
+                        <td className="border-r-2 border-black/50 px-2 py-1 text-center text-gray-800">
+                          {formatCurrency(Number(subItem.unitCost || 0))}
+                        </td>
+                        <td className="px-2 py-1 text-right text-gray-800">
+                          {formatCurrency(Number(subItem.price || 0))}
+                        </td>
+                      </tr>
+                    ))}
+
+                    <tr className="bg-white border-b-2 border-black/50">
+                      <td colSpan={2} className="border-r-2 border-black/50 px-2 py-1"></td>
+                      <td className="border-r-2 border-black/50 px-2 py-1 text-right font-bold text-gray-900">
+                        Sub Total:
                       </td>
-                      <td className="border border-gray-500 px-3 py-2 font-semibold text-black text-center">
-                        {formatCurrency(rowPrice)}
+                      <td className="px-2 py-1 text-right font-bold text-gray-900">
+                        {formatCurrency(itemTotal)}
                       </td>
                     </tr>
                   </Fragment>
@@ -469,16 +433,18 @@ export default function EstimateDetails() {
           );
         })}
 
-        <div className="flex justify-end py-8">
-          <div className="w-full max-w-[250px] space-y-2 text-base">
-            <div className="flex items-center justify-between border-b border-[#e1e1e1] pb-1">
-              <p className="font-semibold">Subtotal</p>
-              <p className="font-semibold">${subtotal.toFixed(2)}</p>
+        <div className="flex justify-end pt-6">
+          <div className="w-full max-w-[250px] space-y-2">
+            <div className="flex items-center justify-between pb-1">
+              <p className="font-bold text-black text-sm">Subtotal</p>
+              <p className="font-bold text-black text-sm">
+                {formatCurrency(subtotal)}
+              </p>
             </div>
-            <div className="flex items-center justify-between border-b border-[#e1e1e1] pb-1">
-              <p className="font-semibold">Total</p>
-              <p className="font-semibold">
-                ${(Number(estimate?.grandTotal) || 0).toFixed(2)}
+            <div className="flex items-center justify-between pb-1">
+              <p className="font-bold text-black text-sm">Total</p>
+              <p className="font-bold text-black text-sm">
+                {formatCurrency(Number(estimate?.grandTotal) || 0)}
               </p>
             </div>
           </div>
@@ -491,31 +457,31 @@ export default function EstimateDetails() {
                 {sideMapUrls.map((url: string, index: number) => (
                   <div
                     key={`side-map-${index}`}
-                    className="border-2 border-orange-200 bg-white p-2"
+                    className="border-2 border-orange-200 bg-white p-2 break-inside-avoid"
                   >
                     {isVideoUrl(url) ? (
                       <video controls className="w-full h-auto rounded-sm">
                         <source src={url} />
                       </video>
                     ) : (
-                      <Image
+                        <Image
                         src={url}
                         alt={`Side Map ${index + 1}`}
                         width={900}
                         height={520}
-                        className="w-full md:h-[700px] object-contain"
+                        className="w-full md:h-[500px] object-contain"
                       />
                     )}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-center text-gray-500 mt-4 h-[200px] md:h-[350px] flex items-center justify-center bg-[#f9f9f9] border-2 border-orange-200">
+              <p className="text-center text-gray-500 mt-4 h-[200px] md:h-[350px] flex items-center justify-center bg-[#f9f9f9] border-2 border-orange-200 break-inside-avoid">
                 No side maps available
               </p>
             )}
 
-            <div className="border-2 border-t-0 border-orange-200 bg-[#f9f9f9]">
+            <div className="border-2 border-t-0 border-orange-200 bg-[#f9f9f9] break-inside-avoid">
               <div className="grid grid-cols-1 text-base text-gray-700 md:grid-cols-3">
                 <div className="border-b border-[#e1e1e1] p-3 text-lg font-normal space-y-3 md:border-b-0 md:border-r-2 md:border-orange-200">
                   <Image
@@ -546,7 +512,7 @@ export default function EstimateDetails() {
           {fileUrls.length > 0 ? (
             <div className="grid grid-cols-1 gap-3">
               {fileUrls.map((url: string, index: number) => (
-                <div key={`file-${index}`} className="border-2  bg-white p-2">
+                <div key={`file-${index}`} className="border-2  bg-white p-2 break-inside-avoid">
                   {isVideoUrl(url) ? (
                     <video controls className="w-full h-auto rounded-sm">
                       <source src={url} />
@@ -557,14 +523,14 @@ export default function EstimateDetails() {
                       alt={`File ${index + 1}`}
                       width={900}
                       height={520}
-                      className="w-full md:h-[700px] object-contain"
+                      className="w-full md:h-[500px] object-contain"
                     />
                   )}
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-center text-gray-500 mt-4 h-[200px] md:h-[350px] flex items-center justify-center bg-[#f9f9f9] border-2 ">
+            <p className="text-center text-gray-500 mt-4 h-[200px] md:h-[350px] flex items-center justify-center bg-[#f9f9f9] border-2 break-inside-avoid">
               No files available
             </p>
           )}

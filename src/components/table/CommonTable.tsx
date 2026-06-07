@@ -49,16 +49,26 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
 
   const [committedItems, setCommittedItems] = useState<any[]>(() => {
     if (!initialItems || !initialItems.length) return [];
-    return initialItems.map(it => ({
-      item: it.selectedItem,
-      quantity: it.quantity,
-      description: it.selectedItem?.description || "",
-      subItems: [],
-      baseRate: it.rate || 0,
-      markupValue: 0,
-      taxValue: 0,
-      lineTotal: it.total || 0,
-    }));
+    return initialItems.map(it => {
+      const itemData = it.selectedItem || it.originalItem || it;
+      const baseRate = it.rate || it.baseRate || 0;
+      const markupPercentage = Number(itemData?.markUp?.percentage || 0);
+      const taxPercentage = Number(itemData?.tax || 0);
+
+      const computedMarkup = (baseRate * markupPercentage) / 100;
+      const computedTax = ((baseRate + computedMarkup) * taxPercentage) / 100;
+
+      return {
+        item: itemData,
+        quantity: it.quantity || 1,
+        description: it.description || itemData?.description || "",
+        subItems: it.subItems || [],
+        baseRate: baseRate,
+        markupValue: it.markupValue ?? computedMarkup,
+        taxValue: it.taxValue ?? computedTax,
+        lineTotal: it.total || it.lineTotal || 0,
+      };
+    });
   });
 
   const [quantity, setQuantity] = useState("1");
@@ -352,7 +362,7 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
                       <th className="w-[18%] border-r-2 border-black/50 px-2 py-3 text-center">
                         Unit Cost
                       </th>
-                      <th className="w-[18%] px-2 py-3 text-center">Price</th>
+                      <th className="w-[18%] px-2 py-3 text-right">Price</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -364,7 +374,7 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
                       </td>
                       <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800">
                       </td>
-                      <td className="px-2 py-1 text-center font-semibold text-gray-800">
+                      <td className="px-2 py-1 text-right font-semibold text-gray-800">
                       </td>
                     </tr>
                     {cItem.subItems.map((subItem: any, subIndex: number) => (
@@ -381,7 +391,7 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
                         <td className="border-r-2 border-black/50 px-2 py-1 text-center text-gray-800">
                           {money(subItem.unitCost)}
                         </td>
-                        <td className="px-2 py-1 text-center font-semibold text-gray-800">
+                        <td className="px-2 py-1 text-right font-semibold text-gray-800">
                           {money(subItem.price)}
                         </td>
                       </tr>
@@ -392,7 +402,7 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
                       <td className="px-2 py-1 text-right font-semibold text-gray-900">
                         Sub Total:
                       </td>
-                      <td className="px-2 py-1 text-center font-semibold text-gray-900">
+                      <td className="px-2 py-1 text-right font-semibold text-gray-900">
                         {money(cLineTotal)}
                       </td>
                     </tr>

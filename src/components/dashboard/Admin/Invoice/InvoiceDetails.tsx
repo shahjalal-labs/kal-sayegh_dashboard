@@ -171,6 +171,7 @@ export default function InvoiceDetails({ format }: { format?: string }) {
         format: "a4",
         orientation: "portrait" as const,
       },
+      pagebreak: { mode: "css", avoid: "tr, img, video, .break-inside-avoid" },
     };
 
     html2pdf()
@@ -267,42 +268,30 @@ export default function InvoiceDetails({ format }: { format?: string }) {
 
     return (
       <div className="space-y-3" key="TABLE">
-        <div className=" text-xl font-semibold text-black">
-          <h2>Table </h2>
+        <div className="text-xl font-semibold text-black">
+          <h2>Detailed Work Items</h2>
         </div>
 
         <div
           data-pdf-table-wrapper
-          className="overflow-x-auto rounded-lg border border-gray-500"
+          className="overflow-x-auto border-2 border-black/50 bg-white"
         >
           <table
             data-pdf-table
-            className="w-full min-w-[760px] border-collapse text-xs text-gray-700 md:text-sm"
+            className="w-full min-w-[760px] border-collapse text-base md:text-lg text-gray-900"
           >
             <thead>
-              <tr className="bg-gray-100">
-                <th className="w-[35%] border border-gray-500 px-3 py-2 text-left font-semibold text-black">
+              <tr className="bg-gray-100 uppercase text-base font-semibold">
+                <th className="w-[52%] border-r-2 border-b-2 border-black/50 px-2 py-3 text-left">
                   SCOPE OF WORK
                 </th>
-                <th className="border border-gray-500 px-3 py-2 font-semibold text-black">
+                <th className="w-[12%] border-r-2 border-b-2 border-black/50 px-2 py-3 text-center">
                   QTY
                 </th>
-                <th className="border border-gray-500 px-3 py-2 font-semibold text-black">
-                  UNIT
-                </th>
-                <th className="border border-gray-500 px-3 py-2 font-semibold text-black">
+                <th className="w-[18%] border-r-2 border-b-2 border-black/50 px-2 py-3 text-center">
                   UNIT COST
                 </th>
-                <th className="border border-gray-500 px-3 py-2 font-semibold text-black">
-                  MARKUP
-                </th>
-                <th className="border border-gray-500 px-3 py-2 font-semibold text-black">
-                  TAX
-                </th>
-                <th className="border border-gray-500 px-3 py-2 font-semibold text-black">
-                  DISCOUNT
-                </th>
-                <th className="border border-gray-500 px-3 py-2 font-semibold text-black">
+                <th className="w-[18%] border-b-2 border-black/50 px-2 py-3 text-right">
                   PRICE
                 </th>
               </tr>
@@ -310,89 +299,64 @@ export default function InvoiceDetails({ format }: { format?: string }) {
 
             <tbody>
               {invoiceItemsByTable.map((item: any, index: number) => {
-                const qty = Number(item?.quantity || 1);
-                const unit = item?.unit || "SF";
-                const unitCostVal = Number(item?.rate ?? item?.amount ?? 0);
-
-                const rawMarkUp = item?.markUp;
-                let markUpDisplay = "0%";
-                if (rawMarkUp != null) {
-                  if (typeof rawMarkUp === "object") {
-                    if (rawMarkUp.percentage != null) {
-                      markUpDisplay = `${rawMarkUp.percentage}%`;
-                    } else if (rawMarkUp.amount != null) {
-                      markUpDisplay = formatCurrency(Number(rawMarkUp.amount));
-                    }
-                  } else {
-                    markUpDisplay = `${Number(rawMarkUp) || 0}%`;
-                  }
-                }
-
-                const rawTax =
-                  item?.tax ??
-                  item?.taxPercentage ??
-                  item?.item?.taxPercentage ??
-                  item?.tax?.percentage ??
-                  0;
-
-                const taxDisplay =
-                  typeof rawTax === "object"
-                    ? rawTax?.percentage != null
-                      ? `${rawTax.percentage}%`
-                      : "0%"
-                    : `${Number(rawTax) || 0}%`;
-
-                const discountVal = Number(item?.discount ?? 0);
-                const rowPrice = Number(item?.subTotal ?? unitCostVal * qty);
+                const itemSubItems = (invoice?.subItems || []).filter((s: any) => String(s.itemId) === String(item.id));
+                const itemTotal = Number(item?.subTotal || 0);
 
                 return (
                   <Fragment key={`invoice-table-row-${index}`}>
-                    <tr className="bg-gray-200">
-                      <td className="border border-gray-500 px-3 py-2 font-medium text-black">
-                        {item?.description || "-"}
+                    <tr className="bg-gray-100 border-b-2 border-black/50">
+                      <td className="border-r-2 border-black/50 px-2 py-1 text-base font-bold text-gray-900">
+                        {item?.itemName || "-"}
                       </td>
-                      <td
-                        className="border border-gray-500 px-3 py-2"
-                        colSpan={7}
-                      />
-                    </tr>
-
-                    <tr>
-                      <td className="border border-gray-500 px-3 py-2 text-gray-600">
-                        &nbsp;
+                      <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800">
                       </td>
-                      <td className="border border-gray-500 px-3 py-2 text-center">
-                        {qty}
+                      <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800">
                       </td>
-                      <td className="border border-gray-500 px-3 py-2 text-center">
-                        {unit}
-                      </td>
-                      <td className="border border-gray-500 px-3 py-2 text-center">
-                        {formatCurrency(unitCostVal)}
-                      </td>
-                      <td className="border border-gray-500 px-3 py-2 text-center">
-                        {markUpDisplay}
-                      </td>
-                      <td className="border border-gray-500 px-3 py-2 text-center">
-                        {taxDisplay}
-                      </td>
-                      <td className="border border-gray-500 px-3 py-2 text-center">
-                        {discountVal}%
-                      </td>
-                      <td className="border border-gray-500 px-3 py-2 text-center font-medium">
-                        {formatCurrency(rowPrice)}
+                      <td className="px-2 py-1 text-right font-semibold text-gray-800">
                       </td>
                     </tr>
 
-                    <tr>
-                      <td
-                        className="border border-gray-500 px-3 py-2 text-right font-semibold text-black"
-                        colSpan={7}
+                    {item?.description && (
+                      <tr className="bg-white border-b-2 border-black/50">
+                        <td className="border-r-2 border-black/50 px-2 py-1 text-base text-gray-700">
+                          {item.description}
+                        </td>
+                        <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800">
+                        </td>
+                        <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800">
+                        </td>
+                        <td className="px-2 py-1 text-right font-semibold text-gray-800">
+                        </td>
+                      </tr>
+                    )}
+
+                    {itemSubItems.map((subItem: any, subIndex: number) => (
+                      <tr
+                        key={`${subItem.id || subItem.title}-${subIndex}`}
+                        className="bg-white border-b-2 border-black/50 align-top"
                       >
-                        Subtotal
+                        <td className="border-r-2 border-black/50 px-2 py-1 pl-6 text-gray-800">
+                          {subItem.title}
+                        </td>
+                        <td className="border-r-2 border-black/50 px-2 py-1 text-center text-gray-800">
+                          {subItem.quantity}
+                        </td>
+                        <td className="border-r-2 border-black/50 px-2 py-1 text-center text-gray-800">
+                          {formatCurrency(Number(subItem.unitCost || 0))}
+                        </td>
+                        <td className="px-2 py-1 text-right text-gray-800">
+                          {formatCurrency(Number(subItem.price || 0))}
+                        </td>
+                      </tr>
+                    ))}
+
+                    <tr className="bg-white border-b-2 border-black/50">
+                      <td colSpan={2} className="border-r-2 border-black/50 px-2 py-1"></td>
+                      <td className="border-r-2 border-black/50 px-2 py-1 text-right font-bold text-gray-900">
+                        Sub Total:
                       </td>
-                      <td className="border border-gray-500 px-3 py-2 text-center font-semibold text-black">
-                        {formatCurrency(rowPrice)}
+                      <td className="px-2 py-1 text-right font-bold text-gray-900">
+                        {formatCurrency(itemTotal)}
                       </td>
                     </tr>
                   </Fragment>
@@ -444,17 +408,17 @@ export default function InvoiceDetails({ format }: { format?: string }) {
           );
         })}
 
-        <div className="flex justify-end ">
-          <div className="">
-            <div className="flex justify-between gap-4 border-b border-[#e1e1e1] py-3">
-              <p className="font-semibold text-black">Subtotal</p>
-              <p className="font-semibold text-black">
+        <div className="flex justify-end pt-6">
+          <div className="w-full max-w-[250px] space-y-2">
+            <div className="flex items-center justify-between pb-1">
+              <p className="font-bold text-black text-sm">Subtotal</p>
+              <p className="font-bold text-black text-sm">
                 {formatCurrency(subtotal)}
               </p>
             </div>
-            <div className="flex justify-between gap-4 border-b border-[#e1e1e1] py-3">
-              <p className="font-semibold text-black">Grand Total</p>
-              <p className="font-semibold text-black">
+            <div className="flex items-center justify-between pb-1 border-t-2 pt-2 border-black/60">
+              <p className="font-bold text-black text-sm">Total</p>
+              <p className="font-bold text-black text-sm">
                 {formatCurrency(Number(invoice?.grandTotal) || 0)}
               </p>
             </div>
@@ -472,7 +436,7 @@ export default function InvoiceDetails({ format }: { format?: string }) {
             {sideMapUrls.map((url: string, index: number) => (
               <div
                 key={`side-map-${index}`}
-                className="border-2 border-orange-200 bg-white"
+                className="border-2 border-orange-200 bg-white break-inside-avoid"
               >
                 {isVideoUrl(url) ? (
                   <video controls className="h-auto w-full rounded-base">
@@ -484,19 +448,19 @@ export default function InvoiceDetails({ format }: { format?: string }) {
                     alt={`Side Map ${index + 1}`}
                     width={900}
                     height={520}
-                    className="h-auto w-full object-contain md:h-[700px]"
+                    className="h-auto w-full object-contain md:h-[500px]"
                   />
                 )}
               </div>
             ))}
           </div>
         ) : (
-          <p className="mt-4 flex h-[200px] items-center justify-center border-2 border-orange-200 bg-[#f9f9f9] text-center text-gray-500 md:h-[350px]">
+          <p className="mt-4 flex h-[200px] items-center justify-center border-2 border-orange-200 bg-[#f9f9f9] text-center text-gray-500 md:h-[350px] break-inside-avoid">
             No side maps available
           </p>
         )}
 
-        <div className="border-2 border-t-0 border-orange-200 bg-[#f9f9f9]">
+        <div className="border-2 border-t-0 border-orange-200 bg-[#f9f9f9] break-inside-avoid">
           <div className="grid grid-cols-1 text-base text-gray-700 md:grid-cols-3">
             <div className="space-y-3 border-b border-[#e1e1e1] p-3 text-lg font-normal md:border-b-0 md:border-r-2 md:border-orange-200">
               <Image
@@ -531,7 +495,7 @@ export default function InvoiceDetails({ format }: { format?: string }) {
       {fileUrls.length > 0 ? (
         <div className="grid grid-cols-1 gap-3">
           {fileUrls.map((url: string, index: number) => (
-            <div key={`file-${index}`} className="border-2  bg-white p-2">
+            <div key={`file-${index}`} className="border-2  bg-white p-2 break-inside-avoid">
               {isVideoUrl(url) ? (
                 <video controls className="h-auto w-full rounded-sm">
                   <source src={url} />
@@ -542,14 +506,14 @@ export default function InvoiceDetails({ format }: { format?: string }) {
                   alt={`Attachment ${index + 1}`}
                   width={900}
                   height={520}
-                  className="h-auto w-full object-contain md:h-[700px]"
+                  className="h-auto w-full object-contain md:h-[500px]"
                 />
               )}
             </div>
           ))}
         </div>
       ) : (
-        <p className="mt-4 flex h-[200px] items-center justify-center border-2 bg-[#f9f9f9] text-center text-gray-500 md:h-[350px]">
+        <p className="mt-4 flex h-[200px] items-center justify-center border-2 bg-[#f9f9f9] text-center text-gray-500 md:h-[350px] break-inside-avoid">
           No attachments available
         </p>
       )}

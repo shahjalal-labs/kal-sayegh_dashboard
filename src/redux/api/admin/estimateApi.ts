@@ -80,6 +80,7 @@ const estimateApi = baseApi.injectEndpoints({
         url: `/estimate/estimate/${estimateId}`,
         method: "GET",
       }),
+      providesTags: ["estimate"],
     }),
 
     getAllEstimates: builder.query({

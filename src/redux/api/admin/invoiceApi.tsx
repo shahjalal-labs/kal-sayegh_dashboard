@@ -8,6 +8,7 @@ const invoiceApi = baseApi.injectEndpoints({
         method: "POST",
         body: formData,
       }),
+      invalidatesTags: ["invoice"],
     }),
 
     getAllInvoice: builder.query({
@@ -50,6 +51,7 @@ const invoiceApi = baseApi.injectEndpoints({
           },
         };
       },
+      providesTags: ["invoice"],
     }),
 
     sendInvoiceMail: builder.mutation({
@@ -165,6 +167,7 @@ const invoiceApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: formData,
       }),
+      invalidatesTags: ["invoice"],
     }),
   }),
 });
