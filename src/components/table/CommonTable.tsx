@@ -508,17 +508,17 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
                   <p className="font-semibold text-gray-800 truncate">
                     {item.itemName}
                   </p>
-                  <p className="text-sm text-gray-500 line-clamp-2">
+                  <p className="text-base text-gray-500 line-clamp-2">
                     {item.description || "No description"}
                   </p>
-                  <p className="text-xs text-gray-400 uppercase tracking-wide">
-                    {item.format || "DESCRIPTION"}
+                  <p className="text-base text-gray-400 uppercase tracking-wide">
+                    {item.format}
                   </p>
                 </div>
               </button>
             ))
           ) : (
-            <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">
+            <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center text-base text-gray-500">
               No items found for {activeFormat} format.
             </div>
           )}
@@ -546,7 +546,7 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
         {selectedItem && (
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-2">
+              <label className="block text-base font-medium text-gray-600 mb-2">
                 Item Name
               </label>
               <input
@@ -558,7 +558,7 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-2">
+              <label className="block text-base font-medium text-gray-600 mb-2">
                 Item Images
               </label>
               <div
@@ -639,7 +639,7 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
                         <p className="font-semibold text-gray-800">
                           {subItem.title}
                         </p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-base text-gray-500">
                           Qty: {subItem.quantity.toFixed(1)} × Cost:{" "}
                           {money(subItem.unitCost)}
                         </p>
@@ -660,7 +660,7 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-gray-500">
+                  <p className="text-base text-gray-500">
                     No subline breakdown items added yet.
                   </p>
                 )}
@@ -671,7 +671,7 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-2">
+                <label className="block text-base font-medium text-gray-600 mb-2">
                   Quantity
                 </label>
                 <input
@@ -682,10 +682,10 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
                 />
               </div>
               <div>
-                <label className=" text-sm font-medium text-gray-600 mb-2">
+                <label className=" text-base font-medium text-gray-600 mb-2">
                   Base Rate ($)
                   {subItems.length > 0 && (
-                    <span className=" text-sm font-medium text-gray-600">
+                    <span className=" text-base font-medium text-gray-600">
                       (Calculated)
                     </span>
                   )}
@@ -727,7 +727,7 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-2">
+              <label className="block text-base font-medium text-gray-600 mb-2">
                 Description
               </label>
               <textarea
@@ -739,7 +739,7 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-2">
+              <label className="block text-base font-medium text-gray-600 mb-2">
                 Private Note
               </label>
               <textarea
@@ -762,7 +762,7 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
 
             <div className="flex flex-wrap gap-2">
               {selectedItem?.markUp ? (
-                <span className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm text-gray-800">
+                <span className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-base text-gray-800">
                   {selectedItem.markUp.name}
                   <span className="text-gray-500">
                     (
@@ -773,7 +773,7 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
                   </span>
                 </span>
               ) : (
-                <span className="text-sm text-gray-500">
+                <span className="text-base text-gray-500">
                   No markup selected
                 </span>
               )}
@@ -788,13 +788,13 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
                   selectedItem.taxes.map((tax: any) => (
                     <span
                       key={tax.id}
-                      className="inline-flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm text-gray-800"
+                      className="inline-flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-base text-gray-800"
                     >
                       {tax.name} ({tax.percentage}%)
                     </span>
                   ))
                 ) : (
-                  <span className="text-sm text-gray-500">
+                  <span className="text-base text-gray-500">
                     No line taxes applied
                   </span>
                 )}

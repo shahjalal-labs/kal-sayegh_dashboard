@@ -459,7 +459,7 @@ export default function AddEstimate() {
           {open && (
             <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
               <div className="bg-white w-[90%] md:w-[600px] max-h-[80vh] rounded-2xl shadow-xl flex flex-col">
-                {/* Header */}
+
                 <div className="flex justify-between items-center p-4 border-b">
                   <h2 className="text-lg font-semibold">Select Client</h2>
                   <button
@@ -481,11 +481,10 @@ export default function AddEstimate() {
                           setOpen(false);
                         }}
                         className={`p-4 border rounded-xl cursor-pointer transition shadow-sm
-                  ${
-                    selectedClient?.id === client.id
-                      ? "bg-primary text-white border-primary"
-                      : "hover:bg-orange-50"
-                  }`}
+                  ${selectedClient?.id === client.id
+                            ? "bg-primary text-white border-primary"
+                            : "hover:bg-orange-50"
+                          }`}
                       >
                         <p className="font-semibold text-base">
                           {client.clientName}
