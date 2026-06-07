@@ -689,9 +689,15 @@ export default function EditEstimate() {
       return storedTotal;
     }
 
-    const rate = Number(item?.rate ?? item?.amount ?? item?.markUp ?? 0) || 0;
-    const quantity = Number(item?.quantity) || 0;
-    const base = rate * quantity;
+    let rate = Number(item?.rate ?? item?.amount ?? item?.markUp ?? 0) || 0;
+    const currentQty = Number(item?.quantity) || 0;
+    
+    const directId = resolveLineItemId(item);
+    if (directId && subItemsByRow[directId] && subItemsByRow[directId].length > 0) {
+      rate = subItemsByRow[directId].reduce((sum: number, s: any) => sum + s.price, 0);
+    }
+
+    const base = rate * currentQty;
 
     const markupSource = item?.selectedMarkup ?? item?.markUp ?? null;
     const hasMarkupObject = markupSource && typeof markupSource === "object";

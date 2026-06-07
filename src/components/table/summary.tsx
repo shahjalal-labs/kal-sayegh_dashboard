@@ -260,17 +260,16 @@ export default function Summary({
   };
 
   const computeTableSubtotal = () => {
+    if (tableData?.grandTotal !== undefined) {
+      return tableData.grandTotal;
+    }
+
     const itemsSubtotal = (tableData?.items || []).reduce(
       (sum: number, it: any) => sum + Number(it.total || 0),
       0,
     );
 
-    const subItemsSubtotal = (tableData?.subItems || []).reduce(
-      (sum: number, subItem: any) => sum + Number(subItem.price || 0),
-      0,
-    );
-
-    return itemsSubtotal + subItemsSubtotal;
+    return itemsSubtotal;
   };
 
   const subtotal = tableData ? computeTableSubtotal() : computeSubtotal();

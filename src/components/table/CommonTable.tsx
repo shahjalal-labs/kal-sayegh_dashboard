@@ -4,7 +4,9 @@ import { CustomModal } from "@/components/modal/CustomModal";
 import { useGetAllItemsQuery } from "@/redux/api/admin/estimateApi";
 import { FormatType } from "@/types/estimate.type";
 import { Camera, Check, Plus, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { useGenerateUrlMutation } from "@/redux/api/admin/messageApi";
+import { toast } from "sonner";
 
 type FormatOption = "description" | "table" | "upload";
 
@@ -41,6 +43,10 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
   const [selectedFormat, setSelectedFormat] = useState<FormatOption>("table");
   const [selectedItem, setSelectedItem] = useState<any>(null);
 
+  const [generateUrlFn, { isLoading: isUploading }] = useGenerateUrlMutation();
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [committedItems, setCommittedItems] = useState<any[]>(() => {
     if (!initialItems || !initialItems.length) return [];
     return initialItems.map(it => ({
@@ -76,9 +82,9 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
   );
 
   const baseRate = useMemo(() => {
-    const subItemTotal = subItems.reduce((sum, item) => sum + item.price, 0);
-    if (subItemTotal > 0) return subItemTotal;
-
+    if (subItems.length > 0) {
+      return subItems.reduce((sum, item) => sum + item.price, 0);
+    }
     return Number(selectedItem?.rate || 0);
   }, [selectedItem, subItems]);
 
@@ -118,7 +124,7 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
       originalItem: c.item,
       percentage: Number(c.item?.markUp?.percentage || 0),
       amount: Number(c.item?.markUp?.amount || 0),
-      rate: Number(c.item?.rate || 0),
+      rate: Number(c.baseRate || 0),
       format: c.item?.format || activeFormat,
       selectedItem: c.item,
     }));
@@ -135,7 +141,7 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
         originalItem: selectedItem,
         percentage: Number(selectedItem?.markUp?.percentage || 0),
         amount: Number(selectedItem?.markUp?.amount || 0),
-        rate: Number(selectedItem?.rate || 0),
+        rate: Number(baseRate || 0),
         format: selectedItem?.format || activeFormat,
         selectedItem: selectedItem,
       });
@@ -182,6 +188,7 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
 
   const handleSelectItem = (item: any) => {
     setSelectedItem(item);
+    setUploadedImage(null);
     setQuantity("1");
     setDescription(item?.description || "");
     setPrivateNote(item?.notes || "");
@@ -196,10 +203,20 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
   const handleCommitItem = () => {
     if (!selectedItem) return;
 
+    if (subItemTitle.trim() !== "" || (subItemUnitCost && Number(subItemUnitCost) > 0)) {
+      toast.error("Please click the '+' button to add your sub-item, or clear the inputs before adding to estimate.");
+      return;
+    }
+
+    const finalItem = {
+      ...selectedItem,
+      imageUrls: uploadedImage ? [uploadedImage, ...(selectedItem.imageUrls || []).slice(1)] : selectedItem.imageUrls,
+    };
+
     setCommittedItems(prev => [
       ...prev,
       {
-        item: selectedItem,
+        item: finalItem,
         quantity,
         description,
         subItems: [...subItems],
@@ -211,6 +228,7 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
     ]);
 
     setSelectedItem(null);
+    setUploadedImage(null);
     setQuantity("1");
     setDescription("");
     setPrivateNote("");
@@ -244,6 +262,34 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
     setSubItems((prev) =>
       prev.filter((_, currentIndex) => currentIndex !== index),
     );
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const formData = new FormData();
+      formData.append("urls", file);
+      const response = await generateUrlFn(formData).unwrap();
+
+      if (response?.success && Array.isArray(response?.result)) {
+        const url = response.result[0]?.url;
+        if (url) {
+          setUploadedImage(url);
+
+        }
+      } else {
+        toast.error(response?.message || "Image upload failed");
+      }
+    } catch (err) {
+      console.error("Image upload error:", err);
+      toast.error("Image upload failed");
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
   };
 
   const itemImages = selectedItem?.imageUrls || [];
@@ -287,11 +333,14 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
                 </thead>
                 <tbody>
                   <tr className="border-x-2 border-b-2 border-black/50 bg-gray-100">
-                    <td
-                      colSpan={4}
-                      className="px-2 py-1 text-base font-semibold text-gray-800"
-                    >
+                    <td className="border-r-2 border-black/50 px-2 py-1 text-base font-semibold text-gray-800">
                       {cItem.item.itemName}
+                    </td>
+                    <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800">
+                    </td>
+                    <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800">
+                    </td>
+                    <td className="px-2 py-1 text-center font-semibold text-gray-800">
                     </td>
                   </tr>
                   {cItem.subItems.map((subItem: any, subIndex: number) => (
@@ -320,88 +369,24 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
                       Sub Total:
                     </td>
                     <td className="px-2 py-1 text-center font-semibold text-gray-900">
-                      {money(cBaseRate + cMarkupValue)}
+                      {money(cLineTotal)}
                     </td>
                   </tr>
 
                 </tbody>
-                <div className="w-full text-right pr-6 pt-6 pb-6  text-right font-semibold text-gray-900 text-lg">Grand Total: {money(cBaseRate + cMarkupValue)}</div>
               </table>
             </div>
           </div>
         );
       })}
 
-      {selectedItem && (
-        <div className="mt-6 overflow-hidden bg-white">
-          <div className="p-4 pt-0">
-            <table className="w-full border-collapse text-lg">
-              <thead>
-                <tr className="border-2 border-black/50 bg-white uppercase text-xs font-semibold text-gray-900">
-                  <th className="w-[52%] border-r-2 border-black/50 px-2 py-3 text-left">
-                    Scope of Work
-                  </th>
-                  <th className="w-[12%] border-r-2 border-black/50 px-2 py-3 text-center">
-                    Qty
-                  </th>
-                  <th className="w-[18%] border-r-2 border-black/50 px-2 py-3 text-center">
-                    Unit Cost
-                  </th>
-                  <th className="w-[18%] px-2 py-3 text-center">Price</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-x-2 border-b-2 border-black/50 bg-gray-100">
-                  <td
-                    colSpan={4}
-                    className="px-2 py-1 text-base font-semibold text-gray-800"
-                  >
-                    {selectedItem.itemName}
-                  </td>
-                </tr>
-                {subItems.map((subItem: any, subIndex: number) => (
-                  <tr
-                    key={`${subItem.title}-${subIndex}`}
-                    className="border-x-2 border-b-2 border-black/50 bg-white align-top"
-                  >
-                    <td className="border-r-2 border-black/50 px-2 py-1 pl-6 text-gray-800">
-                      {subItem.title}
-                    </td>
-                    <td className="border-r-2 border-black/50 px-2 py-1 text-center text-gray-800">
-                      {subItem.quantity}
-                    </td>
-                    <td className="border-r-2 border-black/50 px-2 py-1 text-center text-gray-800">
-                      {money(subItem.unitCost)}
-                    </td>
-                    <td className="px-2 py-1 text-right font-semibold text-gray-800">
-                      {money(subItem.price)}
-                    </td>
-                  </tr>
-                ))}
-
-                <tr className="border-x-2 border-b-2 border-black/50 bg-white">
-                  <td colSpan={2} />
-                  <td className="px-2 py-1 text-right font-semibold text-gray-900">
-                    Sub Total:
-                  </td>
-                  <td className="px-2 py-1 text-right font-semibold text-gray-900">
-                    {money(baseRate + markupValue)}
-                  </td>
-                </tr>
-                <tr className="border-x-2 border-b-2 border-black/50 bg-white">
-                  <td colSpan={2} />
-                  <td className="px-2 py-2 text-right font-bold uppercase text-gray-900">
-                    Grand Total:
-                  </td>
-                  <td className="px-2 py-2 text-right font-bold text-gray-900">
-                    {money(lineTotal)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+      {committedItems.length > 0 && (
+        <div className="w-full text-right pr-6 pt-6 pb-6 font-semibold text-gray-900 text-xl">
+          Grand Total: {money(committedItems.reduce((sum, item) => sum + item.lineTotal, 0))}
         </div>
       )}
+
+
 
       <div className="flex w-full mt-6">
         <button
@@ -541,16 +526,33 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
               <label className="block text-sm font-medium text-gray-600 mb-2">
                 Item Images
               </label>
-              <div className="h-24 w-24 rounded-xl border border-slate-300 bg-slate-100 flex items-center justify-center text-[#e27932]">
-                {itemImages[0] ? (
+              <div
+                className="h-24 w-24 rounded-xl border border-slate-300 bg-slate-100 flex items-center justify-center text-[#e27932] cursor-pointer relative overflow-hidden group"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {uploadedImage || itemImages[0] ? (
                   <img
-                    src={itemImages[0]}
+                    src={uploadedImage || itemImages[0]}
                     alt={selectedItem.itemName}
-                    className="h-full w-full rounded-xl object-cover"
+                    className={`h-full w-full rounded-xl object-cover transition-all ${isUploading ? 'opacity-40' : 'group-hover:opacity-80'}`}
                   />
                 ) : (
-                  <Camera size={28} />
+                  <Camera size={28} className={`transition-all ${isUploading ? 'opacity-40' : 'group-hover:opacity-80'}`} />
                 )}
+
+                {isUploading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#e27932] border-t-transparent" />
+                  </div>
+                )}
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  ref={fileInputRef}
+                  onChange={handleImageUpload}
+                />
               </div>
             </div>
 
@@ -647,9 +649,11 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
               <div>
                 <label className="block text-sm font-medium text-gray-600 mb-2">
                   Base Rate ($)
-                  <span className="block text-sm font-medium text-gray-600">
-                    (Calculated)
-                  </span>
+                  {subItems.length > 0 && (
+                    <span className="block text-sm font-medium text-gray-600">
+                      (Calculated)
+                    </span>
+                  )}
                 </label>
                 <input
                   type="text"
@@ -663,7 +667,7 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
             <div className="rounded-xl border border-gray-200 bg-[#f0f2f5] p-4 space-y-2 text-base">
               <div className="flex items-center justify-between gap-4 border-b border-gray-200 pb-2">
                 <span className="text-gray-600">
-                  Base Rate (Subtotal items):
+                  {subItems.length > 0 ? "Base Rate (Subtotal items):" : "Base Rate:"}
                 </span>
                 <span className="font-semibold text-gray-800">
                   {money(baseRate)}
