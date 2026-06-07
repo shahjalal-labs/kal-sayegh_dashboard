@@ -81,14 +81,24 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
     [activeFormat, items],
   );
 
+  const [manualBaseRate, setManualBaseRate] = useState<string>("");
+
+  useEffect(() => {
+    setManualBaseRate("");
+  }, [selectedItem]);
+
   const baseRate = useMemo(() => {
     if (subItems.length > 0) {
       return subItems.reduce((sum, item) => sum + item.price, 0);
     }
-    return Number(selectedItem?.rate || 0);
-  }, [selectedItem, subItems]);
+    return Number(manualBaseRate) || 0;
+  }, [subItems, manualBaseRate]);
+
+  const isUnpriced = subItems.length === 0 && manualBaseRate === "";
 
   const markupValue = useMemo(() => {
+    if (isUnpriced) return 0;
+
     const markup = selectedItem?.markUp;
     if (!markup) return 0;
 
@@ -97,7 +107,7 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
     }
 
     return Number(markup.amount || 0);
-  }, [baseRate, selectedItem?.markUp]);
+  }, [baseRate, selectedItem?.markUp, isUnpriced]);
 
   const taxValue = useMemo(() => {
     const taxableBase = baseRate + markupValue;
@@ -149,12 +159,14 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
 
     const allSubItems = [
       ...committedItems.flatMap(c => c.subItems.map((s: any) => ({
+        itemId: c.item.id,
         title: s.title,
         quantity: s.quantity,
         unitCost: s.unitCost,
         price: s.price,
       }))),
       ...subItems.map((s: any) => ({
+        itemId: selectedItem?.id,
         title: s.title,
         quantity: s.quantity,
         unitCost: s.unitCost,
@@ -264,6 +276,10 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
     );
   };
 
+  const handleRemoveCommittedItem = (index: number) => {
+    setCommittedItems(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -314,67 +330,76 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
         const cLineTotal = cItem.lineTotal;
 
         return (
-          <div key={`${cItem.item.id}-${index}`} className="mt-6 overflow-hidden bg-white">
-            <div className="p-4 pt-0">
-              <table className="w-full border-collapse text-lg">
-                <thead>
-                  <tr className="border-2 border-black/50 bg-white uppercase text-base font-semibold text-gray-900">
-                    <th className="w-[52%] border-r-2 border-black/50 px-2 py-3 text-left">
-                      Scope of Work
-                    </th>
-                    <th className="w-[12%] border-r-2 border-black/50 px-2 py-3 text-center">
-                      Qty
-                    </th>
-                    <th className="w-[18%] border-r-2 border-black/50 px-2 py-3 text-center">
-                      Unit Cost
-                    </th>
-                    <th className="w-[18%] px-2 py-3 text-center">Price</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-x-2 border-b-2 border-black/50 bg-gray-100">
-                    <td className="border-r-2 border-black/50 px-2 py-1 text-base font-semibold text-gray-800">
-                      {cItem.item.itemName}
-                    </td>
-                    <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800">
-                    </td>
-                    <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800">
-                    </td>
-                    <td className="px-2 py-1 text-center font-semibold text-gray-800">
-                    </td>
-                  </tr>
-                  {cItem.subItems.map((subItem: any, subIndex: number) => (
-                    <tr
-                      key={`${subItem.title}-${subIndex}`}
-                      className="border-x-2 border-b-2 border-black/50 bg-white align-top"
-                    >
-                      <td className="border-r-2 border-black/50 px-2 py-1 pl-6 text-gray-800">
-                        {subItem.title}
+          <div key={`${cItem.item.id}-${index}`} className="mt-6 flex items-start  w-full">
+            <button
+              type="button"
+              onClick={() => handleRemoveCommittedItem(index)}
+              className="mt-6 h-10 w-10 shrink-0 rounded-full bg-[#e26442] flex items-center justify-center text-white font-bold text-2xl leading-none shadow-sm hover:bg-red-600 transition-colors"
+            >
+              -
+            </button>
+            <div className="flex-1 overflow-hidden bg-white">
+              <div className="p-4 pt-0">
+                <table className="w-full border-collapse text-lg">
+                  <thead>
+                    <tr className="border-2 border-black/50 bg-white uppercase text-base font-semibold text-gray-900">
+                      <th className="w-[52%] border-r-2 border-black/50 px-2 py-3 text-left">
+                        Scope of Work
+                      </th>
+                      <th className="w-[12%] border-r-2 border-black/50 px-2 py-3 text-center">
+                        Qty
+                      </th>
+                      <th className="w-[18%] border-r-2 border-black/50 px-2 py-3 text-center">
+                        Unit Cost
+                      </th>
+                      <th className="w-[18%] px-2 py-3 text-center">Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-x-2 border-b-2 border-black/50 bg-gray-100">
+                      <td className="border-r-2 border-black/50 px-2 py-1 text-base font-semibold text-gray-800">
+                        {cItem.item.itemName}
                       </td>
-                      <td className="border-r-2 border-black/50 px-2 py-1 text-center text-gray-800">
-                        {subItem.quantity}
+                      <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800">
                       </td>
-                      <td className="border-r-2 border-black/50 px-2 py-1 text-center text-gray-800">
-                        {money(subItem.unitCost)}
+                      <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800">
                       </td>
                       <td className="px-2 py-1 text-center font-semibold text-gray-800">
-                        {money(subItem.price)}
                       </td>
                     </tr>
-                  ))}
+                    {cItem.subItems.map((subItem: any, subIndex: number) => (
+                      <tr
+                        key={`${subItem.title}-${subIndex}`}
+                        className="border-x-2 border-b-2 border-black/50 bg-white align-top"
+                      >
+                        <td className="border-r-2 border-black/50 px-2 py-1 pl-6 text-gray-800">
+                          {subItem.title}
+                        </td>
+                        <td className="border-r-2 border-black/50 px-2 py-1 text-center text-gray-800">
+                          {subItem.quantity}
+                        </td>
+                        <td className="border-r-2 border-black/50 px-2 py-1 text-center text-gray-800">
+                          {money(subItem.unitCost)}
+                        </td>
+                        <td className="px-2 py-1 text-center font-semibold text-gray-800">
+                          {money(subItem.price)}
+                        </td>
+                      </tr>
+                    ))}
 
-                  <tr className="border-x-2 border-b-2 border-black/50 bg-white">
-                    <td colSpan={2} />
-                    <td className="px-2 py-1 text-right font-semibold text-gray-900">
-                      Sub Total:
-                    </td>
-                    <td className="px-2 py-1 text-center font-semibold text-gray-900">
-                      {money(cLineTotal)}
-                    </td>
-                  </tr>
+                    <tr className="border-x-2 border-b-2 border-black/50 bg-white">
+                      <td colSpan={2} />
+                      <td className="px-2 py-1 text-right font-semibold text-gray-900">
+                        Sub Total:
+                      </td>
+                      <td className="px-2 py-1 text-center font-semibold text-gray-900">
+                        {money(cLineTotal)}
+                      </td>
+                    </tr>
 
-                </tbody>
-              </table>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         );
@@ -647,19 +672,21 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-2">
+                <label className=" text-sm font-medium text-gray-600 mb-2">
                   Base Rate ($)
                   {subItems.length > 0 && (
-                    <span className="block text-sm font-medium text-gray-600">
+                    <span className=" text-sm font-medium text-gray-600">
                       (Calculated)
                     </span>
                   )}
                 </label>
                 <input
-                  type="text"
-                  value={money(baseRate)}
-                  readOnly
-                  className="w-full rounded-xl border border-gray-200 px-5 py-4 text-base focus:outline-none"
+                  type={subItems.length > 0 ? "text" : "number"}
+                  value={subItems.length > 0 ? money(baseRate) : manualBaseRate}
+                  onChange={(e) => setManualBaseRate(e.target.value)}
+                  readOnly={subItems.length > 0}
+                  placeholder={subItems.length > 0 ? "" : "0.00"}
+                  className={`w-full rounded-xl border border-gray-200 px-5 py-4 text-base focus:outline-none ${subItems.length > 0 ? 'bg-gray-50 cursor-not-allowed' : 'bg-white focus:border-primary focus:ring-1 focus:ring-primary'}`}
                 />
               </div>
             </div>
