@@ -541,14 +541,14 @@ export default function InvoiceDetails({ format }: { format?: string }) {
 
   return (
     <>
-      <div className="mx-auto mt-4 w-full container px-4 py-6  lg:py-10">
+      <div className="mt-4 w-full">
         <div className="flex items-center justify-between gap-3">
           <Link
             href="/admin/invoice"
             className="flex shrink-0 items-center gap-2 text-gray-500 hover:underline"
           >
             <FiArrowLeft size={22} />
-            <span className="text-xs font-medium sm:text-sm">Back</span>
+            <span className="text-base font-medium ">Back</span>
           </Link>
 
           <h1 className="flex-1 text-center text-base font-bold sm:text-xl md:hidden block">
