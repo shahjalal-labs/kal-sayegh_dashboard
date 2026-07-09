@@ -779,6 +779,14 @@ export default function InvoiceDetails({ format }: { format?: string }) {
                       <FiDownload />
                       Download
                     </button>
+
+                    <button
+                      onClick={handleDuplicateInvoice}
+                      disabled={isDuplicatingInvoice}
+                      className="flex items-center gap-2 px-4 py-2 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isDuplicatingInvoice ? "Duplicating..." : "Duplicate"}
+                    </button>
                   </div>
                 </div>
               </div>

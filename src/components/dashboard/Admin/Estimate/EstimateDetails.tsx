@@ -1042,6 +1042,14 @@ export default function EstimateDetails() {
             <FiDownload />
             Download
           </button>
+
+          <button
+            onClick={handleDuplicate}
+            disabled={isDuplicating}
+            className="flex items-center gap-2 px-4 py-2 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isDuplicating ? "Duplicating..." : "Duplicate"}
+          </button>
         </div>
       </div>
     </div>
