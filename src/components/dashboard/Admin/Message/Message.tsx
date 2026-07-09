@@ -1,16 +1,24 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-import { Plus, Send, UserPlus } from "lucide-react";
+import {
+  MoreVertical,
+  Plus,
+  Search,
+  Send,
+  UserPlus,
+  Users,
+  X,
+} from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { BsArrowLeft } from "react-icons/bs";
 import { toast } from "sonner";
 
 import defaultProfileImage from "@/assets/dashboard/profile.png";
-import { BeautifulSpinner } from "@/components/ui/BeautifulSpinner";
 import {
   useGenerateUrlMutation,
   useInviteGroupMutation,
@@ -79,6 +87,10 @@ export default function Message() {
   const [isConnected, setIsConnected] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMembersOpen, setIsMembersOpen] = useState(false);
+  const [memberSearch, setMemberSearch] = useState("");
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const { data: profileData } = useMyProfileQuery({});
 
@@ -266,7 +278,7 @@ export default function Message() {
 
         setAttachmentUrls((prev) => [...prev, ...uploadedUrls]);
         setAttachmentNames((prev) => [...prev, ...uploadedNames]);
-        toast.success("Attachment uploaded successfully");
+        // toast.success("Attachment uploaded successfully");
         return;
       }
 
@@ -624,61 +636,270 @@ export default function Message() {
                 />
               </div>
 
-              <div>
+              <div className="relative">
                 <h2 className="font-semibold text-lg leading-tight text-[#262B45]">
                   {getConversationTitle(selectedConversation)}
                 </h2>
-                <p className="text-xs text-[#8D93AC] mt-0.5">
-                  {getConversationMeta(selectedConversation)}
-                  {!isConnected ? " • Disconnected" : ""}
-                </p>
+
+                {/* Members hover popover */}
+                {(selectedConversation?.roomType || "").toLowerCase() ===
+                "group" ? (
+                  <div className="group relative inline-block">
+                    <p className="text-xs text-[#8D93AC] mt-0.5 cursor-pointer select-none">
+                      {getConversationMeta(selectedConversation)}
+                      {!isConnected ? " • Disconnected" : ""}
+                    </p>
+
+                    {/* Popover card */}
+                    <div
+                      className="absolute left-0 top-full mt-2 z-50 w-64
+                                 rounded-2xl border border-[#E9EDF6] bg-white shadow-xl
+                                 opacity-0 pointer-events-none translate-y-1
+                                 group-hover:opacity-100 group-hover:pointer-events-auto group-hover:translate-y-0
+                                 transition-all duration-200"
+                    >
+                      {/* Header */}
+                      <div className="px-4 py-3 border-b border-[#F3F5FB]">
+                        <p className="text-xs font-semibold text-[#7A8099] uppercase tracking-wide">
+                          Group Members (
+                          {selectedConversation?.members?.length || 0})
+                        </p>
+                      </div>
+
+                      {/* Member list */}
+                      <ul className="max-h-64 overflow-y-auto py-2">
+                        {selectedConversation?.members?.map((member) => (
+                          <li
+                            key={member.id}
+                            className="flex items-center gap-3 px-4 py-2 hover:bg-[#F9FAFB] transition-colors"
+                          >
+                            {/* Avatar */}
+                            <div className="relative flex-shrink-0">
+                              <div className="h-8 w-8 rounded-full overflow-hidden bg-[#E7EBF5]">
+                                <Image
+                                  src={
+                                    isValidUrl(member.profileImage)
+                                      ? (member.profileImage as string)
+                                      : defaultProfileImage
+                                  }
+                                  alt={member.fullName}
+                                  width={32}
+                                  height={32}
+                                  className="object-cover w-full h-full"
+                                />
+                              </div>
+                              {/* Online dot */}
+                              <span
+                                className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white ${
+                                  member.isActive
+                                    ? "bg-green-400"
+                                    : "bg-gray-300"
+                                }`}
+                              />
+                            </div>
+
+                            {/* Name + status */}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-base md:text-lg font-medium text-[#262B45] truncate">
+                                {member.fullName}
+                                {member.id === currentUserId && (
+                                  <span className="ml-1 text-base md:text-lg text-[#F28B3B] font-semibold">
+                                    (You)
+                                  </span>
+                                )}
+                              </p>
+                              <p
+                                className={`text-[10px] ${member.isActive ? "text-green-500" : "text-[#9AA1B9]"}`}
+                              >
+                                {member.isActive ? "Online" : "Offline"}
+                              </p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-[#8D93AC] mt-0.5">
+                    {getConversationMeta(selectedConversation)}
+                    {!isConnected ? " • Disconnected" : ""}
+                  </p>
+                )}
               </div>
             </div>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 rounded-xl text-[#F28B3B] hover:bg-[#FFF4EA]"
-              onClick={handleAddMemberGroup}
-            >
-              <UserPlus className="h-5 w-5" />
-            </Button>
+            {/* ── 3-dot menu ── */}
+            {(selectedConversation?.roomType || "").toLowerCase() ===
+              "group" && (
+              <div className="relative" ref={menuRef}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className=" rounded-xl text-[#F28B3B] hover:bg-[#FFF4EA]"
+                  onClick={() => setIsMenuOpen((v) => !v)}
+                >
+                  <MoreVertical size={30} />
+                </Button>
+
+                {isMenuOpen && (
+                  <>
+                    {/* backdrop */}
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setIsMenuOpen(false)}
+                    />
+                    {/* dropdown */}
+                    <div className="absolute right-0 top-full mt-1 z-50 w-72 rounded-2xl border border-[#E9EDF6] bg-white shadow-xl py-1 overflow-hidden">
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-3 px-4 py-3 text-base md:text-lg text-[#262B45] hover:bg-[#FFF4EA] transition-colors"
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          handleAddMemberGroup();
+                        }}
+                      >
+                        <UserPlus size={20} className="text-[#F28B3B]" />
+                        Add Member
+                      </button>
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-3 px-4 py-3 text-base md:text-lg text-[#262B45] hover:bg-[#FFF4EA] transition-colors"
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          setMemberSearch("");
+                          setIsMembersOpen(true);
+                        }}
+                      >
+                        <Users size={20} className="text-[#F28B3B]" />
+                        See All Members
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex-1 min-h-0 space-y-5 overflow-y-auto px-3 py-4 md:px-6 md:py-6">
             {isChatLoading ? (
-              <div className="flex h-full min-h-[320px] items-center justify-center">
-                <div className="w-full max-w-xl rounded-3xl border border-[#E9EDF6] bg-white/80 p-6 shadow-sm backdrop-blur-sm">
-                  <div className="flex items-center justify-between gap-4 border-b border-[#EEF1F7] pb-4">
-                    <div className="space-y-2">
-                      <div className="h-4 w-28 rounded-full bg-[#E7EBF5] animate-pulse" />
-                      <div className="h-3 w-40 rounded-full bg-[#EEF1F7] animate-pulse" />
-                    </div>
-                    <BeautifulSpinner size="sm" variant="glow" />
-                  </div>
+              <div className="flex flex-col h-full min-h-[400px] px-1 py-2 space-y-5">
+                {/* Shimmer keyframe injected inline */}
+                <style>{`
+                  @keyframes msgShimmer {
+                    0%   { background-position: -400px 0; }
+                    100% { background-position:  400px 0; }
+                  }
+                  .msg-shimmer {
+                    background: linear-gradient(90deg, #eef1f7 25%, #f8f9fc 50%, #eef1f7 75%);
+                    background-size: 800px 100%;
+                    animation: msgShimmer 1.6s infinite linear;
+                  }
+                  .msg-shimmer-orange {
+                    background: linear-gradient(90deg, #f5dece 25%, #fdf0e8 50%, #f5dece 75%);
+                    background-size: 800px 100%;
+                    animation: msgShimmer 1.6s infinite linear;
+                  }
+                `}</style>
 
-                  <div className="mt-5 space-y-4">
-                    <div className="flex items-end gap-2">
-                      <div className="h-9 w-9 rounded-full bg-[#E7EBF5] animate-pulse shrink-0" />
-                      <div className="flex-1 max-w-[72%] rounded-2xl rounded-bl-md bg-[#F4EEE9] p-4 animate-pulse">
-                        <div className="h-3 w-3/4 rounded-full bg-[#E8E1DA]" />
-                        <div className="mt-2 h-3 w-1/2 rounded-full bg-[#E8E1DA]" />
-                      </div>
-                    </div>
+                {/* Date divider */}
+                <div className="flex items-center gap-3 px-2">
+                  <div className="flex-1 h-px bg-[#EEF1F7]" />
+                  <div className="msg-shimmer h-3 w-20 rounded-full" />
+                  <div className="flex-1 h-px bg-[#EEF1F7]" />
+                </div>
 
-                    <div className="flex items-end justify-end gap-2">
-                      <div className="flex-1 max-w-[72%] rounded-2xl rounded-br-md bg-[#E279321A] p-4 animate-pulse">
-                        <div className="h-3 w-2/3 rounded-full bg-[#EBCDBB] ml-auto" />
-                        <div className="mt-2 h-3 w-1/3 rounded-full bg-[#EBCDBB] ml-auto" />
-                      </div>
-                      <div className="h-9 w-9 rounded-full bg-[#E7EBF5] animate-pulse shrink-0" />
+                {/* Row 1 — received (left), short */}
+                <div className="flex items-end gap-2.5">
+                  <div className="msg-shimmer h-9 w-9 rounded-full shrink-0" />
+                  <div className="space-y-1.5 max-w-[55%]">
+                    <div className="msg-shimmer h-3 w-16 rounded-full" />
+                    <div
+                      className="msg-shimmer rounded-2xl rounded-bl-sm p-4"
+                      style={{ minHeight: 52 }}
+                    >
+                      <div className="msg-shimmer h-3 w-40 rounded-full" />
+                      <div className="msg-shimmer h-3 w-28 rounded-full mt-2" />
                     </div>
+                    <div className="msg-shimmer h-2.5 w-10 rounded-full opacity-60" />
                   </div>
+                </div>
 
-                  <div className="mt-5 flex items-center gap-2 text-xs text-[#8D93AC]">
-                    <div className="h-2.5 w-2.5 rounded-full bg-[#F28B3B] animate-pulse" />
-                    Loading conversation...
+                {/* Row 2 — sent (right), medium */}
+                <div className="flex items-end justify-end gap-2.5">
+                  <div className="space-y-1.5 max-w-[60%] items-end flex flex-col">
+                    <div className="msg-shimmer-orange h-3 w-14 rounded-full ml-auto" />
+                    <div
+                      className="msg-shimmer-orange rounded-2xl rounded-br-sm p-4 w-full"
+                      style={{ minHeight: 52 }}
+                    >
+                      <div className="msg-shimmer-orange h-3 w-48 rounded-full ml-auto" />
+                      <div className="msg-shimmer-orange h-3 w-32 rounded-full mt-2 ml-auto" />
+                    </div>
+                    <div className="msg-shimmer-orange h-2.5 w-10 rounded-full opacity-60 ml-auto" />
                   </div>
+                  <div className="msg-shimmer h-9 w-9 rounded-full shrink-0" />
+                </div>
+
+                {/* Row 3 — received (left), long bubble */}
+                <div className="flex items-end gap-2.5">
+                  <div className="msg-shimmer h-9 w-9 rounded-full shrink-0" />
+                  <div className="space-y-1.5 max-w-[65%]">
+                    <div
+                      className="msg-shimmer rounded-2xl rounded-bl-sm p-4"
+                      style={{ minHeight: 68 }}
+                    >
+                      <div className="msg-shimmer h-3 w-48 rounded-full" />
+                      <div className="msg-shimmer h-3 w-36 rounded-full mt-2" />
+                      <div className="msg-shimmer h-3 w-24 rounded-full mt-2" />
+                    </div>
+                    <div className="msg-shimmer h-2.5 w-10 rounded-full opacity-60" />
+                  </div>
+                </div>
+
+                {/* Row 4 — sent (right), short */}
+                <div className="flex items-end justify-end gap-2.5">
+                  <div className="space-y-1.5 max-w-[40%] items-end flex flex-col">
+                    <div
+                      className="msg-shimmer-orange rounded-2xl rounded-br-sm p-4 w-full"
+                      style={{ minHeight: 44 }}
+                    >
+                      <div className="msg-shimmer-orange h-3 w-28 rounded-full ml-auto" />
+                    </div>
+                    <div className="msg-shimmer-orange h-2.5 w-10 rounded-full opacity-60 ml-auto" />
+                  </div>
+                  <div className="msg-shimmer h-9 w-9 rounded-full shrink-0" />
+                </div>
+
+                {/* Row 5 — received (left), medium */}
+                <div className="flex items-end gap-2.5">
+                  <div className="msg-shimmer h-9 w-9 rounded-full shrink-0" />
+                  <div className="space-y-1.5 max-w-[58%]">
+                    <div
+                      className="msg-shimmer rounded-2xl rounded-bl-sm p-4"
+                      style={{ minHeight: 52 }}
+                    >
+                      <div className="msg-shimmer h-3 w-44 rounded-full" />
+                      <div className="msg-shimmer h-3 w-20 rounded-full mt-2" />
+                    </div>
+                    <div className="msg-shimmer h-2.5 w-10 rounded-full opacity-60" />
+                  </div>
+                </div>
+
+                {/* Loading label */}
+                <div className="flex items-center gap-2 text-xs text-[#8D93AC] pt-2 px-1">
+                  <div
+                    className="h-2 w-2 rounded-full bg-[#F28B3B] animate-bounce"
+                    style={{ animationDelay: "0ms" }}
+                  />
+                  <div
+                    className="h-2 w-2 rounded-full bg-[#F28B3B] animate-bounce"
+                    style={{ animationDelay: "150ms" }}
+                  />
+                  <div
+                    className="h-2 w-2 rounded-full bg-[#F28B3B] animate-bounce"
+                    style={{ animationDelay: "300ms" }}
+                  />
+                  <span className="ml-1">Loading conversation…</span>
                 </div>
               </div>
             ) : chatMessages.length === 0 ? (
@@ -858,6 +1079,135 @@ export default function Message() {
               >
                 <Send className="h-4 w-4" />
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── See All Members Panel ── */}
+      {isMembersOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div
+            className="w-full max-w-xl rounded-2xl bg-white shadow-xl flex flex-col"
+            style={{ maxHeight: "80vh" }}
+          >
+            {/* header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#E9EDF6]">
+              <div>
+                <h3 className="text-lg md:text-xl font-semibold text-[#262B45]">
+                  Group Members
+                </h3>
+                <p className="text-base text-[#8D93AC] mt-0.5">
+                  {selectedConversation?.members?.length || 0} members
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMembersOpen(false)}
+                className="h-8 w-8 flex items-center justify-center rounded-lg text-[#7A8099] hover:bg-[#F3F5FB] transition-colors"
+              >
+                <X size={25} />
+              </button>
+            </div>
+
+            {/* search */}
+            <div className="px-4 py-3 border-b border-[#F3F5FB]">
+              <div className="flex items-center gap-2 rounded-xl border border-[#E9EDF6] bg-[#F8F9FC] px-3 py-2">
+                <Search size={14} className="text-[#9AA1B9] shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Search members…"
+                  value={memberSearch}
+                  onChange={(e) => setMemberSearch(e.target.value)}
+                  className="flex-1 bg-transparent text-base md:text-lg text-[#262B45] placeholder:text-[#9AA1B9] outline-none"
+                />
+                {memberSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setMemberSearch("")}
+                    className="text-[#9AA1B9] hover:text-[#262B45]"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* member list */}
+            <ul className="flex-1 overflow-y-auto py-2 px-2">
+              {(selectedConversation?.members || [])
+                .filter((m) =>
+                  m.fullName.toLowerCase().includes(memberSearch.toLowerCase()),
+                )
+                .map((member) => (
+                  <li
+                    key={member.id}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-[#F8F9FC] transition-colors"
+                  >
+                    {/* avatar */}
+                    <div className="relative shrink-0">
+                      <div className="h-10 w-10 rounded-full overflow-hidden bg-[#E7EBF5]">
+                        <Image
+                          src={
+                            isValidUrl(member.profileImage)
+                              ? (member.profileImage as string)
+                              : defaultProfileImage
+                          }
+                          alt={member.fullName}
+                          width={40}
+                          height={40}
+                          className="object-cover w-full h-full"
+                        />
+                      </div>
+                      <span
+                        className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white ${
+                          member.isActive ? "bg-green-400" : "bg-gray-300"
+                        }`}
+                      />
+                    </div>
+
+                    {/* info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-base md:text-xl font-medium text-[#262B45] truncate">
+                        {member.fullName}
+                        {member.id === currentUserId && (
+                          <span className="ml-1.5 text-base font-semibold text-[#F28B3B]">
+                            (You)
+                          </span>
+                        )}
+                      </p>
+                      <p
+                        className={`text-base ${member.isActive ? "text-green-500" : "text-[#9AA1B9]"}`}
+                      >
+                        {member.isActive ? "● Online" : "○ Offline"}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+
+              {/* empty state */}
+              {(selectedConversation?.members || []).filter((m) =>
+                m.fullName.toLowerCase().includes(memberSearch.toLowerCase()),
+              ).length === 0 && (
+                <li className="py-8 text-center text-base md:text-lg text-[#9AA1B9]">
+                  No members found.
+                </li>
+              )}
+            </ul>
+
+            {/* footer */}
+            <div className="px-5 py-3 border-t border-[#F3F5FB]">
+              <button
+                type="button"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FFF4EA] py-2.5 text-base md:text-lg font-medium text-[#F28B3B] hover:bg-[#FFE8D1] transition-colors"
+                onClick={() => {
+                  setIsMembersOpen(false);
+                  handleAddMemberGroup();
+                }}
+              >
+                <UserPlus size={20} />
+                Add Member
+              </button>
             </div>
           </div>
         </div>

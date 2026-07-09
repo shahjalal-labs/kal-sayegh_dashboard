@@ -58,7 +58,7 @@
     "socket.io-client": "^4.8.3",
     "sonner": "^1.7.2",
     "stripe": "^22.1.0",
-    "sweetalert2": "^11.26.24",
+    "sweetalert2": "^11.26.25",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "zod": "^3.24.1"

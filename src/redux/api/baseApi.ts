@@ -27,6 +27,7 @@ export const baseApi = createApi({
     "messages",
     "notifications",
     "schedule",
+    "offices",
   ],
 });
 

@@ -5,6 +5,7 @@ import {
   useGetJobRequestDetailsQuery,
   useGetOfficesQuery,
   useJobRequestByImageMutation,
+  useOfficeDeleteMutation,
   useUpdateJobRequestMutation,
 } from "@/redux/api/jobApi";
 import { Calendar, Mail, MapPin, Phone } from "lucide-react";
@@ -12,8 +13,9 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LiaEditSolid } from "react-icons/lia";
-import { RiFolderDownloadLine } from "react-icons/ri";
+import { RiDeleteBin6Line, RiFolderDownloadLine } from "react-icons/ri";
 import { toast } from "sonner";
+import Swal from "sweetalert2";
 import { CustomModal } from "../../modal/CustomModal";
 import { ImageUploadArea } from "../../ui/ImageUploadArea";
 import CreateJobForm from "../CreateJobForm";
@@ -64,7 +66,10 @@ function CreateNewJobForm({ form, setForm, jobRequestId }: any) {
           <div className="h-6 w-48 bg-gray-200 rounded-md" />
           <div className="space-y-4 mt-4">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="flex justify-between items-center border-b border-dashed border-gray-200 pb-3">
+              <div
+                key={i}
+                className="flex justify-between items-center border-b border-dashed border-gray-200 pb-3"
+              >
                 <div className="h-4 w-24 bg-gray-200 rounded-md" />
                 <div className="h-4 w-32 bg-gray-200 rounded-md" />
               </div>
@@ -77,72 +82,73 @@ function CreateNewJobForm({ form, setForm, jobRequestId }: any) {
           </div>
         </div>
       ) : (
-      <>
-      <h2 className="text-xl font-semibold">{jobDetails?.title}</h2>
-      <div className="space-y-5 text-base mt-4">
-        {[
-          {
-            icon: Calendar,
-            label: "Date :",
-            value: jobDetails?.date
-              ? new Date(jobDetails.date).toLocaleDateString("en-BD", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                })
-              : "N/A",
-          },
-          { icon: Phone, label: "Contact :", value: jobDetails?.contact },
-          { icon: Mail, label: "Email", value: jobDetails?.email },
-          {
-            icon: MapPin,
-            label: "Job Address",
-            value: jobDetails?.address,
-            long: true,
-          },
-        ].map((item, i) => (
-          <div
-            key={i}
-            className="flex justify-between items-start border-b border-dashed border-gray-300 pb-3"
-          >
-            <div className="flex items-center gap-2 text-gray-500">
-              <item.icon size={16} />
-              {item.label}
-            </div>
+        <>
+          <h2 className="text-xl font-semibold">{jobDetails?.title}</h2>
+          <div className="space-y-5 text-base mt-4">
+            {[
+              {
+                icon: Calendar,
+                label: "Date :",
+                value: jobDetails?.date
+                  ? new Date(jobDetails.date).toLocaleDateString("en-BD", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })
+                  : "N/A",
+              },
+              { icon: Phone, label: "Contact :", value: jobDetails?.contact },
+              { icon: Mail, label: "Email", value: jobDetails?.email },
+              {
+                icon: MapPin,
+                label: "Job Address",
+                value: jobDetails?.address,
+                long: true,
+              },
+            ].map((item, i) => (
+              <div
+                key={i}
+                className="flex justify-between items-start border-b border-dashed border-gray-300 pb-3"
+              >
+                <div className="flex items-center gap-2 text-gray-500">
+                  <item.icon size={16} />
+                  {item.label}
+                </div>
 
-            <span
-              className={`${
-                item.long ? "text-right max-w-[60%]  text-base" : ""
-              } font-medium`}
-            >
-              {item.value}
-            </span>
+                <span
+                  className={`${
+                    item.long ? "text-right max-w-[60%]  text-base" : ""
+                  } font-medium`}
+                >
+                  {item.value}
+                </span>
+              </div>
+            ))}
+
+            <div className="space-y-3">
+              {jobImages.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {jobImages.map((imageUrl: string, index: number) => (
+                    <Image
+                      key={`${imageUrl}-${index}`}
+                      src={imageUrl}
+                      alt={`Job image ${index + 1}`}
+                      width={180}
+                      height={140}
+                      className="w-full h-28 md:h-32 object-cover rounded-lg bg-gray-200"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">No images available.</p>
+              )}
+
+              <p>{jobDetails?.note}</p>
+            </div>
           </div>
-        ))}
-
-        <div className="space-y-3">
-          {jobImages.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {jobImages.map((imageUrl: string, index: number) => (
-                <Image
-                  key={`${imageUrl}-${index}`}
-                  src={imageUrl}
-                  alt={`Job image ${index + 1}`}
-                  width={180}
-                  height={140}
-                  className="w-full h-28 md:h-32 object-cover rounded-lg bg-gray-200"
-                />
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500">No images available.</p>
-          )}
-
-          <p>{jobDetails?.note}</p>
-        </div>
-      </div>
-      </>
-      )} {/* end isLoading */}
+        </>
+      )}{" "}
+      {/* end isLoading */}
     </div>
   );
 }
@@ -159,8 +165,44 @@ export default function OfficeAdministration() {
   const [updateJobRequest] = useUpdateJobRequestMutation();
   const [jobRequestByImage] = useJobRequestByImageMutation();
 
-  const { data, isLoading: officesLoading } = useGetOfficesQuery({});
+  const {
+    data,
+    isLoading: officesLoading,
+    refetch: refetchOffices,
+  } = useGetOfficesQuery({});
   const offices = data?.result || [];
+
+  const [deleteOffice] = useOfficeDeleteMutation();
+
+  const handleDeleteOffice = async (officeId: string) => {
+    try {
+      const result = await Swal.fire({
+        title: "Are you sure?",
+        text: "You won't be able to revert this!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#F28B3B",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Yes, delete it!",
+      });
+
+      if (result.isConfirmed) {
+        await deleteOffice(officeId).unwrap();
+        await refetchOffices();
+        Swal.fire({
+          title: "Deleted!",
+          text: "Office has been deleted.",
+          icon: "success",
+        });
+      }
+    } catch (error: any) {
+      Swal.fire({
+        title: "Error!",
+        text: error?.data?.message || "Failed to delete office.",
+        icon: "error",
+      });
+    }
+  };
 
   const {
     data: allJobsData,
@@ -304,9 +346,7 @@ export default function OfficeAdministration() {
 
   // ── skeleton helpers ──────────────────────────────────────────────────────
   const SkeletonPulse = ({ className = "" }: { className?: string }) => (
-    <div
-      className={`animate-pulse rounded-md bg-gray-200 ${className}`}
-    />
+    <div className={`animate-pulse rounded-md bg-gray-200 ${className}`} />
   );
 
   const JobCardSkeleton = () => (
@@ -360,7 +400,6 @@ export default function OfficeAdministration() {
             }}
           />
         </CustomModal>
-
         <CustomModal
           open={openEditModal}
           onClose={() => setOpenEditModal(false)}
@@ -373,7 +412,6 @@ export default function OfficeAdministration() {
             />
           )}
         </CustomModal>
-
         <CustomModal
           open={isOpen}
           onClose={() => setIsOpen(false)}
@@ -402,9 +440,7 @@ export default function OfficeAdministration() {
             jobRequestId={selectedJob?.id}
           />
         </CustomModal>
-
         {/* Job Request Modal */}
-
         <CustomModal
           open={jobFormOpen}
           onClose={() => setJobFormOpen(false)}
@@ -514,7 +550,6 @@ export default function OfficeAdministration() {
             </div>
           </div>
         </CustomModal>
-
         {/* ── Office grid with inline shimmer style ── */}
         <style>{`
           @keyframes shimmer {
@@ -522,7 +557,6 @@ export default function OfficeAdministration() {
             100% { background-position: -200% 0; }
           }
         `}</style>
-
         {officesLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
             {[1, 2, 3, 4].map((i) => (
@@ -530,121 +564,132 @@ export default function OfficeAdministration() {
             ))}
           </div>
         ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4  md:gap-8">
-          {offices?.map((office: any) => {
-            const officeJobs = getOfficeJobs(office.id);
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4  md:gap-8">
+            {offices?.map((office: any) => {
+              const officeJobs = getOfficeJobs(office.id);
 
-            return (
-              <div key={office.id} className="space-y-4">
-                <div className="flex items-center justify-between pb-4 gap-4 ">
-                  <h2 className="font-normal text-gray-800 bg-white shadow-md border md:pr-14 pl-3 px-2 py-1 md:py-3 text-sm md:text-base rounded-md md:rounded-xl ">
-                    {office.name}
-                  </h2>
+              return (
+                <div key={office.id} className="space-y-4">
+                  <div className="flex items-center justify-between pb-4 gap-4 ">
+                    <h2 className="font-normal text-gray-800 bg-white shadow-md border md:pr-14 pl-3 px-2 py-1 md:py-3 text-sm md:text-base rounded-md md:rounded-xl ">
+                      {office.name}
+                    </h2>
 
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setOpenModal(true)}
-                      className="p-2 md:px-4 md:py-3 bg-primary text-secondary text-xs md:text-base font-medium rounded-md md:rounded-xl hover:bg-primary/90 transition-colors flex items-center gap-2"
-                    >
-                      <span>+ New Job Request</span>
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setOpenModal(true)}
+                        className="p-2 md:px-4 md:py-3 bg-primary text-secondary text-xs md:text-base font-medium rounded-md md:rounded-xl hover:bg-primary/90 transition-colors flex items-center gap-2"
+                      >
+                        <span>+ New Job Request</span>
+                      </button>
 
-                    <button
-                      onClick={() => {
-                        setJobFormOpen(true);
-                        setFormByImage((prev) => ({
-                          ...prev,
-                          officeId: office.id,
-                        }));
+                      <button
+                        onClick={() => {
+                          setJobFormOpen(true);
+                          setFormByImage((prev) => ({
+                            ...prev,
+                            officeId: office.id,
+                          }));
 
-                        setPreview([]);
-                        setSelectedFiles([]);
-                      }}
-                      className="p-1 md:p-3 rounded-lg shadow-lg bg-white text-gray-500 border"
-                    >
-                      <RiFolderDownloadLine size={25} />
-                    </button>
+                          setPreview([]);
+                          setSelectedFiles([]);
+                        }}
+                        className="p-1 md:p-3 rounded-lg shadow-lg bg-white text-gray-500 border hover:bg-gray-300"
+                      >
+                        <RiFolderDownloadLine size={25} />
+                      </button>
+
+                      <button onClick={() => handleDeleteOffice(office.id)}>
+                        <RiDeleteBin6Line
+                          size={25}
+                          className="text-red-500 cursor-pointer hover:text-red-400"
+                        />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-7 ">
+                    {jobsLoading ? (
+                      <div className="space-y-4">
+                        {[1, 2, 3].map((i) => (
+                          <JobCardSkeleton key={i} />
+                        ))}
+                      </div>
+                    ) : officeJobs.length > 0 ? (
+                      officeJobs.map((job: JobItem) => (
+                        <div
+                          key={job.id}
+                          className="flex items-center justify-between md:py-6 md:px-4 bg-[#F7F8F8] border border-orange-100 rounded-2xl hover:bg-gray-50 transition cursor-pointer p-2"
+                          onClick={() => handleJobClick(job)}
+                        >
+                          <div className="flex flex-col md:flex-row items-start md:items-center gap-3 flex-1">
+                            <div
+                              className={`w-3 h-3 rounded-full ${
+                                job.status === "NEW"
+                                  ? "bg-red-500"
+                                  : "bg-green-500"
+                              }`}
+                            />
+
+                            <div>
+                              <p className="text-base font-semibold">
+                                SL No:{" "}
+                                <span className="font-normal">
+                                  {job?.jobSerial}
+                                </span>
+                              </p>
+                              <p className="text-sm md:text-lg font-medium text-gray-900">
+                                {job.title}
+                              </p>
+                              <p className="text-xs md:text-base text-gray-500">
+                                {new Date(job.date).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  },
+                                )}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex-col items-end gap-3 flex">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedJob(job);
+                                setOpenEditModal(true);
+                              }}
+                              className="text-gray-400 hover:text-gray-600"
+                            >
+                              <LiaEditSolid size={25} />
+                            </button>
+
+                            <div
+                              className={`px-4 py-2 mt-1 rounded-lg text-white text-xs ${
+                                job.status === "NEW"
+                                  ? "bg-[#D40C1A] hover:bg-red-600 cursor-pointer"
+                                  : "bg-green-500 cursor-not-allowed"
+                              }`}
+                            >
+                              {job.status}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="py-6 px-4 bg-[#F7F8F8] border border-orange-100 rounded-2xl text-center text-gray-500">
+                        No job requests found.
+                      </div>
+                    )}
                   </div>
                 </div>
-
-                <div className="space-y-7 ">
-                  {jobsLoading ? (
-                    <div className="space-y-4">
-                      {[1, 2, 3].map((i) => (
-                        <JobCardSkeleton key={i} />
-                      ))}
-                    </div>
-                  ) : officeJobs.length > 0 ? (
-                    officeJobs.map((job: JobItem) => (
-                      <div
-                        key={job.id}
-                        className="flex items-center justify-between md:py-6 md:px-4 bg-[#F7F8F8] border border-orange-100 rounded-2xl hover:bg-gray-50 transition cursor-pointer p-2"
-                        onClick={() => handleJobClick(job)}
-                      >
-                        <div className="flex flex-col md:flex-row items-start md:items-center gap-3 flex-1">
-                          <div
-                            className={`w-3 h-3 rounded-full ${
-                              job.status === "NEW"
-                                ? "bg-red-500"
-                                : "bg-green-500"
-                            }`}
-                          />
-
-                          <div>
-                            <p className="text-base font-semibold">
-                              SL No:{" "}
-                              <span className="font-normal">
-                                {job?.jobSerial}
-                              </span>
-                            </p>
-                            <p className="text-sm md:text-lg font-medium text-gray-900">
-                              {job.title}
-                            </p>
-                            <p className="text-xs md:text-base text-gray-500">
-                              {new Date(job.date).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              })}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex-col items-end gap-3 flex">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedJob(job);
-                              setOpenEditModal(true);
-                            }}
-                            className="text-gray-400 hover:text-gray-600"
-                          >
-                            <LiaEditSolid size={25} />
-                          </button>
-
-                          <div
-                            className={`px-4 py-2 mt-1 rounded-lg text-white text-xs ${
-                              job.status === "NEW"
-                                ? "bg-[#D40C1A] hover:bg-red-600 cursor-pointer"
-                                : "bg-green-500 cursor-not-allowed"
-                            }`}
-                          >
-                            {job.status}
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="py-6 px-4 bg-[#F7F8F8] border border-orange-100 rounded-2xl text-center text-gray-500">
-                      No job requests found.
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        )} {/* end officesLoading */}
+              );
+            })}
+          </div>
+        )}{" "}
+        {/* end officesLoading */}
       </div>
     </div>
   );

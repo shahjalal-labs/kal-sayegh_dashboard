@@ -8,6 +8,7 @@ const jobApi = baseApi.injectEndpoints({
         method: "POST",
         body: data,
       }),
+      invalidatesTags: ["offices"],
     }),
 
     createJobRequest: builder.mutation({
@@ -31,6 +32,7 @@ const jobApi = baseApi.injectEndpoints({
         url: "/job-request/office",
         method: "GET",
       }),
+      providesTags: ["offices"],
     }),
 
     getAllJobRequests: builder.query({
@@ -56,6 +58,14 @@ const jobApi = baseApi.injectEndpoints({
       }),
       providesTags: ["jobs"],
     }),
+
+    officeDelete: builder.mutation({
+      query: (officeId) => ({
+        url: `/job-request/office-delete/${officeId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["jobs", "offices"],
+    }),
   }),
 });
 
@@ -67,4 +77,5 @@ export const {
   useGetAllJobRequestsQuery,
   useGetJobRequestDetailsQuery,
   useJobRequestByImageMutation,
+  useOfficeDeleteMutation,
 } = jobApi;
