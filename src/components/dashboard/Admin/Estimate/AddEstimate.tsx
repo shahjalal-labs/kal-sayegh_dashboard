@@ -1,8 +1,9 @@
 "use client";
 
-import { ArrowLeft, Upload } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { AiOutlineUserAdd } from "react-icons/ai";
+import { ImageUploadArea } from "@/components/ui/ImageUploadArea";
 
 import ContractModal from "@/components/modal/ContractModal";
 import CommonTable from "@/components/table/CommonTable";
@@ -695,30 +696,10 @@ export default function AddEstimate() {
         <div>
           <label className="text-lg text-gray-600">Side Map</label>
 
-          <input
-            ref={sideMapRef}
-            id="sideMapInput"
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => handleSideMapFiles(e.target.files)}
+          <ImageUploadArea
+            onFiles={(files) => setSideMap(files[0] ?? null)}
+            multiple={false}
           />
-
-          <label
-            htmlFor="sideMapInput"
-            onDrop={(e) => {
-              e.preventDefault();
-              handleSideMapFiles(e.dataTransfer.files);
-            }}
-            onDragOver={(e) => e.preventDefault()}
-            className="mt-2 border border-dashed border-primary rounded-xl p-12 flex flex-col items-center justify-center cursor-pointer bg-orange-50"
-          >
-            <Upload className="text-gray-400 mb-2" size={24} />
-            <p className="text-lg text-gray-600 ">
-              <span className="text-primary font-medium">Click to upload</span>{" "}
-              or drag & drop
-            </p>
-          </label>
 
           {sideMap && (
             <div className="flex gap-3 mt-4 flex-wrap">
@@ -746,31 +727,9 @@ export default function AddEstimate() {
         <div>
           <label className="text-lg text-gray-600">Upload Images</label>
 
-          <input
-            ref={imageRef}
-            id="imageInput"
-            type="file"
-            multiple
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => handleImageFiles(e.target.files)}
+          <ImageUploadArea
+            onFiles={(files) => setImages((prev) => [...prev, ...files])}
           />
-
-          <label
-            htmlFor="imageInput"
-            onDrop={(e) => {
-              e.preventDefault();
-              handleImageFiles(e.dataTransfer.files);
-            }}
-            onDragOver={(e) => e.preventDefault()}
-            className="mt-2 border-2 border-dashed border-primary rounded-xl  flex flex-col items-center justify-center cursor-pointer bg-orange-50 p-12"
-          >
-            <Upload className="text-gray-400 mb-2" size={24} />
-            <p className="text-lg text-gray-600 ">
-              <span className="text-primary font-medium">Click to upload</span>{" "}
-              or drag & drop
-            </p>
-          </label>
 
           <div className="flex gap-3 mt-4 flex-wrap">
             {images.map((file, idx) => (

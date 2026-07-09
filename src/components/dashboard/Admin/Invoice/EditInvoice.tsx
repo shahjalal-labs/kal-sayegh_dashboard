@@ -11,13 +11,14 @@ import {
   useGetMyClientsQuery,
 } from "@/redux/api/admin/estimateApi";
 import { useGetInvoiceByIdQuery, useUpdateInvoiceMutation, } from "@/redux/api/admin/invoiceApi";
-import { ArrowLeft, MapPin, Upload } from "lucide-react";
+import { ArrowLeft, MapPin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AiOutlineUserAdd } from "react-icons/ai";
 import { toast } from "sonner";
+import { ImageUploadArea } from "@/components/ui/ImageUploadArea";
 
 export default function EditInvoice() {
   const router = useRouter();
@@ -716,33 +717,9 @@ export default function EditInvoice() {
           <div className="mt-7">
             <label className="text-lg text-gray-600">Side Map</label>
 
-            <input
-              ref={sideMapRef}
-              id="sideMapInput"
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={(e) => handleSideMapFiles(e.target.files)}
+            <ImageUploadArea
+              onFiles={(files) => setSideMaps((prev) => [...prev, ...files])}
             />
-
-            <label
-              htmlFor="sideMapInput"
-              onDrop={(e) => {
-                e.preventDefault();
-                handleSideMapFiles(e.dataTransfer.files);
-              }}
-              onDragOver={(e) => e.preventDefault()}
-              className="mt-2 border border-dashed border-primary rounded-xl p-12 flex flex-col items-center justify-center cursor-pointer bg-orange-50"
-            >
-              <Upload className="text-gray-400 mb-2" size={24} />
-              <p className="text-lg text-gray-600 ">
-                <span className="text-primary font-medium">
-                  Click to upload
-                </span>{" "}
-                or drag & drop
-              </p>
-            </label>
 
             {sideMaps.length > 0 && (
               <div className="flex gap-3 mt-4 flex-wrap">
@@ -772,33 +749,9 @@ export default function EditInvoice() {
           <div className="mt-7">
             <label className="text-lg text-gray-600">Upload Images</label>
 
-            <input
-              ref={imageRef}
-              id="imageInput"
-              type="file"
-              multiple
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => handleImageFiles(e.target.files)}
+            <ImageUploadArea
+              onFiles={(files) => setImages((prev) => [...prev, ...files])}
             />
-
-            <label
-              htmlFor="imageInput"
-              onDrop={(e) => {
-                e.preventDefault();
-                handleImageFiles(e.dataTransfer.files);
-              }}
-              onDragOver={(e) => e.preventDefault()}
-              className="mt-2 border border-dashed border-primary rounded-xl  flex flex-col items-center justify-center cursor-pointer bg-orange-50 p-12"
-            >
-              <Upload className="text-gray-400 mb-2" size={24} />
-              <p className="text-lg text-gray-600 ">
-                <span className="text-primary font-medium">
-                  Click to upload
-                </span>{" "}
-                or drag & drop
-              </p>
-            </label>
 
             <div className="flex gap-3 mt-4 flex-wrap">
               {images.map((file, idx) => (

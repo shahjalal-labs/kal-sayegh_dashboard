@@ -7,7 +7,7 @@ import {
   useJobRequestByImageMutation,
   useUpdateJobRequestMutation,
 } from "@/redux/api/jobApi";
-import { Calendar, Mail, MapPin, Phone, Upload } from "lucide-react";
+import { Calendar, Mail, MapPin, Phone } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -15,6 +15,7 @@ import { LiaEditSolid } from "react-icons/lia";
 import { RiFolderDownloadLine } from "react-icons/ri";
 import { toast } from "sonner";
 import { CustomModal } from "../../modal/CustomModal";
+import { ImageUploadArea } from "../../ui/ImageUploadArea";
 import CreateJobForm from "../CreateJobForm";
 import CreateOffice from "../CreateOffice";
 import EditJobForm from "../EditJobForm";
@@ -58,6 +59,25 @@ function CreateNewJobForm({ form, setForm, jobRequestId }: any) {
   };
   return (
     <div>
+      {isLoading ? (
+        <div className="space-y-4 animate-pulse">
+          <div className="h-6 w-48 bg-gray-200 rounded-md" />
+          <div className="space-y-4 mt-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex justify-between items-center border-b border-dashed border-gray-200 pb-3">
+                <div className="h-4 w-24 bg-gray-200 rounded-md" />
+                <div className="h-4 w-32 bg-gray-200 rounded-md" />
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-28 md:h-32 bg-gray-200 rounded-lg" />
+            ))}
+          </div>
+        </div>
+      ) : (
+      <>
       <h2 className="text-xl font-semibold">{jobDetails?.title}</h2>
       <div className="space-y-5 text-base mt-4">
         {[
@@ -121,6 +141,8 @@ function CreateNewJobForm({ form, setForm, jobRequestId }: any) {
           <p>{jobDetails?.note}</p>
         </div>
       </div>
+      </>
+      )} {/* end isLoading */}
     </div>
   );
 }
@@ -280,6 +302,47 @@ export default function OfficeAdministration() {
     return [];
   };
 
+  // ── skeleton helpers ──────────────────────────────────────────────────────
+  const SkeletonPulse = ({ className = "" }: { className?: string }) => (
+    <div
+      className={`animate-pulse rounded-md bg-gray-200 ${className}`}
+    />
+  );
+
+  const JobCardSkeleton = () => (
+    <div className="flex items-center justify-between md:py-6 md:px-4 bg-[#F7F8F8] border border-orange-100 rounded-2xl p-2">
+      <div className="flex flex-col md:flex-row items-start md:items-center gap-3 flex-1">
+        <div className="w-3 h-3 rounded-full bg-gray-200 animate-pulse flex-shrink-0" />
+        <div className="space-y-2 flex-1">
+          <SkeletonPulse className="h-3 w-20" />
+          <SkeletonPulse className="h-5 w-44" />
+          <SkeletonPulse className="h-3 w-28" />
+        </div>
+      </div>
+      <div className="flex flex-col items-end gap-3">
+        <SkeletonPulse className="h-5 w-5 rounded" />
+        <SkeletonPulse className="h-7 w-16 rounded-lg" />
+      </div>
+    </div>
+  );
+
+  const OfficeSectionSkeleton = () => (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between pb-4 gap-4">
+        <SkeletonPulse className="h-10 w-40 md:w-52 rounded-xl" />
+        <div className="flex items-center gap-3">
+          <SkeletonPulse className="h-10 w-28 md:w-36 rounded-xl" />
+          <SkeletonPulse className="h-10 w-10 rounded-lg" />
+        </div>
+      </div>
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <JobCardSkeleton key={i} />
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div>
       <CreateOffice />
@@ -399,28 +462,13 @@ export default function OfficeAdministration() {
             <div>
               <label className="text-sm text-gray-600">Upload Images</label>
 
-              <input
-                type="file"
-                multiple
-                id="imageUpload"
-                className="hidden"
-                onChange={handleImageUpload}
+              <ImageUploadArea
+                onFiles={(files) => {
+                  setSelectedFiles((prev) => [...prev, ...files]);
+                  const urls = files.map((f) => URL.createObjectURL(f));
+                  setPreview((prev) => [...prev, ...urls]);
+                }}
               />
-
-              <label
-                htmlFor="imageUpload"
-                onDragOver={(e) => e.preventDefault()}
-                className="mt-2 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-primary p-6"
-              >
-                <Upload className="mb-2 text-gray-400" size={24} />
-
-                <p className="text-sm">
-                  <span className="font-medium text-primary">
-                    Click to upload
-                  </span>{" "}
-                  or drag & drop
-                </p>
-              </label>
 
               {/* Preview */}
               <div className="mt-4 flex flex-wrap gap-3">
@@ -467,6 +515,21 @@ export default function OfficeAdministration() {
           </div>
         </CustomModal>
 
+        {/* ── Office grid with inline shimmer style ── */}
+        <style>{`
+          @keyframes shimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+          }
+        `}</style>
+
+        {officesLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+            {[1, 2, 3, 4].map((i) => (
+              <OfficeSectionSkeleton key={i} />
+            ))}
+          </div>
+        ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4  md:gap-8">
           {offices?.map((office: any) => {
             const officeJobs = getOfficeJobs(office.id);
@@ -505,7 +568,13 @@ export default function OfficeAdministration() {
                 </div>
 
                 <div className="space-y-7 ">
-                  {officeJobs.length > 0 ? (
+                  {jobsLoading ? (
+                    <div className="space-y-4">
+                      {[1, 2, 3].map((i) => (
+                        <JobCardSkeleton key={i} />
+                      ))}
+                    </div>
+                  ) : officeJobs.length > 0 ? (
                     officeJobs.map((job: JobItem) => (
                       <div
                         key={job.id}
@@ -575,6 +644,7 @@ export default function OfficeAdministration() {
             );
           })}
         </div>
+        )} {/* end officesLoading */}
       </div>
     </div>
   );

@@ -1,9 +1,9 @@
 "use client";
 
-import { Upload } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { ImageUploadArea } from "@/components/ui/ImageUploadArea";
 
 import {
   useGetOfficesQuery,
@@ -233,30 +233,13 @@ export default function EditJobForm({
       <div>
         <label className="text-sm text-gray-600">Upload Images</label>
 
-        <input
-          type="file"
-          multiple
-          id="imageUpload"
-          className="hidden"
-          onChange={(e) => handleFiles(e.target.files)}
-        />
-
-        <label
-          htmlFor="imageUpload"
-          onDrop={(e) => {
-            e.preventDefault();
-            handleFiles(e.dataTransfer.files);
+        <ImageUploadArea
+          onFiles={(files) => {
+            const urls = files.map((f) => URL.createObjectURL(f));
+            setImages((prev) => [...prev, ...files]);
+            setPreview((prev) => [...prev, ...urls]);
           }}
-          onDragOver={(e) => e.preventDefault()}
-          className="mt-2 border-2 border-dashed border-primary rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer"
-        >
-          <Upload className="text-gray-400 mb-2" size={24} />
-
-          <p className="text-sm">
-            <span className="text-primary font-medium">Click to upload</span> or
-            drag & drop
-          </p>
-        </label>
+        />
 
         <div className="flex gap-3 mt-4 flex-wrap">
           {preview.map((img, i) => (
