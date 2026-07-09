@@ -169,6 +169,15 @@ const invoiceApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["invoice"],
     }),
+
+    duplicateInvoice: builder.mutation({
+      query: ({ invoiceId, formData }) => ({
+        url: `/invoice/duplicate/${invoiceId}`,
+        method: "POST",
+        body: formData,
+      }),
+      invalidatesTags: ["invoice"],
+    }),
   }),
 });
 
@@ -187,4 +196,5 @@ export const {
   useGenerateFromEstimateMutation,
   usePaymentIntentMutation,
   useUpdateInvoiceMutation,
+  useDuplicateInvoiceMutation,
 } = invoiceApi;

@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 // pages/index.tsx or pages/index.js
 import { useRouter } from "next/navigation";

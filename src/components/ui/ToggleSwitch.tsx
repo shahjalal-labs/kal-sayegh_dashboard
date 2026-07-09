@@ -23,7 +23,7 @@ export default function ToggleSwitch({
     <button
       type="button"
       onClick={onToggle}
-      className={`flex items-center justify-between gap-4 rounded-xl border border-transparent transition hover:border-primary/30 ${className}`}
+      className={`flex items-center justify-between gap-4 rounded-xl border border-transparent transition  ${className}`}
     >
       <div className="min-w-0 text-left">
         <div className={`text-lg font-semibold text-title ${labelClassName}`}>

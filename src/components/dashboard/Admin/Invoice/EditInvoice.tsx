@@ -156,7 +156,13 @@ export default function EditInvoice() {
     city: "",
     state: "",
     zip: "",
+    serviceAddress: "",
+    serviceCity: "",
+    serviceState: "",
+    serviceZip: "",
   });
+
+  const [isServiceAddressDifferent, setIsServiceAddressDifferent] = useState(false);
 
   const handleClientChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setClientForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -164,7 +170,32 @@ export default function EditInvoice() {
 
   const handleCreateClient = async () => {
     try {
-      await createClient(clientForm).unwrap();
+      if (isServiceAddressDifferent) {
+        if (!clientForm.serviceAddress || !clientForm.serviceCity || !clientForm.serviceState || !clientForm.serviceZip) {
+          toast.error("Please fill in all Service Address fields.");
+          return;
+        }
+      }
+
+      const payload: any = {
+        email: clientForm.email,
+        clientName: clientForm.clientName,
+        city: clientForm.city,
+        state: clientForm.state,
+        zip: clientForm.zip,
+        address: clientForm.address,
+        phoneNumber: clientForm.phoneNumber,
+        isServiceDifferent: isServiceAddressDifferent,
+      };
+
+      if (isServiceAddressDifferent) {
+        payload.serviceAddress = clientForm.serviceAddress;
+        payload.serviceCity = clientForm.serviceCity;
+        payload.serviceState = clientForm.serviceState;
+        payload.serviceZip = clientForm.serviceZip;
+      }
+
+      await createClient(payload).unwrap();
 
       toast.success("Client created successfully!");
       setOpenClientModal(false);
@@ -177,7 +208,12 @@ export default function EditInvoice() {
         city: "",
         state: "",
         zip: "",
+        serviceAddress: "",
+        serviceCity: "",
+        serviceState: "",
+        serviceZip: "",
       });
+      setIsServiceAddressDifferent(false);
     } catch (error: any) {
       toast.error("Failed to create client:", error);
     }
@@ -881,7 +917,7 @@ export default function EditInvoice() {
                 </div>
               </div>
 
-              <p className="text-base font-normal">Address Information</p>
+              <p className="text-xl md:text-2xl font-normal mt-6 mb-2">Billing Address</p>
 
               {/* Address */}
               <div>
@@ -896,7 +932,7 @@ export default function EditInvoice() {
               </div>
 
               {/* City + State */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
                 <div>
                   <label className="text-sm">City</label>
                   <input
@@ -921,16 +957,79 @@ export default function EditInvoice() {
               </div>
 
               {/* Zip */}
-              <div>
-                <label className="text-sm">Zip</label>
+              <div className="mt-3">
+                <label className="text-sm">Zip Code</label>
                 <input
                   name="zip"
                   value={clientForm.zip}
                   onChange={handleClientChange}
-                  placeholder="Zip"
+                  placeholder="Zip Code"
                   className="w-full mt-1 border p-2 rounded focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
+
+              {/* Toggle */}
+              <div className="mt-6">
+                <ToggleSwitch
+                  label="Billing address is different than Service address"
+                  checked={isServiceAddressDifferent}
+                  onToggle={() => setIsServiceAddressDifferent(!isServiceAddressDifferent)}
+                  labelClassName="text-base font-medium text-gray-800"
+                />
+              </div>
+
+              {/* Service Address */}
+              {isServiceAddressDifferent && (
+                <>
+                  <p className="text-xl md:text-2xl font-normal mt-6 mb-2">Service Address</p>
+
+                  <div>
+                    <label className="text-sm">Address</label>
+                    <input
+                      name="serviceAddress"
+                      value={clientForm.serviceAddress}
+                      onChange={handleClientChange}
+                      placeholder="Address"
+                      className="w-full mt-1 border p-2 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                    <div>
+                      <label className="text-sm">City</label>
+                      <input
+                        name="serviceCity"
+                        value={clientForm.serviceCity}
+                        onChange={handleClientChange}
+                        placeholder="City"
+                        className="w-full mt-1 border p-2 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm">State</label>
+                      <input
+                        name="serviceState"
+                        value={clientForm.serviceState}
+                        onChange={handleClientChange}
+                        placeholder="State"
+                        className="w-full mt-1 border p-2 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-3">
+                    <label className="text-sm">Zip Code</label>
+                    <input
+                      name="serviceZip"
+                      value={clientForm.serviceZip}
+                      onChange={handleClientChange}
+                      placeholder="Zip Code"
+                      className="w-full mt-1 border p-2 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                </>
+              )}
 
               {/* Buttons */}
               <div className="flex justify-end gap-2 mt-4">

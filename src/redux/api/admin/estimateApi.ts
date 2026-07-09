@@ -156,6 +156,14 @@ const estimateApi = baseApi.injectEndpoints({
         },
       }),
     }),
+
+    duplicateEstimate: builder.mutation({
+      query: ({ estimateId, data }: { estimateId: string; data: any }) => ({
+        url: `/estimate/duplicate/${estimateId}`,
+        method: "POST",
+        body: data,
+      }),
+    }),
   }),
 });
 
@@ -177,4 +185,5 @@ export const {
   useUpdateEstimateStatusMutation,
   useEditEstimateMutation,
   useUpdateEstimateSignatureMutation,
+  useDuplicateEstimateMutation,
 } = estimateApi;

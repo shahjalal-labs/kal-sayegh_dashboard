@@ -4,6 +4,7 @@ import stars from "@/assets/dashboard/stars.png";
 import logo from "@/assets/kal-logo.png";
 import Conditions from "@/components/Conditions";
 import {
+  useDuplicateEstimateMutation,
   useGetEstimateByIdQuery,
   useSendEstimateMailMutation,
   useUpdateEstimateStatusMutation,
@@ -34,6 +35,21 @@ export default function EstimateDetails() {
     useUpdateEstimateStatusMutation();
   const [generateFromEstimate, { isLoading: isGeneratingInvoice }] =
     useGenerateFromEstimateMutation();
+  const [duplicateEstimate, { isLoading: isDuplicating }] =
+    useDuplicateEstimateMutation();
+
+  const handleDuplicate = async () => {
+    try {
+      const formData = new FormData();
+      await duplicateEstimate({
+        estimateId: estimate?.id as string,
+        data: formData,
+      }).unwrap();
+      toast.success("Estimate duplicated successfully!");
+    } catch (error: any) {
+      toast.error(error?.data?.message || "Failed to duplicate estimate");
+    }
+  };
 
   const router = useRouter();
 
@@ -321,7 +337,9 @@ export default function EstimateDetails() {
 
             <tbody>
               {items.map((item: any, index: number) => {
-                const itemSubItems = (estimate?.subItems || []).filter((s: any) => String(s.itemId) === String(item.id));
+                const itemSubItems = (estimate?.subItems || []).filter(
+                  (s: any) => String(s.itemId) === String(item.id),
+                );
                 const itemTotal = Number(item?.subTotal || 0);
 
                 return (
@@ -330,25 +348,19 @@ export default function EstimateDetails() {
                       <td className="border-r-2 border-black/50 px-2 py-1 text-base font-bold text-gray-900">
                         {item?.itemName || "-"}
                       </td>
-                      <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800">
-                      </td>
-                      <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800">
-                      </td>
-                      <td className="px-2 py-1 text-right font-semibold text-gray-800">
-                      </td>
+                      <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800"></td>
+                      <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800"></td>
+                      <td className="px-2 py-1 text-right font-semibold text-gray-800"></td>
                     </tr>
-                    
+
                     {item?.description && (
                       <tr className="bg-white border-b-2 border-black/50">
                         <td className="border-r-2 border-black/50 px-2 py-1 text-base text-gray-700">
                           {item.description}
                         </td>
-                        <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800">
-                        </td>
-                        <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800">
-                        </td>
-                        <td className="px-2 py-1 text-right font-semibold text-gray-800">
-                        </td>
+                        <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800"></td>
+                        <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800"></td>
+                        <td className="px-2 py-1 text-right font-semibold text-gray-800"></td>
                       </tr>
                     )}
 
@@ -373,7 +385,10 @@ export default function EstimateDetails() {
                     ))}
 
                     <tr className="bg-white border-b-2 border-black/50">
-                      <td colSpan={2} className="border-r-2 border-black/50 px-2 py-1"></td>
+                      <td
+                        colSpan={2}
+                        className="border-r-2 border-black/50 px-2 py-1"
+                      ></td>
                       <td className="border-r-2 border-black/50 px-2 py-1 text-right font-bold text-gray-900">
                         Sub Total:
                       </td>
@@ -464,7 +479,7 @@ export default function EstimateDetails() {
                         <source src={url} />
                       </video>
                     ) : (
-                        <Image
+                      <Image
                         src={url}
                         alt={`Side Map ${index + 1}`}
                         width={900}
@@ -512,7 +527,10 @@ export default function EstimateDetails() {
           {fileUrls.length > 0 ? (
             <div className="grid grid-cols-1 gap-3">
               {fileUrls.map((url: string, index: number) => (
-                <div key={`file-${index}`} className="border-2  bg-white p-2 break-inside-avoid">
+                <div
+                  key={`file-${index}`}
+                  className="border-2  bg-white p-2 break-inside-avoid"
+                >
                   {isVideoUrl(url) ? (
                     <video controls className="w-full h-auto rounded-sm">
                       <source src={url} />
@@ -650,6 +668,13 @@ export default function EstimateDetails() {
         </div>
 
         <div className="flex items-center gap-3 mt-4">
+          <button
+            onClick={handleDuplicate}
+            disabled={isDuplicating}
+            className="flex items-center gap-2 px-4 py-2 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isDuplicating ? "Duplicating..." : "Duplicate"}
+          </button>
           <div className="relative inline-block">
             <button
               onClick={() => setIsStatusOpen((s) => !s)}

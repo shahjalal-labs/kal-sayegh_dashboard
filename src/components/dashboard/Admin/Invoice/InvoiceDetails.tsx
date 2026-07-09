@@ -4,6 +4,7 @@ import paymentIcon from "@/assets/dashboard/credit-card-validation.png";
 import logo from "@/assets/kal-logo.png";
 import Conditions from "@/components/Conditions";
 import {
+  useDuplicateInvoiceMutation,
   useGetInvoiceByIdQuery,
   useSendInvoiceMailMutation,
   useUpdateEmailStatusMutation,
@@ -74,6 +75,9 @@ export default function InvoiceDetails({ format }: { format?: string }) {
 
   const [sendInvoiceMail, { isLoading: isSendingInvoiceEmail }] =
     useSendInvoiceMailMutation();
+
+  const [duplicateInvoice, { isLoading: isDuplicatingInvoice }] =
+    useDuplicateInvoiceMutation();
 
   useEffect(() => {
     const shouldMarkRead =
@@ -230,6 +234,19 @@ export default function InvoiceDetails({ format }: { format?: string }) {
     }
   };
 
+  const handleDuplicateInvoice = async () => {
+    try {
+      const formData = new FormData();
+      await duplicateInvoice({
+        invoiceId: invoice?.id as string,
+        formData: formData,
+      }).unwrap();
+      toast.success("Invoice duplicated successfully!");
+    } catch (error: any) {
+      toast.error(error?.data?.message || "Failed to duplicate invoice");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -299,7 +316,9 @@ export default function InvoiceDetails({ format }: { format?: string }) {
 
             <tbody>
               {invoiceItemsByTable.map((item: any, index: number) => {
-                const itemSubItems = (invoice?.subItems || []).filter((s: any) => String(s.itemId) === String(item.id));
+                const itemSubItems = (invoice?.subItems || []).filter(
+                  (s: any) => String(s.itemId) === String(item.id),
+                );
                 const itemTotal = Number(item?.subTotal || 0);
 
                 return (
@@ -308,12 +327,9 @@ export default function InvoiceDetails({ format }: { format?: string }) {
                       <td className="border-r-2 border-black/50 px-2 py-1 text-base font-bold text-gray-900">
                         {item?.itemName || "-"}
                       </td>
-                      <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800">
-                      </td>
-                      <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800">
-                      </td>
-                      <td className="px-2 py-1 text-right font-semibold text-gray-800">
-                      </td>
+                      <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800"></td>
+                      <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800"></td>
+                      <td className="px-2 py-1 text-right font-semibold text-gray-800"></td>
                     </tr>
 
                     {item?.description && (
@@ -321,12 +337,9 @@ export default function InvoiceDetails({ format }: { format?: string }) {
                         <td className="border-r-2 border-black/50 px-2 py-1 text-base text-gray-700">
                           {item.description}
                         </td>
-                        <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800">
-                        </td>
-                        <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800">
-                        </td>
-                        <td className="px-2 py-1 text-right font-semibold text-gray-800">
-                        </td>
+                        <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800"></td>
+                        <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800"></td>
+                        <td className="px-2 py-1 text-right font-semibold text-gray-800"></td>
                       </tr>
                     )}
 
@@ -351,7 +364,10 @@ export default function InvoiceDetails({ format }: { format?: string }) {
                     ))}
 
                     <tr className="bg-white border-b-2 border-black/50">
-                      <td colSpan={2} className="border-r-2 border-black/50 px-2 py-1"></td>
+                      <td
+                        colSpan={2}
+                        className="border-r-2 border-black/50 px-2 py-1"
+                      ></td>
                       <td className="border-r-2 border-black/50 px-2 py-1 text-right font-bold text-gray-900">
                         Sub Total:
                       </td>
@@ -495,7 +511,10 @@ export default function InvoiceDetails({ format }: { format?: string }) {
       {fileUrls.length > 0 ? (
         <div className="grid grid-cols-1 gap-3">
           {fileUrls.map((url: string, index: number) => (
-            <div key={`file-${index}`} className="border-2  bg-white p-2 break-inside-avoid">
+            <div
+              key={`file-${index}`}
+              className="border-2  bg-white p-2 break-inside-avoid"
+            >
               {isVideoUrl(url) ? (
                 <video controls className="h-auto w-full rounded-sm">
                   <source src={url} />
@@ -571,6 +590,13 @@ export default function InvoiceDetails({ format }: { format?: string }) {
 
               <div className="flex items-center gap-3 mt-4">
                 <button
+                  onClick={handleDuplicateInvoice}
+                  disabled={isDuplicatingInvoice}
+                  className="flex items-center gap-2 px-4 py-2 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isDuplicatingInvoice ? "Duplicating..." : "Duplicate"}
+                </button>
+                <button
                   onClick={() => setIsPaymentModalOpen(true)}
                   className="group flex items-center gap-2 px-4 py-2 border-primary transition-all duration-300 border text-primary rounded-lg hover:bg-primary hover:text-white ease-in"
                 >
@@ -596,11 +622,11 @@ export default function InvoiceDetails({ format }: { format?: string }) {
 
             {(emailMarkedRead ||
               (invoice?.emailStatus || "").toString().toUpperCase() ===
-              "READ") && (
-                <div className="mt-3 text-center text-sm text-green-700 bg-green-50 rounded-md py-2 px-3">
-                  ✓ Email opened
-                </div>
-              )}
+                "READ") && (
+              <div className="mt-3 text-center text-sm text-green-700 bg-green-50 rounded-md py-2 px-3">
+                ✓ Email opened
+              </div>
+            )}
 
             <div
               id="invoice"
@@ -874,13 +900,15 @@ export default function InvoiceDetails({ format }: { format?: string }) {
                       sendMeCopy: !prev.sendMeCopy,
                     }))
                   }
-                  className={`relative inline-flex h-8 w-16 items-center rounded-full px-1 transition-colors ${formData.sendMeCopy ? "bg-primary" : "bg-gray-200"
-                    }`}
+                  className={`relative inline-flex h-8 w-16 items-center rounded-full px-1 transition-colors ${
+                    formData.sendMeCopy ? "bg-primary" : "bg-gray-200"
+                  }`}
                   aria-label="Send me a copy toggle"
                 >
                   <span
-                    className={`inline-block h-6 w-6 rounded-full bg-white shadow transition-transform ${formData.sendMeCopy ? "translate-x-8" : "translate-x-0"
-                      }`}
+                    className={`inline-block h-6 w-6 rounded-full bg-white shadow transition-transform ${
+                      formData.sendMeCopy ? "translate-x-8" : "translate-x-0"
+                    }`}
                   />
                 </button>
                 <span className="text-sm font-medium text-gray-700">
@@ -935,10 +963,10 @@ export default function InvoiceDetails({ format }: { format?: string }) {
 
       {(emailMarkedRead ||
         (invoice?.emailStatus || "").toString().toUpperCase() === "READ") && (
-          <div className="mx-auto mt-3 max-w-6xl rounded-md bg-green-50 px-3 py-2 text-center text-sm text-green-700">
-            Email opened
-          </div>
-        )}
+        <div className="mx-auto mt-3 max-w-6xl rounded-md bg-green-50 px-3 py-2 text-center text-sm text-green-700">
+          Email opened
+        </div>
+      )}
     </>
   );
 }

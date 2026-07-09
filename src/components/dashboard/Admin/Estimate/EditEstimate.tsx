@@ -229,7 +229,13 @@ export default function EditEstimate() {
     city: "",
     state: "",
     zip: "",
+    serviceAddress: "",
+    serviceCity: "",
+    serviceState: "",
+    serviceZip: "",
   });
+
+  const [isServiceAddressDifferent, setIsServiceAddressDifferent] = useState(false);
 
   const [createClient] = useCreateClientMutation();
   const [updateEstimate] = useEditEstimateMutation();
@@ -276,7 +282,32 @@ export default function EditEstimate() {
 
   const handleCreateClient = async (clientData: any) => {
     try {
-      const response = await createClient(clientData).unwrap();
+      if (isServiceAddressDifferent) {
+        if (!clientData.serviceAddress || !clientData.serviceCity || !clientData.serviceState || !clientData.serviceZip) {
+          toast.error("Please fill in all Service Address fields.");
+          return;
+        }
+      }
+
+      const payload: any = {
+        email: clientData.email,
+        clientName: clientData.clientName,
+        city: clientData.city,
+        state: clientData.state,
+        zip: clientData.zip,
+        address: clientData.address,
+        phoneNumber: clientData.phoneNumber,
+        isServiceDifferent: isServiceAddressDifferent,
+      };
+
+      if (isServiceAddressDifferent) {
+        payload.serviceAddress = clientData.serviceAddress;
+        payload.serviceCity = clientData.serviceCity;
+        payload.serviceState = clientData.serviceState;
+        payload.serviceZip = clientData.serviceZip;
+      }
+
+      const response = await createClient(payload).unwrap();
 
       toast.success("Client created successfully");
 
@@ -290,7 +321,12 @@ export default function EditEstimate() {
         zip: "",
         address: "",
         phoneNumber: "",
+        serviceAddress: "",
+        serviceCity: "",
+        serviceState: "",
+        serviceZip: "",
       });
+      setIsServiceAddressDifferent(false);
 
       return response;
     } catch (error: any) {
@@ -891,8 +927,8 @@ export default function EditEstimate() {
               </div>
             </div>
 
-            <p className="text-base sm:text-base font-normal">
-              Address Information
+            <p className="text-xl sm:text-2xl font-normal mt-6 mb-2">
+              Billing Address
             </p>
 
             {/* Address */}
@@ -908,7 +944,7 @@ export default function EditEstimate() {
             </div>
 
             {/* City + State */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 mt-3">
               <div>
                 <label className="text-base">City</label>
                 <input
@@ -933,16 +969,81 @@ export default function EditEstimate() {
             </div>
 
             {/* Zip */}
-            <div>
-              <label className="text-base">Zip</label>
+            <div className="mt-3">
+              <label className="text-base">Zip Code</label>
               <input
                 name="zip"
                 value={formData.zip}
                 onChange={handleChange}
-                placeholder="Zip"
+                placeholder="Zip Code"
                 className="w-full mt-1 border p-2 sm:p-2.5 text-base rounded focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
+
+            {/* Toggle */}
+            <div className="mt-6">
+              <ToggleSwitch
+                label="Billing address is different than Service address"
+                checked={isServiceAddressDifferent}
+                onToggle={() => setIsServiceAddressDifferent(!isServiceAddressDifferent)}
+                labelClassName="text-base font-medium text-gray-800"
+              />
+            </div>
+
+            {/* Service Address */}
+            {isServiceAddressDifferent && (
+              <>
+                <p className="text-xl sm:text-2xl font-normal mt-6 mb-2">
+                  Service Address
+                </p>
+
+                <div>
+                  <label className="text-base">Address</label>
+                  <input
+                    name="serviceAddress"
+                    value={formData.serviceAddress}
+                    onChange={handleChange}
+                    placeholder="Address"
+                    className="w-full mt-1 border p-2 sm:p-2.5 text-base rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 mt-3">
+                  <div>
+                    <label className="text-base">City</label>
+                    <input
+                      name="serviceCity"
+                      value={formData.serviceCity}
+                      onChange={handleChange}
+                      placeholder="City"
+                      className="w-full mt-1 border p-2 sm:p-2.5 text-base rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-base">State</label>
+                    <input
+                      name="serviceState"
+                      value={formData.serviceState}
+                      onChange={handleChange}
+                      placeholder="State"
+                      className="w-full mt-1 border p-2 sm:p-2.5 text-base rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-3">
+                  <label className="text-base">Zip Code</label>
+                  <input
+                    name="serviceZip"
+                    value={formData.serviceZip}
+                    onChange={handleChange}
+                    placeholder="Zip Code"
+                    className="w-full mt-1 border p-2 sm:p-2.5 text-base rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+              </>
+            )}
 
             {/* Buttons */}
             <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 mt-4 sm:mt-6">
