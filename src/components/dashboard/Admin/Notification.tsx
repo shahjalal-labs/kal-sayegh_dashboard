@@ -3,7 +3,7 @@
 import {
   useGetMyNotificationsQuery,
   useReadAllNotificationsMutation,
-} from "@/redux/api/notificationApi";
+} from "@/redux/api/admin/notificationApi";
 import { formatDistanceToNow } from "date-fns";
 import { Bell, Clock, CreditCard, Eye, User } from "lucide-react";
 import { ColorRing } from "react-loader-spinner";

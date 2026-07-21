@@ -77,13 +77,37 @@ export default function Dashboard() {
 
   if (isLoading)
     return (
-      <div className="flex items-center justify-center h-64">
-        <ColorRing
-          visible={true}
-          height="70"
-          width="70"
-          colors={["#e15b64", "#f47e60", "#f8b26a", "#abbd81", "#849b87"]}
-        />
+      <div className="min-h-screen">
+        {/* Stats Cards Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-6 bg-secondary p-5 rounded-2xl">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-32 bg-gray-200 animate-pulse rounded-xl"></div>
+          ))}
+        </div>
+
+        {/* Charts Row Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
+          {/* Bar Chart Skeleton */}
+          <div className="lg:col-span-2 h-[400px] bg-secondary rounded-lg border-none flex flex-col p-6 space-y-6">
+            <div className="h-6 w-48 bg-gray-200 animate-pulse rounded"></div>
+            <div className="flex-grow bg-gray-200 animate-pulse rounded"></div>
+          </div>
+          
+          {/* Pie Chart Skeleton */}
+          <div className="lg:col-span-1 h-[400px] bg-secondary rounded-lg border-none flex flex-col p-6 space-y-6">
+            <div className="h-6 w-32 bg-gray-200 animate-pulse rounded"></div>
+            <div className="flex-grow bg-gray-200 animate-pulse rounded-full m-8"></div>
+          </div>
+        </div>
+        
+        {/* Employee List Skeleton Area */}
+        <div className="bg-secondary p-6 rounded-2xl space-y-6">
+          <div className="flex justify-between">
+            <div className="h-8 w-40 bg-gray-200 animate-pulse rounded"></div>
+            <div className="h-10 w-24 bg-gray-200 animate-pulse rounded-lg"></div>
+          </div>
+          <div className="h-[400px] bg-gray-200 animate-pulse rounded-xl"></div>
+        </div>
       </div>
     );
 

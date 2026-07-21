@@ -1,7 +1,7 @@
 "use client";
 
+import { useGetMyNotificationCountQuery } from "@/redux/api/admin/notificationApi";
 import { useMyProfileQuery } from "@/redux/api/authApi";
-import { useGetMyNotificationCountQuery } from "@/redux/api/notificationApi";
 import Cookies from "js-cookie";
 import { jwtDecode } from "jwt-decode";
 import Image from "next/image";
@@ -36,35 +36,29 @@ const Topbar: React.FC<{ onHamburgerClick: () => void }> = ({
   const isNotificationActive = pathname === "/admin/notification";
 
   const getPageTitle = () => {
-    if (pathname.includes("/estimate")) {
-      return "Estimate";
-    }
-    if (pathname.includes("/dashboard")) {
-      return "Overview";
-    }
-    if (pathname.includes("/employee-management")) {
-      return "Employee Management";
-    }
-    if (pathname.includes("/estimator-management")) {
-      return "Estimator Management";
-    }
-    if (pathname.includes("/invoice")) {
-      return "Invoices Management";
-    }
-    if (pathname.includes("/office-administration")) {
-      return "Office Administration";
-    }
-    if (pathname.includes("/calendar")) {
-      return "Calendar";
-    }
-    if (pathname.includes("/message")) {
-      return "Messages";
-    }
-    if (pathname.includes("/settings")) {
-      return "Settings";
+    const segments = pathname.split("/").filter(Boolean);
+
+    const featureSegment =
+      segments[0] === "admin" || segments[0] === "employee"
+        ? segments[1]
+        : segments[0];
+
+    if (!featureSegment) return "";
+
+    const overrides: Record<string, string> = {
+      dashboard: "Overview",
+      invoice: "Invoices Management",
+      message: "Messages",
+    };
+
+    if (overrides[featureSegment]) {
+      return overrides[featureSegment];
     }
 
-    return "";
+    return featureSegment
+      .split("-")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
   };
 
   return (

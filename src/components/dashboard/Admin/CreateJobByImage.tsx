@@ -1,6 +1,6 @@
 "use client";
 
-import { useJobRequestByImageMutation } from "@/redux/api/jobApi";
+import { useJobRequestByImageMutation } from "@/redux/api/admin/jobApi";
 import { useState } from "react";
 import { ColorRing } from "react-loader-spinner";
 

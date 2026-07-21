@@ -1,14 +1,14 @@
 "use client";
 
+import { ImageUploadArea } from "@/components/ui/ImageUploadArea";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ImageUploadArea } from "@/components/ui/ImageUploadArea";
 
 import {
   useGetOfficesQuery,
   useUpdateJobRequestMutation,
-} from "@/redux/api/jobApi";
+} from "@/redux/api/admin/jobApi";
 
 interface FormData {
   title: string;

@@ -170,6 +170,33 @@ export default function EmployeeManagement({
     }
   };
 
+  const handleToggleStatus = async (row: any) => {
+    try {
+      const newStatus = row.status === "active" ? "INACTIVE" : "ACTIVE";
+      const result = await Swal.fire({
+        title: "Are you sure?",
+        text: `Do you want to change the status to ${newStatus}?`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Yes, change it!",
+      });
+
+      if (result.isConfirmed) {
+        await updateUser({
+          userId: row.id,
+          data: {
+            status: newStatus,
+          },
+        }).unwrap();
+        toast.success(`User status updated to ${newStatus}`);
+      }
+    } catch (err: any) {
+      toast.error(err?.data?.message || "Failed to update status");
+    }
+  };
+
   const totalPages = normalizedSearchTerm
     ? 1
     : employeesList?.result?.meta?.totalPages ||
@@ -211,6 +238,7 @@ export default function EmployeeManagement({
           setModalOpen(true);
         }}
         onDelete={handleDelete}
+        onToggleStatus={handleToggleStatus}
       />
 
       {/* VIEW MODAL */}
@@ -232,8 +260,44 @@ export default function EmployeeManagement({
           },
         ]}
       >
-        {isLoading ? (
-          <p className="text-center py-10">Loading...</p>
+        {isSingleLoading ? (
+          <div className="space-y-6">
+            <div className="space-y-6 animate-pulse">
+              <div className="flex justify-between border-b p-3">
+                <div className="h-4 w-24 bg-gray-200 rounded"></div>
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
+                  <div className="h-4 w-32 bg-gray-200 rounded"></div>
+                </div>
+              </div>
+
+              <div className="flex justify-between border-b p-3">
+                <div className="h-4 w-24 bg-gray-200 rounded"></div>
+                <div className="h-4 w-40 bg-gray-200 rounded"></div>
+              </div>
+
+              <div className="flex justify-between border-b p-3">
+                <div className="h-4 w-24 bg-gray-200 rounded"></div>
+                <div className="h-4 w-32 bg-gray-200 rounded"></div>
+              </div>
+
+              <div className="flex justify-between border-b p-3">
+                <div className="h-4 w-24 bg-gray-200 rounded"></div>
+                <div className="h-4 w-32 bg-gray-200 rounded"></div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="bg-gray-100 p-4 rounded text-center">
+                    <div className="h-4 w-3/4 bg-gray-200 rounded mx-auto mb-2"></div>
+                    <div className="h-6 w-1/2 bg-gray-200 rounded mx-auto"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <EmployeeSchedule data={[]} loading={true} />
+          </div>
         ) : employee ? (
           <div className="space-y-6">
             <div className="flex justify-between border-b p-3">

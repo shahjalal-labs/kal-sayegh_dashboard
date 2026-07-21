@@ -143,14 +143,11 @@ export default function AdministorManagement({
   };
 
   const handleUpdate = async () => {
-    if (!selectedRow?.id) return;
-
     try {
       await updateUser({
-        userId: selectedRow.id,
+        userId: selectedRow?.id,
         data: {
           fullName: formData.fullName,
-
           profession: formData.profession,
         },
       }).unwrap();
@@ -160,6 +157,34 @@ export default function AdministorManagement({
       await refetch();
     } catch (err: any) {
       toast.error(err?.data?.message || "Update failed");
+    }
+  };
+
+  const handleToggleStatus = async (row: any) => {
+    try {
+      const newStatus = row.status === "ACTIVE" || row.status === "active" ? "INACTIVE" : "ACTIVE";
+      const result = await Swal.fire({
+        title: "Are you sure?",
+        text: `Do you want to change the status to ${newStatus}?`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Yes, change it!",
+      });
+
+      if (result.isConfirmed) {
+        await updateUser({
+          userId: row.id,
+          data: {
+            status: newStatus,
+          },
+        }).unwrap();
+        toast.success(`Administrator status updated to ${newStatus}`);
+        await refetch();
+      }
+    } catch (err: any) {
+      toast.error(err?.data?.message || "Failed to update status");
     }
   };
 
@@ -186,6 +211,7 @@ export default function AdministorManagement({
             setModalOpen(true);
           }}
           onDelete={(row) => handleDelete(row as Administrator)}
+          onToggleStatus={handleToggleStatus}
         />
       </div>
 

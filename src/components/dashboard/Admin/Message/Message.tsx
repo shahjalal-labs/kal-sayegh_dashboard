@@ -23,8 +23,8 @@ import {
   useGenerateUrlMutation,
   useInviteGroupMutation,
 } from "@/redux/api/admin/messageApi";
+import { useGetAllUsersQuery } from "@/redux/api/admin/userApi";
 import { useMyProfileQuery } from "@/redux/api/authApi";
-import { useGetAllUsersQuery } from "@/redux/api/userApi";
 import ChatSidebar from "./ChatSidebar";
 
 type ChatMessage = {

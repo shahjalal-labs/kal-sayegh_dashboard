@@ -2,7 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { useCreateGroupMutation } from "@/redux/api/admin/messageApi";
-import { useGetAllUsersQuery } from "@/redux/api/userApi";
+import { useGetAllUsersQuery } from "@/redux/api/admin/userApi";
 import { formatDistanceToNowStrict } from "date-fns";
 
 import { Plus, Search } from "lucide-react";

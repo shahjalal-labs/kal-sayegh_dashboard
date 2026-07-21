@@ -56,6 +56,19 @@ const adminDashboardApi = baseApi.injectEndpoints({
         params: { period },
       }),
     }),
+
+    getPendingUser: builder.query({
+      query: ({ page = 1, limit = 20, searchTerm = "" }) => ({
+        url: "/admin/pending-users/all",
+        method: "GET",
+        params: {
+          page,
+          limit,
+          searchTerm,
+        },
+      }),
+      providesTags: ["user"],
+    }),
   }),
 });
 
@@ -66,4 +79,5 @@ export const {
   useGetSingleUserQuery,
   useUpdateUserMutation,
   useGetHoursTrendQuery,
+  useGetPendingUserQuery,
 } = adminDashboardApi;

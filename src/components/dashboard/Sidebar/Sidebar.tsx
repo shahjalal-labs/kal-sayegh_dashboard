@@ -18,7 +18,7 @@ import { logOut } from "@/redux/ReduxFunction";
 
 import Cookies from "js-cookie";
 import { jwtDecode } from "jwt-decode";
-import { LayoutDashboard, LogOut, X } from "lucide-react";
+import { LayoutDashboard, LogOut, Users, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -93,6 +93,12 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
   if (user?.role === "ADMIN") {
     allMenuItems = [
       { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+      {
+        href: "/admin/pending-users",
+        icon: Users,
+        label: "All Pending Users",
+        isImage: false,
+      },
       {
         href: "/admin/employee-management",
         icon: filemanagement,

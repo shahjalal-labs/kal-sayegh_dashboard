@@ -1,6 +1,6 @@
 "use client";
 
-import { useCreateOfficeMutation } from "@/redux/api/jobApi";
+import { useCreateOfficeMutation } from "@/redux/api/admin/jobApi";
 import { useState } from "react";
 import { toast } from "sonner";
 import { CustomModal } from "../modal/CustomModal";

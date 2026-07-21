@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit, Eye } from "lucide-react";
+import { Edit, Eye, Power } from "lucide-react";
 import React from "react";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { ColorRing } from "react-loader-spinner";
@@ -26,6 +26,7 @@ interface ReusableTableProps {
   onView?: (row: any) => void;
   onEdit?: (row: any) => void;
   onDelete?: (row: any) => void;
+  onToggleStatus?: (row: any) => void;
 
   page?: number;
   totalPages?: number;
@@ -40,6 +41,7 @@ const ReusableTable: React.FC<ReusableTableProps> = ({
   onView,
   onEdit,
   onDelete,
+  onToggleStatus,
   page = 1,
   totalPages = 1,
   onPageChange,
@@ -124,6 +126,24 @@ const ReusableTable: React.FC<ReusableTableProps> = ({
                         >
                           <RiDeleteBin6Line size={20} />
                         </button>
+
+                        {onToggleStatus && (
+                          <button
+                            onClick={() => onToggleStatus(row)}
+                            className={
+                              row.status === "active"
+                                ? "text-green-600"
+                                : "text-gray-400"
+                            }
+                            title={
+                              row.status === "active"
+                                ? "Deactivate"
+                                : "Activate"
+                            }
+                          >
+                            <Power size={20} />
+                          </button>
+                        )}
                       </div>
                     ) : col.key === "status" ? (
                       getStatusBadge(row[col.key])

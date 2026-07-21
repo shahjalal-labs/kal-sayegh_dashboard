@@ -1,6 +1,6 @@
 import { IResponse } from "@/types/common.type";
 import { CreateUserPayload, IUser } from "@/types/user.Type";
-import baseApi from "./baseApi";
+import baseApi from "../baseApi";
 
 const userApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({

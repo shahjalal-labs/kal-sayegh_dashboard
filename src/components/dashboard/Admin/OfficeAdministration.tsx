@@ -7,7 +7,7 @@ import {
   useJobRequestByImageMutation,
   useOfficeDeleteMutation,
   useUpdateJobRequestMutation,
-} from "@/redux/api/jobApi";
+} from "@/redux/api/admin/jobApi";
 import { Calendar, Mail, MapPin, Phone } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";

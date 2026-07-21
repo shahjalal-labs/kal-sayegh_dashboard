@@ -28,7 +28,7 @@ export default function EmployeeManagementPage() {
 
           <button
             onClick={() => setActiveTab("admin")}
-            className={`px-6 md:px-10 py-1 md:py-4 rounded-lg transition-all ${
+            className={`px-6 xl:px-10 py-1 xl:py-4 rounded-lg transition-all md:mr-8 ${
               activeTab === "admin"
                 ? "bg-primary text-secondary"
                 : "border border-primary text-primary"
