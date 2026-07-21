@@ -15,15 +15,22 @@ import { PenLine, Plus, Search } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ColorRing } from "react-loader-spinner";
 
 export default function Estimate() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isOpen, setIsOpen] = useState(false);
+  const activeTab = searchParams.get("tab") || "pending";
 
-  const [activeTab, setActiveTab] = useState("pending");
+  const setActiveTab = (tab: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tab);
+    router.push(`?${params.toString()}`);
+  };
+
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 20;
