@@ -12,13 +12,14 @@ const invoiceApi = baseApi.injectEndpoints({
     }),
 
     getAllInvoice: builder.query({
-      query: ({ limit, page, searchTerm }) => ({
+      query: ({ limit, page, searchTerm, status }) => ({
         url: "/invoice/all-invoices",
         method: "GET",
         params: {
           limit,
           page,
           searchTerm,
+          ...(status && { status }),
         },
       }),
       providesTags: ["estimate"],

@@ -449,7 +449,7 @@ export default function Estimate() {
                               <span
                                 className={`px-3 py-1 text-base rounded-full md:hidden block ${stageClasses}`}
                               >
-                                <span className="text-base font-medium">
+                                <span className="text-sm font-medium">
                                   {stageLabel}
                                 </span>
                               </span>
@@ -460,7 +460,7 @@ export default function Estimate() {
                             <span
                               className={`px-3 py-1 text-base rounded-full ${stageClasses}`}
                             >
-                              <span className="text-base font-medium">
+                              <span className="text-sm font-medium">
                                 {stageLabel}
                               </span>
                             </span>

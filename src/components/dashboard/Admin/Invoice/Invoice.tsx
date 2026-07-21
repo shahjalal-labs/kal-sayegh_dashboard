@@ -11,18 +11,28 @@ import {
 import { useGetAllInvoiceQuery } from "@/redux/api/admin/invoiceApi";
 import { PencilLine, PenLine, Plus, Search } from "lucide-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { ColorRing } from "react-loader-spinner";
 
 import openEmail from "@/assets/dashboard/openEmail.png";
 import sentEmail from "@/assets/dashboard/sentEmail.png";
 import Link from "next/link";
 
-export default function Invoice() {
+function InvoiceContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState("active");
+  const activeTab = searchParams.get("tab") || "active";
+
+  const setActiveTab = (tab: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tab);
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
@@ -34,6 +44,7 @@ export default function Invoice() {
     limit: pageSize,
     page,
     searchTerm: searchTerm,
+    status: activeTab === "paid" ? "PAID" : "ACTIVE",
   });
 
   const apiResult = invoicesData?.result;
@@ -307,7 +318,6 @@ export default function Invoice() {
                             <p className="text-lg font-semibold leading-tight text-gray-900">
                               {item.invoiceName} - {getInvoiceRef(item.id)}
                             </p>
-                            <div className="mt-1 h-px w-full bg-[#cfe8c7]" />
                           </div>
 
                           <div className="shrink-0 text-right">
@@ -348,7 +358,7 @@ export default function Invoice() {
                               )}
 
                               <span
-                                className={`inline-flex rounded-full px-2.5 py-1 text-base font-semibold ${getInvoiceStatusClasses(item)}`}
+                                className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${getInvoiceStatusClasses(item)}`}
                               >
                                 {getInvoiceStatusLabel(item)}
                               </span>
@@ -368,7 +378,7 @@ export default function Invoice() {
                       <div className="hidden md:flex md:flex-row md:items-center md:justify-between gap-4 md:pb-0 md:border-0">
                         <div className="flex-1 md:flex-none md:w-[30%] ">
                           <div className="flex items-center justify-between gap-2 w-full ">
-                            <span className="font-semibold text-gray-800 border-[#52C41A] border-b">
+                            <span className="font-semibold text-gray-800 md:border-[#52C41A] md:border-b">
                               {item.invoiceName || "Untitled Invoice"}
                             </span>
                           </div>
@@ -390,9 +400,9 @@ export default function Invoice() {
 
                         <div className="md:block hidden">
                           <span
-                            className={`px-3 py-1 text-base  rounded-full ${getInvoiceStatusClasses(item)}`}
+                            className={`px-4 py-1.5 rounded-full ${getInvoiceStatusClasses(item)}`}
                           >
-                            <span className="text-base  font-medium">
+                            <span className="text-sm font-medium">
                               {getInvoiceStatusLabel(item)}
                             </span>
                           </span>
@@ -468,7 +478,7 @@ export default function Invoice() {
         )}
       </div>
 
-      {totalPagesCount > 1 && (
+      {invoices.length > 0 && totalPagesCount > 1 && (
         <div className="mt-6 flex flex-col items-center justify-between gap-3 rounded-b-2xl  p-3 md:flex-row md:px-4 md:py-3">
           <Pagination>
             <PaginationContent>
@@ -513,5 +523,24 @@ export default function Invoice() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function Invoice() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center h-64">
+          <ColorRing
+            visible={true}
+            height="70"
+            width="70"
+            colors={["#e15b64", "#f47e60", "#f8b26a", "#abbd81", "#849b87"]}
+          />
+        </div>
+      }
+    >
+      <InvoiceContent />
+    </Suspense>
   );
 }
