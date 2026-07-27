@@ -163,14 +163,14 @@ export default function OfficeAdministration() {
 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [updateJobRequest] = useUpdateJobRequestMutation();
-  const [jobRequestByImage] = useJobRequestByImageMutation();
+  const [jobRequestByImage, { isLoading: isJobFormLoading }] = useJobRequestByImageMutation();
 
   const {
     data,
     isLoading: officesLoading,
     refetch: refetchOffices,
   } = useGetOfficesQuery({});
-  const offices = data?.result || [];
+  const offices = data?.result ? [...data.result].reverse() : [];
 
   const [deleteOffice] = useOfficeDeleteMutation();
 
@@ -317,6 +317,7 @@ export default function OfficeAdministration() {
 
       console.log(res);
 
+      await refetchAllJobs();
       setJobFormOpen(false);
 
       setFormByImage({
@@ -397,6 +398,9 @@ export default function OfficeAdministration() {
           <CreateJobForm
             onClose={() => {
               setOpenModal(false);
+            }}
+            onSuccess={() => {
+              refetchAllJobs();
             }}
           />
         </CustomModal>
@@ -535,7 +539,8 @@ export default function OfficeAdministration() {
               <button
                 type="button"
                 onClick={() => setJobFormOpen(false)}
-                className="rounded-xl border-2 border-primary px-8 py-2 text-primary transition-colors duration-300 hover:bg-primary hover:text-white"
+                disabled={isJobFormLoading}
+                className="rounded-xl border-2 border-primary px-8 py-2 text-primary transition-colors duration-300 hover:bg-primary hover:text-white disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 Close
               </button>
@@ -543,9 +548,10 @@ export default function OfficeAdministration() {
               <button
                 type="button"
                 onClick={handleJobByImage}
-                className="rounded-xl bg-primary px-8 py-2 text-white transition-all hover:bg-primary/90"
+                disabled={isJobFormLoading}
+                className="rounded-xl bg-primary px-8 py-2 text-white transition-all hover:bg-primary/90 disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                Submit
+                {isJobFormLoading ? "Submitting..." : "Submit"}
               </button>
             </div>
           </div>

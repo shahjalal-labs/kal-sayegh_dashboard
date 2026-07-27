@@ -34,7 +34,9 @@ export function ImageUploadArea({
     const imageFiles = Array.from(fileList).filter((f) =>
       f.type.startsWith("image/"),
     );
-    if (imageFiles.length) onFiles(imageFiles);
+    if (imageFiles.length) {
+      onFiles(multiple ? imageFiles : [imageFiles[0]]);
+    }
   };
 
   // ── drag & drop ──────────────────────────────────────────────────────────

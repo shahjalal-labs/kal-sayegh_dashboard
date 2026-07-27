@@ -3,6 +3,7 @@
 import ContractModal from "@/components/modal/ContractModal";
 import CommonTable from "@/components/table/CommonTable";
 import Summary from "@/components/table/summary";
+import { ImageUploadArea } from "@/components/ui/ImageUploadArea";
 import { Textarea } from "@/components/ui/Textarea";
 import ToggleSwitch from "@/components/ui/ToggleSwitch";
 import { useGetAllContractsQuery } from "@/redux/api/admin/contractApi";
@@ -18,7 +19,6 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { AiOutlineUserAdd } from "react-icons/ai";
 import { toast } from "sonner";
-import { ImageUploadArea } from "@/components/ui/ImageUploadArea";
 
 export default function AddInvoice() {
   const router = useRouter();
@@ -84,7 +84,8 @@ export default function AddInvoice() {
     serviceZip: "",
   });
 
-  const [isServiceAddressDifferent, setIsServiceAddressDifferent] = useState(false);
+  const [isServiceAddressDifferent, setIsServiceAddressDifferent] =
+    useState(false);
 
   const handleClientChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setClientForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -93,7 +94,12 @@ export default function AddInvoice() {
   const handleCreateClient = async () => {
     try {
       if (isServiceAddressDifferent) {
-        if (!clientForm.serviceAddress || !clientForm.serviceCity || !clientForm.serviceState || !clientForm.serviceZip) {
+        if (
+          !clientForm.serviceAddress ||
+          !clientForm.serviceCity ||
+          !clientForm.serviceState ||
+          !clientForm.serviceZip
+        ) {
           toast.error("Please fill in all Service Address fields.");
           return;
         }
@@ -233,7 +239,9 @@ export default function AddInvoice() {
         depositAmount: Math.round(tableData.summaryDeposit?.value || 0),
         discountAmount: Math.round(tableData.summaryDiscount?.value || 0),
         endDate: formData.endDate,
-        grandTotal: Math.round(tableData.grandTotal || 0),
+        grandTotal: Math.round(
+          tableData.calculatedGrandTotal || tableData.grandTotal || 0,
+        ),
         invoiceName: formData.invoiceName,
         legendary: formData.legendary,
         noteForClient: formData.noteForClient,
@@ -262,9 +270,9 @@ export default function AddInvoice() {
         setFormData({
           additionalMarkUp: 0,
           clientId: "",
-          clientSign: true,
+          clientSign: false,
           contractId: "",
-          coverPaymentProcessingFee: true,
+          coverPaymentProcessingFee: false,
           date: "",
           depositAmount: 0,
           discountAmount: 0,
@@ -276,12 +284,12 @@ export default function AddInvoice() {
           daysToPay: "",
           legendary: "",
           isGroupingEnabled: false,
-          isOnlinePayment: true,
+          isOnlinePayment: false,
           items: [],
           noteForClient: "",
           privateNote: "",
           poNumber: "",
-          mySign: true,
+          mySign: false,
         });
 
         setTableData(null);
@@ -368,21 +376,21 @@ export default function AddInvoice() {
             <button
               onClick={handleSubmit}
               disabled={isLoading}
-              className="px-8 py-2 bg-primary hover:bg-primary/80 transition-colors text-white rounded-lg"
+              className="px-8 py-2 bg-primary hover:bg-primary/80 transition-colors text-white rounded-lg cursor-pointer"
             >
               Submit Invoice
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 ">
+          <div className="w-full">
             {/* Left */}
-            <div className="col-span-2 hidden md:block text-lg">
+            <div className=" hidden md:block text-lg mb-6">
               <p className="text-base text-gray-500">United States</p>
               <p className="text-base text-gray-500">kal@geopaving.com</p>
             </div>
 
             {/* Right Form */}
-            <div className="space-y-4 mt-10 md:mt-10">
+            <div className="space-y-4 w-full">
               <div
                 onClick={() => setOpenClientModal(true)}
                 className="border border-dashed border-primary bg-orange-50 hover:bg-orange-100 rounded-xl p-10 flex items-center justify-center text-orange-500 cursor-pointer  duration-300"
@@ -431,10 +439,11 @@ export default function AddInvoice() {
                                 setOpen(false);
                               }}
                               className={`p-4 border rounded-xl cursor-pointer transition shadow-sm
-                              ${selectedClient?.id === client.id
+                              ${
+                                selectedClient?.id === client.id
                                   ? "bg-primary text-white border-primary"
                                   : "hover:bg-orange-50"
-                                }`}
+                              }`}
                             >
                               <p className="font-semibold text-base">
                                 {client.clientName}
@@ -519,115 +528,102 @@ export default function AddInvoice() {
                 </div>
               )}
 
-              <div className="space-y-2">
-                <label>Invoice Name</label>
-                <input
-                  placeholder="Invoice name"
-                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
-                  value={formData.invoiceName}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      invoiceName: e.target.value,
-                    }))
-                  }
-                />
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                <div className="space-y-2">
+                  <label>Invoice Name</label>
+                  <input
+                    placeholder="Invoice name"
+                    className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
+                    value={formData.invoiceName}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        invoiceName: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <label>Invoice Number</label>
-                <input
-                  placeholder="Invoice number"
-                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
-                  value={formData.invoiceNumber}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      invoiceNumber: e.target.value,
-                    }))
-                  }
-                />
-              </div>
+                <div className="space-y-2">
+                  <label>Date</label>
+                  <input
+                    type="date"
+                    className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
+                    value={formData.date}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, date: e.target.value }))
+                    }
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <label>Date</label>
-                <input
-                  type="date"
-                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
-                  value={formData.date}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, date: e.target.value }))
-                  }
-                />
-              </div>
+                <div className="space-y-2">
+                  <label>End Date</label>
+                  <input
+                    type="date"
+                    className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
+                    value={formData.endDate}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        endDate: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label>Days to pay</label>
+                  <input
+                    placeholder="Days to pay"
+                    className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
+                    value={formData.daysToPay}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        daysToPay: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label>PO Number</label>
+                  <input
+                    placeholder="PO Number"
+                    type="number"
+                    className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
+                    value={formData.poNumber}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        poNumber: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label>Legendary</label>
+                  <input
+                    placeholder="Legendary"
+                    className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
+                    value={formData.legendary}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        legendary: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <label>End Date</label>
-                <input
-                  type="date"
-                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
-                  value={formData.endDate}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      endDate: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <label>Days to pay</label>
-                <input
-                  placeholder="Days to pay"
-                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
-                  value={formData.daysToPay}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      daysToPay: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <label>PO Number</label>
-                <input
-                  placeholder="PO Number"
-                  type="number"
-                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
-                  value={formData.poNumber}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      poNumber: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <label>Legendary</label>
-                <input
-                  placeholder="Legendary"
-                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
-                  value={formData.legendary}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      legendary: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-
-              <div>
-                <label className="text-base text-gray-600">Contract </label>
-                <input
-                  onClick={() => setAddContractModalOpen(true)}
-                  placeholder="Contract "
-                  value={selectedContractTitle}
-                  readOnly
-                  className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary"
-                />
+                <div className="space-y-2">
+                  <label className="text-base text-gray-600">Contract </label>
+                  <input
+                    onClick={() => setAddContractModalOpen(true)}
+                    placeholder="Contract "
+                    value={selectedContractTitle}
+                    readOnly
+                    className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                  />
+                </div>
               </div>
               <ContractModal
                 open={addContractModalOpen}
@@ -671,13 +667,16 @@ export default function AddInvoice() {
             </div>
           </div>
 
-          <CommonTable key={tableKey} onDataChange={setTableData} />
+          <div className="mt-10">
+            <CommonTable key={tableKey} onDataChange={setTableData} />
+          </div>
 
           <div className="mt-7">
             <label className="text-lg text-gray-600">Side Map</label>
 
             <ImageUploadArea
-              onFiles={(files) => setSideMaps((prev) => [...prev, ...files])}
+              multiple={false}
+              onFiles={(files) => setSideMaps(files)}
             />
 
             {sideMaps.length > 0 && (
@@ -840,7 +839,9 @@ export default function AddInvoice() {
                 </div>
               </div>
 
-              <p className="text-xl md:text-2xl font-normal mt-6 mb-2">Billing Address</p>
+              <p className="text-xl md:text-2xl font-normal mt-6 mb-2">
+                Billing Address
+              </p>
 
               {/* Address */}
               <div>
@@ -896,7 +897,9 @@ export default function AddInvoice() {
                 <ToggleSwitch
                   label="Billing address is different than Service address"
                   checked={isServiceAddressDifferent}
-                  onToggle={() => setIsServiceAddressDifferent(!isServiceAddressDifferent)}
+                  onToggle={() =>
+                    setIsServiceAddressDifferent(!isServiceAddressDifferent)
+                  }
                   labelClassName="text-base font-medium text-gray-800"
                 />
               </div>
@@ -904,7 +907,9 @@ export default function AddInvoice() {
               {/* Service Address */}
               {isServiceAddressDifferent && (
                 <>
-                  <p className="text-xl md:text-2xl font-normal mt-6 mb-2">Service Address</p>
+                  <p className="text-xl md:text-2xl font-normal mt-6 mb-2">
+                    Service Address
+                  </p>
 
                   <div>
                     <label className="text-sm">Address</label>

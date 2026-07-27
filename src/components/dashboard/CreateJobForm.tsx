@@ -25,16 +25,18 @@ interface CreateJobFormProps {
   selectedJob?: any;
 
   onClose?: () => void;
+  onSuccess?: () => void;
 }
 
 export default function CreateJobForm({
   selectedJob,
   onClose,
+  onSuccess,
 }: CreateJobFormProps) {
   const { data } = useGetOfficesQuery({});
   const offices = data?.result;
 
-  const [createJobRequest] = useCreateJobRequestMutation();
+  const [createJobRequest, { isLoading }] = useCreateJobRequestMutation();
 
   const [form, setForm] = useState<FormData>({
     title: "",
@@ -113,6 +115,14 @@ export default function CreateJobForm({
 
       setImages([]);
       setPreview([]);
+      
+      if (onClose) {
+        onClose();
+      }
+      
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (err) {
       console.log(err);
       toast.error("Failed to create job request.");
@@ -250,9 +260,12 @@ export default function CreateJobForm({
           </button>
           <button
             onClick={handleSubmit}
-            className="bg-primary text-white px-8 py-2 rounded-xl hover:bg-primary/90 transition-all"
+            disabled={isLoading}
+            className={`bg-primary text-white px-8 py-2 rounded-xl transition-all ${
+              isLoading ? "opacity-70 cursor-not-allowed" : "hover:bg-primary/90"
+            }`}
           >
-            Submit
+            {isLoading ? "Submitting..." : "Submit"}
           </button>
         </div>
       </div>

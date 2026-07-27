@@ -56,7 +56,10 @@ export default function EditEstimate() {
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const sideMapRef = useRef<HTMLInputElement | null>(null);
   const imageRef = useRef<HTMLInputElement | null>(null);
-  const [selectedMarkup, setSelectedMarkup] = useState<any>(null);
+  const [summaryMarkup, setSummaryMarkup] = useState<any>(null);
+  const [summaryTax, setSummaryTax] = useState<any>(null);
+  const [summaryDiscount, setSummaryDiscount] = useState<any>(null);
+  const [summaryDeposit, setSummaryDeposit] = useState<any>(null);
   const [addContractModalOpen, setAddContractModalOpen] = useState(false);
   const [tableData, setTableData] = useState<any>(null);
   const [tableKey, setTableKey] = useState(0);
@@ -144,6 +147,22 @@ export default function EditEstimate() {
       });
       setInitialItems(mappedInitialItems);
       setTableKey(Date.now());
+
+      if (currentEstimate.additionalMarkUp) {
+        setSummaryMarkup({ percentage: currentEstimate.additionalMarkUp });
+      }
+      if (currentEstimate.discountAmount) {
+        setSummaryDiscount({
+          value: currentEstimate.discountAmount,
+          unit: "flat",
+        });
+      }
+      if (currentEstimate.depositAmount) {
+        setSummaryDeposit({
+          value: currentEstimate.depositAmount,
+          unit: "flat",
+        });
+      }
     }
   }, [currentEstimate]);
 
@@ -182,9 +201,6 @@ export default function EditEstimate() {
 
   const [lineItemTables, setLineItemTables] = useState<LineItemTable[]>([]);
 
-  const [discount, setDiscount] = useState<number | null>(null);
-  const [deposit, setDeposit] = useState<number | null>(null);
-
   const grandSubtotal = lineItemTables.reduce((acc, table) => {
     return (
       acc +
@@ -204,36 +220,19 @@ export default function EditEstimate() {
       Number(estimateForm.additionalMarkUp) !== 0
     ) {
       total += (total * Number(estimateForm.additionalMarkUp)) / 100;
-    } else if (selectedMarkup?.percentage) {
-      total += (total * selectedMarkup.percentage) / 100;
+    } else if (summaryMarkup?.percentage) {
+      total += (total * summaryMarkup.percentage) / 100;
     }
 
-    if (discount) {
-      total -= (total * discount) / 100;
+    if (summaryDiscount?.value) {
+      total -= (total * summaryDiscount.value) / 100;
     }
 
-    if (deposit) {
-      total -= (total * deposit) / 100;
+    if (summaryDeposit?.value) {
+      total -= (total * summaryDeposit.value) / 100;
     }
 
     return total;
-  };
-
-  const handleCommonTableChange = (data: any) => {
-    try {
-      setTableData(data);
-      if (data?.summaryMarkup) setSelectedMarkup(data.summaryMarkup);
-      else setSelectedMarkup(null);
-
-      if (data?.summaryDiscount)
-        setDiscount(data.summaryDiscount.value ?? null);
-      else setDiscount(null);
-
-      if (data?.summaryDeposit) setDeposit(data.summaryDeposit.value ?? null);
-      else setDeposit(null);
-    } catch (e) {
-      console.error("Failed to sync common table data", e);
-    }
   };
 
   const [formData, setFormData] = useState({
@@ -456,7 +455,9 @@ export default function EditEstimate() {
           0,
         discountAmount: Math.round(tableData.summaryDiscount?.value || 0),
         depositAmount: Math.round(tableData.summaryDeposit?.value || 0),
-        grandTotal: Math.round(tableData.grandTotal || calculateFinalTotal()),
+        grandTotal: Math.round(
+          tableData.calculatedGrandTotal || calculateFinalTotal(),
+        ),
       };
 
       const formDataPayload = new FormData();
@@ -785,11 +786,11 @@ export default function EditEstimate() {
           />
         </div>
 
-        <div>
+        <div className="mt-10">
           <CommonTable
             key={tableKey}
             initialItems={initialItems}
-            onDataChange={handleCommonTableChange}
+            onDataChange={setTableData}
           />
         </div>
 
@@ -881,7 +882,26 @@ export default function EditEstimate() {
           </div>
         </div>
 
-        <Summary tableData={tableData} onDataChange={setTableData} />
+        <Summary
+          tableData={tableData}
+          onDataChange={setTableData}
+          summaryMarkup={summaryMarkup}
+          summaryTax={summaryTax}
+          summaryDiscount={summaryDiscount}
+          summaryDeposit={summaryDeposit}
+          handleSelectSummaryMarkup={setSummaryMarkup}
+          handleSelectSummaryTax={setSummaryTax}
+          setSummaryDiscount={(valOrFn: any) =>
+            setSummaryDiscount((prev: any) =>
+              typeof valOrFn === "function" ? valOrFn(prev) : valOrFn,
+            )
+          }
+          setSummaryDeposit={(valOrFn: any) =>
+            setSummaryDeposit((prev: any) =>
+              typeof valOrFn === "function" ? valOrFn(prev) : valOrFn,
+            )
+          }
+        />
         <div className="flex justify-end ">
           <div className="grid grid-cols-1  gap-3 my-12 w-full md:w-80 border-t">
             <ToggleSwitch

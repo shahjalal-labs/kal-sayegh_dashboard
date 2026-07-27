@@ -128,7 +128,6 @@ const invoiceApi = baseApi.injectEndpoints({
     // Payment: builder.mutation({
     //   query: ({ invoiceId, payload }) => ({
     //     url: `/invoice/pay-with-stripe/${invoiceId}`,
-    //     method: "POST",
     //     body: payload,
     //   }),
     // }),
@@ -193,6 +192,7 @@ export const {
   useInvoiceManualPaymentMutation,
   useRefundPaymentMutation,
   usePublicInvoiceDetailsQuery,
+
   useUpdateEmailStatusMutation,
   useGenerateFromEstimateMutation,
   usePaymentIntentMutation,

@@ -362,7 +362,9 @@ export default function AddEstimate() {
           0,
         discountAmount: Math.round(tableData.summaryDiscount?.value || 0),
         depositAmount: Math.round(tableData.summaryDeposit?.value || 0),
-        grandTotal: Math.round(tableData.grandTotal || calculateFinalTotal()),
+        grandTotal: Math.round(
+          tableData.calculatedGrandTotal || calculateFinalTotal(),
+        ),
       };
 
       const formData = new FormData();
@@ -736,7 +738,7 @@ export default function AddEstimate() {
           />
         </div>
 
-        <div>
+        <div className="mt-10">
           <CommonTable key={tableKey} onDataChange={handleCommonTableChange} />
         </div>
 

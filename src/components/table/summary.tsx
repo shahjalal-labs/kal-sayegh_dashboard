@@ -45,6 +45,7 @@ export default function Summary({
   handleSelectSummaryTax,
   setSummaryDiscount,
   setSummaryDeposit,
+  onDataChange,
 }: any) {
   // API-backed lists (used when parent doesn't pass lists)
   const { data: allMarkup, isLoading: isLoadingMarkups } =
@@ -132,6 +133,16 @@ export default function Summary({
     else setLocalSummaryTax(t);
     closeTax();
   };
+
+  const clearDiscount = useCallback(() => {
+    if (setSummaryDiscount) setSummaryDiscount(null);
+    else setLocalSummaryDiscount(null);
+  }, [setSummaryDiscount]);
+
+  const clearDeposit = useCallback(() => {
+    if (setSummaryDeposit) setSummaryDeposit(null);
+    else setLocalSummaryDeposit(null);
+  }, [setSummaryDeposit]);
 
   const setDiscountValue = useCallback(
     (val: number) => {
@@ -314,6 +325,35 @@ export default function Summary({
     effectiveSummaryDeposit,
   );
 
+  useEffect(() => {
+    if (typeof onDataChange === "function" && tableData) {
+      if (
+        tableData.calculatedGrandTotal !== grandTotal ||
+        tableData.summaryMarkup !== effectiveSummaryMarkup ||
+        tableData.summaryTax !== effectiveSummaryTax ||
+        tableData.summaryDiscount !== effectiveSummaryDiscount ||
+        tableData.summaryDeposit !== effectiveSummaryDeposit
+      ) {
+        onDataChange({
+          ...tableData,
+          calculatedGrandTotal: grandTotal,
+          summaryMarkup: effectiveSummaryMarkup,
+          summaryTax: effectiveSummaryTax,
+          summaryDiscount: effectiveSummaryDiscount,
+          summaryDeposit: effectiveSummaryDeposit,
+        });
+      }
+    }
+  }, [
+    grandTotal,
+    effectiveSummaryMarkup,
+    effectiveSummaryTax,
+    effectiveSummaryDiscount,
+    effectiveSummaryDeposit,
+    tableData,
+    onDataChange,
+  ]);
+
   const discountDisplay = (() => {
     const d = effectiveSummaryDiscount;
     if (!d) return "Add";
@@ -360,38 +400,98 @@ export default function Summary({
           <span>${subtotal.toFixed(2)}</span>
         </div>
 
-        <div className="flex justify-between">
+        <div className="flex justify-between items-center">
           <span>Additional MarkUp</span>
-          <span className="text-orange-500 cursor-pointer" onClick={openMarkup}>
-            {markupDisplay}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-orange-500 cursor-pointer" onClick={openMarkup}>
+              {markupDisplay}
+            </span>
+            {effectiveSummaryMarkup && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  selectMarkup(null);
+                }}
+                className="text-red-500 hover:text-red-700 text-sm font-bold w-4 h-4 flex items-center justify-center rounded-full"
+                title="Remove Markup"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="flex justify-between">
+        <div className="flex justify-between items-center">
           <span>Tax</span>
-          <span className="text-orange-500 cursor-pointer" onClick={openTax}>
-            {taxDisplay}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-orange-500 cursor-pointer" onClick={openTax}>
+              {taxDisplay}
+            </span>
+            {effectiveSummaryTax && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  selectTax(null);
+                }}
+                className="text-red-500 hover:text-red-700 text-sm font-bold w-4 h-4 flex items-center justify-center rounded-full"
+                title="Remove Tax"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="flex justify-between">
+        <div className="flex justify-between items-center">
           <span>Discount</span>
-          <span
-            className="text-orange-500 cursor-pointer"
-            onClick={openDiscount}
-          >
-            {discountDisplay}
-          </span>
+          <div className="flex items-center gap-2">
+            <span
+              className="text-orange-500 cursor-pointer"
+              onClick={openDiscount}
+            >
+              {discountDisplay}
+            </span>
+            {effectiveSummaryDiscount && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  clearDiscount();
+                }}
+                className="text-red-500 hover:text-red-700 text-sm font-bold w-4 h-4 flex items-center justify-center rounded-full"
+                title="Remove Discount"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="flex justify-between">
+        <div className="flex justify-between items-center">
           <span>Request a deposit</span>
-          <span
-            className="text-orange-500 cursor-pointer"
-            onClick={openDeposit}
-          >
-            {depositDisplay}
-          </span>
+          <div className="flex items-center gap-2">
+            <span
+              className="text-orange-500 cursor-pointer"
+              onClick={openDeposit}
+            >
+              {depositDisplay}
+            </span>
+            {effectiveSummaryDeposit && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  clearDeposit();
+                }}
+                className="text-red-500 hover:text-red-700 text-sm font-bold w-4 h-4 flex items-center justify-center rounded-full"
+                title="Remove Deposit"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex justify-between font-semibold pt-2 border-t">

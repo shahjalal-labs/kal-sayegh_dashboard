@@ -55,11 +55,13 @@ export default function CreateOffice() {
             label: "Cancel",
             onClick: () => setOpenOfficeModal(false),
             variant: "secondary",
+            disabled: isLoading,
           },
           {
-            label: "Create",
+            label: isLoading ? "Creating..." : "Create",
             onClick: handleCreateOffice,
             variant: "primary",
+            disabled: isLoading,
           },
         ]}
       >

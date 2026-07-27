@@ -19,7 +19,8 @@ import { FiArrowLeft, FiDownload } from "react-icons/fi";
 import { ColorRing } from "react-loader-spinner";
 import { toast } from "sonner";
 
-import { Edit } from "lucide-react";
+import { useUpdateEstimateStatusMutation } from "@/redux/api/admin/estimateApi";
+import { CreditCard, Edit, MoreHorizontal, Printer, Send } from "lucide-react";
 import PaymentModal from "./Payment/PaymentModal";
 
 type ItemFormat = "TABLE" | "DESCRIPTION" | "IMAGE_PDF";
@@ -38,6 +39,14 @@ function normalizeItemFormat(value: any): ItemFormat {
   if (normalized === "IMAGE_PDF") return "IMAGE_PDF";
   return "DESCRIPTION";
 }
+
+const getStatusColor = (status: string | undefined) => {
+  if (!status) return "text-[#E87524]";
+  const s = status.toLowerCase();
+  if (s === "approved") return "text-green-600";
+  if (s === "declined") return "text-red-600";
+  return "text-[#E87524]";
+};
 
 export default function InvoiceDetails({ format }: { format?: string }) {
   const { id } = useParams();
@@ -58,6 +67,12 @@ export default function InvoiceDetails({ format }: { format?: string }) {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [emailInput, setEmailInput] = useState("");
   const [emailMarkedRead, setEmailMarkedRead] = useState(false);
+  const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
+  const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+
+  const [updateInvoiceStatus, { isLoading: isUpdatingStatus }] =
+    useUpdateEstimateStatusMutation();
 
   const [formData, setFormData] = useState<{
     to: string[];
@@ -78,6 +93,25 @@ export default function InvoiceDetails({ format }: { format?: string }) {
 
   const [duplicateInvoice, { isLoading: isDuplicatingInvoice }] =
     useDuplicateInvoiceMutation();
+
+  const handleUpdateStatus = async (status: string) => {
+    try {
+      const response = await updateInvoiceStatus({
+        id: editInvoiceId as string,
+        status,
+      }).unwrap();
+      if (response.success) {
+        toast.success(`Status updated to ${status} successfully`);
+        setSelectedStatus(status);
+        refetch();
+      }
+    } catch (error: any) {
+      toast.error(error?.data?.message || "Failed to update status");
+    } finally {
+      setIsStatusOpen(false);
+      setIsMobileMoreOpen(false);
+    }
+  };
 
   useEffect(() => {
     const shouldMarkRead =
@@ -558,7 +592,83 @@ export default function InvoiceDetails({ format }: { format?: string }) {
           <div className="w-10 shrink-0" aria-hidden="true" />
         </div>
 
-        <div className="flex flex-col items-start gap-6 lg:flex-row">
+        {/* Mobile Action Bar */}
+        <div className="relative w-full bg-white md:hidden flex justify-between items-center text-gray-500 pb-1 pt-1 mt-4 z-[40]">
+          <button
+            onClick={() => setIsReminderOpen(true)}
+            className="flex flex-col items-center flex-1 py-2"
+          >
+            <Send size={24} className="mb-1" />
+            <span className="text-sm font-bold uppercase tracking-wider">
+              Send
+            </span>
+          </button>
+
+          <button
+            onClick={handleDownload}
+            className="flex flex-col items-center flex-1 py-2 border-l border-gray-100"
+          >
+            <Printer size={24} className="mb-1" />
+            <span className="text-sm font-bold uppercase tracking-wider">
+              Print
+            </span>
+          </button>
+
+          <button
+            onClick={() => setIsPaymentModalOpen(true)}
+            className="flex flex-col items-center flex-1 py-2 border-l border-gray-100"
+          >
+            <CreditCard size={24} className="mb-1" />
+            <span className="text-sm font-bold uppercase tracking-wider">
+              Payment
+            </span>
+          </button>
+
+          <div className="flex-1 border-l border-gray-100 relative h-full">
+            <button
+              onClick={() => setIsMobileMoreOpen((prev) => !prev)}
+              className="flex flex-col items-center py-2 w-full h-full"
+            >
+              <MoreHorizontal size={24} className="mb-1" />
+              <span className="text-sm font-bold uppercase tracking-wider">
+                More
+              </span>
+            </button>
+
+            {isMobileMoreOpen && (
+              <div className="absolute top-full right-2 mt-2 w-48 bg-white shadow-[0_0_15px_rgba(0,0,0,0.1)] rounded-lg border border-gray-200 z-50 overflow-hidden flex flex-col">
+                <Link
+                  href={
+                    editInvoiceId
+                      ? `/admin/invoice/edit-invoice?id=${editInvoiceId}`
+                      : "/admin/invoice"
+                  }
+                  onClick={() => {
+                    if (typeof window !== "undefined" && editInvoiceId) {
+                      localStorage.setItem("editingInvoiceId", editInvoiceId);
+                    }
+                    setIsMobileMoreOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-700 text-sm border-b border-gray-100 flex items-center gap-2"
+                >
+                  <Edit size={16} /> Edit Invoice
+                </Link>
+                <button
+                  onClick={() => {
+                    handleDuplicateInvoice();
+                    setIsMobileMoreOpen(false);
+                  }}
+                  disabled={isDuplicatingInvoice}
+                  className="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-700 text-sm border-b border-gray-100 disabled:opacity-50"
+                >
+                  Duplicate
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-col items-start gap-6 lg:flex-row mt-4">
           <div className="w-full">
             <div className="hidden md:flex md:flex-row md:justify-between md:gap-4">
               <div className="flex items-center gap-3">
@@ -596,6 +706,7 @@ export default function InvoiceDetails({ format }: { format?: string }) {
                 >
                   {isDuplicatingInvoice ? "Duplicating..." : "Duplicate"}
                 </button>
+
                 <button
                   onClick={() => setIsPaymentModalOpen(true)}
                   className="group flex items-center gap-2 px-4 py-2 border-primary transition-all duration-300 border text-primary rounded-lg hover:bg-primary hover:text-white ease-in"
@@ -636,48 +747,63 @@ export default function InvoiceDetails({ format }: { format?: string }) {
                 Invoice
               </h1>
 
-              <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="hidden md:flex justify-between items-start mt-6">
                 <Image
                   src={logo}
                   alt="Logo"
-                  width={150}
-                  height={80}
-                  className="h-auto w-[120px] sm:w-[150px] md:w-[200px]"
+                  width={200}
+                  height={150}
+                  className="h-auto w-[200px]"
                 />
 
-                <div className="space-y-2 text-left text-sm leading-5 text-gray-700 sm:text-right sm:text-base">
-                  <p className="text-lg font-semibold text-black sm:text-xl">
+                <div className="text-right text-base space-y-2 text-gray-700">
+                  <p className="text-black font-semibold text-lg">
                     Prepared For
                   </p>
-                  <p>{invoice?.client?.clientName || "-"}</p>
+                  <p className="font-semibold text-black">
+                    {invoice?.client?.clientName || "-"}
+                  </p>
                   <p>{invoice?.client?.address || "-"}</p>
-                  <p>{invoice?.client?.city || "-"}</p>
-                  <p>{invoice?.client?.zip || "-"}</p>
+                  <p>{invoice?.client?.email || "-"}</p>
                   <p>{invoice?.client?.phoneNumber || "-"}</p>
                 </div>
               </div>
 
-              <div className="mt-7 grid grid-cols-1 gap-4 text-[10px] leading-5 text-gray-700 sm:gap-6 md:grid-cols-2">
-                <div className="space-y-2 text-sm sm:space-y-3 sm:text-base">
-                  <h2 className="text-lg font-semibold text-black sm:text-xl">
+              <div className="hidden md:grid grid-cols-2 gap-6 mt-8 text-base text-gray-700">
+                <div className="space-y-1">
+                  <h2 className="text-lg font-semibold text-black">
                     Geo Paving and Sealcoating
                   </h2>
-                  <p>9530 Juniper Crest Ct, Ste 1012 Rancho</p>
-                  <p>Cucamonga, CA 91730</p>
-                  <p>Phone: (626) 447-0525</p>
+                  <p>9650 Business Ctr. Dr. Ste.122 Rancho Cuc. CA91730</p>
+                  <p>185 Paularino Ave # D, Costa Mesa, CA 92626</p>
                   <p>
-                    Email:{" "}
-                    <span className="text-black">info@geopaving.com</span>
+                    <span className="font-semibold text-black">Phone</span>
+                    <span className="inline-block w-4 text-center">:</span>{" "}
+                    (951) 463-7002
                   </p>
                   <p>
-                    Web: <span className="text-black">www.geopaving.com</span>
+                    <span className="font-semibold text-black">Email</span>
+                    <span className="inline-block w-4 text-center">:</span>{" "}
+                    kal@geopaving.com
+                  </p>
+                  <p>
+                    <span className="font-semibold text-black">Web</span>
+                    <span className="inline-block w-4 text-center">:</span>{" "}
+                    www.geopaving.com
                   </p>
                 </div>
 
-                <div className="space-y-2 text-left text-sm sm:space-y-3 sm:text-base md:justify-self-end md:text-right">
+                <div className="space-y-2 justify-self-end text-right">
                   <p>
-                    <span className="font-semibold text-black">Invoice</span>
-                    <span className="inline-block w-6 text-center">:</span>#
+                    <span className="font-semibold text-black">
+                      Invoice Name
+                    </span>
+                    <span className="inline-block w-6 text-center">:</span>
+                    {invoice?.invoiceName || "-"}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-black">Invoice #</span>
+                    <span className="inline-block w-6 text-center">:</span>
                     {invoice?.invoiceNumber || invoice?.id?.slice(-4) || "-"}
                   </p>
                   <p>
@@ -691,30 +817,108 @@ export default function InvoiceDetails({ format }: { format?: string }) {
                     {invoice?.endDate || "-"}
                   </p>
                   <p>
-                    <span className="font-semibold text-black">Status</span>
-                    <span className="inline-block w-6 text-center">:</span>
-                    {invoice?.status || "-"}
-                  </p>
-                  <p>
                     <span className="font-semibold text-black">
                       Business / Tax #
                     </span>
                     <span className="inline-block w-6 text-center">:</span>
                     {invoice?.client?.zip || "-"}
                   </p>
+                  <p>
+                    <span className="font-semibold text-black">Status</span>
+                    <span className="inline-block w-6 text-center">:</span>
+                    <span
+                      className={`font-bold capitalize ${getStatusColor(invoice?.status)}`}
+                    >
+                      {invoice?.status || "Pending"}
+                    </span>
+                  </p>
                 </div>
               </div>
 
-              {invoice?.noteForClient ? (
-                <div className="mt-8 rounded-xl border border-[#d8d8d8] bg-white/70 p-4">
-                  <h2 className="mb-2 text-base font-semibold text-black sm:text-lg">
-                    Note For Client
+              {/* Mobile Layout */}
+              <div className="md:hidden mt-6 text-base text-gray-600 space-y-6">
+                <div className="flex justify-center mb-2">
+                  <Image
+                    src={logo}
+                    alt="Logo"
+                    width={200}
+                    height={150}
+                    className="h-auto w-[150px]"
+                  />
+                </div>
+                {/* Company Info */}
+                <div className="space-y-1">
+                  <h2 className="text-lg font-semibold text-black">
+                    Geo Paving and Sealcoating
                   </h2>
-                  <p className="text-sm leading-6 text-gray-700 sm:text-base">
-                    {invoice.noteForClient}
+                  <p>9650 Business Ctr. Dr. Ste.122 Rancho Cuc. CA91730</p>
+                  <p>185 Paularino Ave # D, Costa Mesa, CA 92626</p>
+                  <p>
+                    <span className="font-semibold text-black">Phone</span>
+                    <span className="inline-block w-4 text-center">:</span>{" "}
+                    (951) 463-7002
+                  </p>
+                  <p>
+                    <span className="font-semibold text-black">Email</span>
+                    <span className="inline-block w-4 text-center">:</span>{" "}
+                    kal@geopaving.com
+                  </p>
+                  <p>
+                    <span className="font-semibold text-black">Web</span>
+                    <span className="inline-block w-4 text-center">:</span>{" "}
+                    www.geopaving.com
                   </p>
                 </div>
-              ) : null}
+
+                {/* Client Info */}
+                <div className="space-y-1">
+                  <p className="text-black font-semibold text-lg">
+                    Prepared For
+                  </p>
+                  <p className="font-semibold text-black">
+                    {invoice?.client?.clientName || "-"}
+                  </p>
+                  <p>{invoice?.client?.address || "-"}</p>
+                  <p>{invoice?.client?.email || "-"}</p>
+                  <p>{invoice?.client?.phoneNumber || "-"}</p>
+                </div>
+
+                {/* Invoice Details */}
+                <div className="flex flex-col">
+                  <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                    <span className="text-gray-500">Invoice Name</span>
+                    <span className="font-semibold text-black text-right">
+                      {invoice?.invoiceName || "-"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                    <span className="text-gray-500">Invoice #</span>
+                    <span className="font-semibold text-black text-right">
+                      {invoice?.invoiceNumber || invoice?.id?.slice(-4) || "-"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                    <span className="text-gray-500">Date</span>
+                    <span className="font-semibold text-black text-right">
+                      {invoice?.date || "-"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                    <span className="text-gray-500">End Date</span>
+                    <span className="font-semibold text-black text-right">
+                      {invoice?.endDate || "-"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                    <span className="text-gray-500">Status</span>
+                    <span
+                      className={`font-bold capitalize ${getStatusColor(invoice?.status)}`}
+                    >
+                      {invoice?.status || "Pending"}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
               <div className="mt-8 space-y-8">
                 {renderTableSection()}
@@ -725,70 +929,6 @@ export default function InvoiceDetails({ format }: { format?: string }) {
 
               <div className="mt-10 space-y-3 pt-8">
                 <Conditions className="mt-2" />
-              </div>
-
-              <div className="md:hidden mt-11">
-                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                  <div className="grid grid-cols-2 gap-3">
-                    <Link
-                      href={
-                        editInvoiceId
-                          ? `/admin/invoice/edit-invoice?id=${editInvoiceId}&format=table`
-                          : "/admin/invoice"
-                      }
-                      onClick={() => {
-                        if (typeof window !== "undefined" && editInvoiceId) {
-                          localStorage.setItem(
-                            "editingInvoiceId",
-                            editInvoiceId,
-                          );
-                        }
-                      }}
-                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-primary px-3 py-2 text-sm text-primary transition-colors hover:bg-primary hover:text-white"
-                    >
-                      <Edit size={16} />
-                      Edit
-                    </Link>
-
-                    <button
-                      onClick={() => setIsReminderOpen(true)}
-                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-primary px-3 py-2 text-sm text-primary transition-colors hover:bg-primary hover:text-white"
-                    >
-                      <AiOutlineMail />
-                      Email
-                    </button>
-
-                    <button
-                      onClick={() => setIsPaymentModalOpen(true)}
-                      className="group inline-flex items-center justify-center gap-2 rounded-lg border border-primary px-3 py-2 text-sm text-primary transition-all duration-300 hover:bg-primary hover:text-white"
-                    >
-                      <Image
-                        src={paymentIcon}
-                        alt="Payment"
-                        width={18}
-                        height={18}
-                        className="transition duration-300 group-hover:brightness-0 group-hover:invert"
-                      />
-                      Payment
-                    </button>
-
-                    <button
-                      onClick={handleDownload}
-                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm text-white hover:opacity-90"
-                    >
-                      <FiDownload />
-                      Download
-                    </button>
-
-                    <button
-                      onClick={handleDuplicateInvoice}
-                      disabled={isDuplicatingInvoice}
-                      className="flex items-center gap-2 px-4 py-2 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isDuplicatingInvoice ? "Duplicating..." : "Duplicate"}
-                    </button>
-                  </div>
-                </div>
               </div>
             </div>
           </div>

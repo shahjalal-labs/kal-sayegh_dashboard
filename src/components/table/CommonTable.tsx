@@ -2,8 +2,9 @@
 
 import { CustomModal } from "@/components/modal/CustomModal";
 import { useGetAllItemsQuery } from "@/redux/api/admin/estimateApi";
+import { useGenerateUrlMutation } from "@/redux/api/admin/messageApi";
 import { FormatType } from "@/types/estimate.type";
-import { Check, Plus, Trash2 } from "lucide-react";
+import { Camera, Check, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -45,6 +46,8 @@ export default function CommonTable({
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<FormatOption>("table");
   const [selectedItem, setSelectedItem] = useState<any>(null);
+
+  const [generateUrlFn, { isLoading: isUploading }] = useGenerateUrlMutation();
 
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);

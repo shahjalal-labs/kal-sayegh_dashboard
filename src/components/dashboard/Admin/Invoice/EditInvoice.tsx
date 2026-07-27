@@ -3,6 +3,7 @@
 import ContractModal from "@/components/modal/ContractModal";
 import CommonTable from "@/components/table/CommonTable";
 import Summary from "@/components/table/summary";
+import { ImageUploadArea } from "@/components/ui/ImageUploadArea";
 import { Textarea } from "@/components/ui/Textarea";
 import ToggleSwitch from "@/components/ui/ToggleSwitch";
 import { useGetAllContractsQuery } from "@/redux/api/admin/contractApi";
@@ -10,22 +11,26 @@ import {
   useCreateClientMutation,
   useGetMyClientsQuery,
 } from "@/redux/api/admin/estimateApi";
-import { useGetInvoiceByIdQuery, useUpdateInvoiceMutation, } from "@/redux/api/admin/invoiceApi";
+import {
+  useGetInvoiceByIdQuery,
+  useUpdateInvoiceMutation,
+} from "@/redux/api/admin/invoiceApi";
 import { ArrowLeft, MapPin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AiOutlineUserAdd } from "react-icons/ai";
 import { toast } from "sonner";
-import { ImageUploadArea } from "@/components/ui/ImageUploadArea";
 
 export default function EditInvoice() {
   const router = useRouter();
   const [tableData, setTableData] = useState<any>(null);
   const [tableKey, setTableKey] = useState(0);
   const [sideMaps, setSideMaps] = useState<File[]>([]);
+  const [existingSideMap, setExistingSideMap] = useState<string | null>(null);
   const [images, setImages] = useState<File[]>([]);
+  const [existingImages, setExistingImages] = useState<string[]>([]);
   const sideMapRef = useRef<HTMLInputElement | null>(null);
   const imageRef = useRef<HTMLInputElement | null>(null);
   const [open, setOpen] = useState(false);
@@ -33,6 +38,11 @@ export default function EditInvoice() {
   const [addContractModalOpen, setAddContractModalOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [openClientModal, setOpenClientModal] = useState(false);
+
+  const [summaryMarkup, setSummaryMarkup] = useState<any>(null);
+  const [summaryTax, setSummaryTax] = useState<any>(null);
+  const [summaryDiscount, setSummaryDiscount] = useState<any>(null);
+  const [summaryDeposit, setSummaryDeposit] = useState<any>(null);
 
   const { data } = useGetMyClientsQuery({});
   const myClients = data?.result;
@@ -58,13 +68,17 @@ export default function EditInvoice() {
     }
   }, [searchParams]);
 
-  const { data: invoiceData, isLoading: isInvoiceLoading } = useGetInvoiceByIdQuery(invoiceId, { skip: !invoiceId });
-  const currentInvoice = (invoiceData as any)?.result || (invoiceData as any)?.data;
+  const { data: invoiceData, isLoading: isInvoiceLoading } =
+    useGetInvoiceByIdQuery(invoiceId, { skip: !invoiceId });
+  const currentInvoice =
+    (invoiceData as any)?.result || (invoiceData as any)?.data;
   const [initialItems, setInitialItems] = useState<any[]>([]);
 
   useEffect(() => {
     if (currentInvoice?.clientId && myClients?.length) {
-      const client = myClients.find((c: any) => c.id === currentInvoice.clientId);
+      const client = myClients.find(
+        (c: any) => c.id === currentInvoice.clientId,
+      );
       if (client) setSelectedClient(client);
     }
   }, [currentInvoice, myClients]);
@@ -75,8 +89,6 @@ export default function EditInvoice() {
   const [createClient] = useCreateClientMutation();
 
   const [updateInvoice, { isLoading }] = useUpdateInvoiceMutation();
-
-
 
   const [formData, setFormData] = useState({
     additionalMarkUp: 0,
@@ -104,7 +116,7 @@ export default function EditInvoice() {
 
   useEffect(() => {
     if (currentInvoice) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         invoiceName: currentInvoice.invoiceName || "",
         invoiceNumber: currentInvoice.invoiceNumber || "",
@@ -117,7 +129,8 @@ export default function EditInvoice() {
         legendary: currentInvoice.legendary || "",
         clientSign: currentInvoice.clientSign ?? true,
         mySign: currentInvoice.mySign ?? true,
-        coverPaymentProcessingFee: currentInvoice.coverPaymentProcessingFee ?? true,
+        coverPaymentProcessingFee:
+          currentInvoice.coverPaymentProcessingFee ?? true,
         isOnlinePayment: currentInvoice.isOnlinePayment ?? true,
         isGroupingEnabled: currentInvoice.isGroupingEnabled ?? true,
         noteForClient: currentInvoice.noteForClient || "",
@@ -128,9 +141,36 @@ export default function EditInvoice() {
         depositAmount: currentInvoice.depositAmount || 0,
       }));
 
-      const normalizedItems = currentInvoice.items || currentInvoice.lineItems || [];
+      if (currentInvoice.sideMap) {
+        setExistingSideMap(currentInvoice.sideMap);
+      }
+      if (currentInvoice.fileUrls?.length > 0) {
+        setExistingImages(currentInvoice.fileUrls);
+      }
+
+      if (currentInvoice.additionalMarkUp) {
+        setSummaryMarkup({ percentage: currentInvoice.additionalMarkUp });
+      }
+      if (currentInvoice.discountAmount) {
+        setSummaryDiscount({
+          value: currentInvoice.discountAmount,
+          unit: "flat",
+        });
+      }
+      if (currentInvoice.depositAmount) {
+        setSummaryDeposit({
+          value: currentInvoice.depositAmount,
+          unit: "flat",
+        });
+      }
+
+      const normalizedItems =
+        currentInvoice.items || currentInvoice.lineItems || [];
       const mappedInitialItems = normalizedItems.map((item: any) => {
-        const itemSubItems = (currentInvoice.subItems || []).filter((sub: any) => String(sub.itemId) === String(item.id || item.itemId || item._id));
+        const itemSubItems = (currentInvoice.subItems || []).filter(
+          (sub: any) =>
+            String(sub.itemId) === String(item.id || item.itemId || item._id),
+        );
         return {
           selectedItem: item.item || item,
           quantity: item.quantity || 1,
@@ -162,7 +202,8 @@ export default function EditInvoice() {
     serviceZip: "",
   });
 
-  const [isServiceAddressDifferent, setIsServiceAddressDifferent] = useState(false);
+  const [isServiceAddressDifferent, setIsServiceAddressDifferent] =
+    useState(false);
 
   const handleClientChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setClientForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -171,7 +212,12 @@ export default function EditInvoice() {
   const handleCreateClient = async () => {
     try {
       if (isServiceAddressDifferent) {
-        if (!clientForm.serviceAddress || !clientForm.serviceCity || !clientForm.serviceState || !clientForm.serviceZip) {
+        if (
+          !clientForm.serviceAddress ||
+          !clientForm.serviceCity ||
+          !clientForm.serviceState ||
+          !clientForm.serviceZip
+        ) {
           toast.error("Please fill in all Service Address fields.");
           return;
         }
@@ -311,7 +357,9 @@ export default function EditInvoice() {
         depositAmount: Math.round(tableData.summaryDeposit?.value || 0),
         discountAmount: Math.round(tableData.summaryDiscount?.value || 0),
         endDate: formData.endDate,
-        grandTotal: Math.round(tableData.grandTotal || 0),
+        grandTotal: Math.round(
+          tableData.calculatedGrandTotal || tableData.grandTotal || 0,
+        ),
         invoiceName: formData.invoiceName,
         legendary: formData.legendary,
         noteForClient: formData.noteForClient,
@@ -332,7 +380,10 @@ export default function EditInvoice() {
           formPayload.append("urls", file);
         });
 
-        const res = await updateInvoice({ invoiceId, formData: formPayload }).unwrap();
+        const res = await updateInvoice({
+          invoiceId,
+          formData: formPayload,
+        }).unwrap();
 
         toast.success("Invoice has been updated successfully!");
 
@@ -445,21 +496,21 @@ export default function EditInvoice() {
             <button
               onClick={handleSubmit}
               disabled={isLoading}
-              className="px-8 py-2 bg-primary hover:bg-primary/80 transition-colors text-white rounded-lg"
+              className="px-8 py-2 bg-primary hover:bg-primary/80 transition-colors text-white rounded-lg cursor-pointer"
             >
               Submit Invoice
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 ">
+          <div className="w-full">
             {/* Left */}
-            <div className="col-span-2 hidden md:block text-lg">
+            <div className=" hidden md:block text-lg mb-6">
               <p className="text-base text-gray-500">United States</p>
               <p className="text-base text-gray-500">kal@geopaving.com</p>
             </div>
 
             {/* Right Form */}
-            <div className="space-y-4 mt-10 md:mt-10">
+            <div className="space-y-4 w-full">
               <div
                 onClick={() => setOpenClientModal(true)}
                 className="border border-dashed border-primary bg-orange-50 hover:bg-orange-100 rounded-xl p-10 flex items-center justify-center text-orange-500 cursor-pointer  duration-300"
@@ -508,10 +559,11 @@ export default function EditInvoice() {
                                 setOpen(false);
                               }}
                               className={`p-4 border rounded-xl cursor-pointer transition shadow-sm
-                              ${selectedClient?.id === client.id
+                              ${
+                                selectedClient?.id === client.id
                                   ? "bg-primary text-white border-primary"
                                   : "hover:bg-orange-50"
-                                }`}
+                              }`}
                             >
                               <p className="font-semibold text-base">
                                 {client.clientName}
@@ -596,115 +648,102 @@ export default function EditInvoice() {
                 </div>
               )}
 
-              <div className="space-y-2">
-                <label>Invoice Name</label>
-                <input
-                  placeholder="Invoice name"
-                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
-                  value={formData.invoiceName}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      invoiceName: e.target.value,
-                    }))
-                  }
-                />
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                <div className="space-y-2">
+                  <label>Invoice Name</label>
+                  <input
+                    placeholder="Invoice name"
+                    className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
+                    value={formData.invoiceName}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        invoiceName: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <label>Invoice Number</label>
-                <input
-                  placeholder="Invoice number"
-                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
-                  value={formData.invoiceNumber}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      invoiceNumber: e.target.value,
-                    }))
-                  }
-                />
-              </div>
+                <div className="space-y-2">
+                  <label>Date</label>
+                  <input
+                    type="date"
+                    className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
+                    value={formData.date}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, date: e.target.value }))
+                    }
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <label>Date</label>
-                <input
-                  type="date"
-                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
-                  value={formData.date}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, date: e.target.value }))
-                  }
-                />
-              </div>
+                <div className="space-y-2">
+                  <label>End Date</label>
+                  <input
+                    type="date"
+                    className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
+                    value={formData.endDate}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        endDate: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label>Days to pay</label>
+                  <input
+                    placeholder="Days to pay"
+                    className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
+                    value={formData.daysToPay}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        daysToPay: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label>PO Number</label>
+                  <input
+                    placeholder="PO Number"
+                    type="number"
+                    className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
+                    value={formData.poNumber}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        poNumber: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label>Legendary</label>
+                  <input
+                    placeholder="Legendary"
+                    className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
+                    value={formData.legendary}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        legendary: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <label>End Date</label>
-                <input
-                  type="date"
-                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
-                  value={formData.endDate}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      endDate: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <label>Days to pay</label>
-                <input
-                  placeholder="Days to pay"
-                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
-                  value={formData.daysToPay}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      daysToPay: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <label>PO Number</label>
-                <input
-                  placeholder="PO Number"
-                  type="number"
-                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
-                  value={formData.poNumber}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      poNumber: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <label>Legendary</label>
-                <input
-                  placeholder="Legendary"
-                  className="input w-full focus:ring-primary focus:outline-none focus:ring-1 rounded-lg"
-                  value={formData.legendary}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      legendary: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-
-              <div>
-                <label className="text-base text-gray-600">Contract </label>
-                <input
-                  onClick={() => setAddContractModalOpen(true)}
-                  placeholder="Contract "
-                  value={selectedContractTitle}
-                  readOnly
-                  className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary"
-                />
+                <div className="space-y-2">
+                  <label className="text-base text-gray-600">Contract </label>
+                  <input
+                    onClick={() => setAddContractModalOpen(true)}
+                    placeholder="Contract "
+                    value={selectedContractTitle}
+                    readOnly
+                    className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                  />
+                </div>
               </div>
               <ContractModal
                 open={addContractModalOpen}
@@ -748,36 +787,63 @@ export default function EditInvoice() {
             </div>
           </div>
 
-          <CommonTable key={tableKey} initialItems={initialItems} onDataChange={setTableData} />
+          <div className="mt-10">
+            <CommonTable
+              key={tableKey}
+              initialItems={initialItems}
+              onDataChange={setTableData}
+            />
+          </div>
 
           <div className="mt-7">
             <label className="text-lg text-gray-600">Side Map</label>
 
             <ImageUploadArea
-              onFiles={(files) => setSideMaps((prev) => [...prev, ...files])}
+              multiple={false}
+              onFiles={(files) => setSideMaps(files)}
             />
 
-            {sideMaps.length > 0 && (
+            {(sideMaps.length > 0 || existingSideMap) && (
               <div className="flex gap-3 mt-4 flex-wrap">
-                {sideMaps.map((file, idx) => (
-                  <div key={idx} className="relative">
-                    <Image
-                      src={URL.createObjectURL(file)}
-                      alt="side map preview"
-                      width={120}
-                      height={120}
-                      className="rounded-lg object-cover w-[120px] h-[120px]"
-                    />
+                {sideMaps.length > 0
+                  ? sideMaps.map((file, idx) => (
+                      <div key={idx} className="relative">
+                        <Image
+                          src={URL.createObjectURL(file)}
+                          alt="side map preview"
+                          width={120}
+                          height={120}
+                          className="rounded-lg object-cover w-[120px] h-[120px]"
+                        />
 
-                    <button
-                      type="button"
-                      onClick={() => removeSideMap(idx)}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2"
-                    >
-                      x
-                    </button>
-                  </div>
-                ))}
+                        <button
+                          type="button"
+                          onClick={() => removeSideMap(idx)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2"
+                        >
+                          x
+                        </button>
+                      </div>
+                    ))
+                  : existingSideMap && (
+                      <div className="relative">
+                        <Image
+                          src={existingSideMap}
+                          alt="side map preview"
+                          width={120}
+                          height={120}
+                          className="rounded-lg object-cover w-[120px] h-[120px]"
+                        />
+
+                        <button
+                          type="button"
+                          onClick={() => setExistingSideMap(null)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2"
+                        >
+                          x
+                        </button>
+                      </div>
+                    )}
               </div>
             )}
           </div>
@@ -790,6 +856,28 @@ export default function EditInvoice() {
             />
 
             <div className="flex gap-3 mt-4 flex-wrap">
+              {existingImages.map((url, idx) => (
+                <div key={`existing-${idx}`} className="relative">
+                  <Image
+                    src={url}
+                    alt="preview"
+                    width={120}
+                    height={120}
+                    className="rounded-lg object-cover w-[120px] h-[120px]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExistingImages((prev) =>
+                        prev.filter((_, i) => i !== idx),
+                      )
+                    }
+                    className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2"
+                  >
+                    x
+                  </button>
+                </div>
+              ))}
               {images.map((file, idx) => (
                 <div key={idx} className="relative">
                   <Image
@@ -812,7 +900,26 @@ export default function EditInvoice() {
             </div>
           </div>
 
-          <Summary tableData={tableData} onDataChange={setTableData} />
+          <Summary
+            tableData={tableData}
+            onDataChange={setTableData}
+            summaryMarkup={summaryMarkup}
+            summaryTax={summaryTax}
+            summaryDiscount={summaryDiscount}
+            summaryDeposit={summaryDeposit}
+            handleSelectSummaryMarkup={setSummaryMarkup}
+            handleSelectSummaryTax={setSummaryTax}
+            setSummaryDiscount={(valOrFn: any) =>
+              setSummaryDiscount((prev: any) =>
+                typeof valOrFn === "function" ? valOrFn(prev) : valOrFn,
+              )
+            }
+            setSummaryDeposit={(valOrFn: any) =>
+              setSummaryDeposit((prev: any) =>
+                typeof valOrFn === "function" ? valOrFn(prev) : valOrFn,
+              )
+            }
+          />
 
           <div className="flex justify-end ">
             <div className="grid grid-cols-1  gap-3 my-12 w-full md:w-80 border-t">
@@ -917,7 +1024,9 @@ export default function EditInvoice() {
                 </div>
               </div>
 
-              <p className="text-xl md:text-2xl font-normal mt-6 mb-2">Billing Address</p>
+              <p className="text-xl md:text-2xl font-normal mt-6 mb-2">
+                Billing Address
+              </p>
 
               {/* Address */}
               <div>
@@ -973,7 +1082,9 @@ export default function EditInvoice() {
                 <ToggleSwitch
                   label="Billing address is different than Service address"
                   checked={isServiceAddressDifferent}
-                  onToggle={() => setIsServiceAddressDifferent(!isServiceAddressDifferent)}
+                  onToggle={() =>
+                    setIsServiceAddressDifferent(!isServiceAddressDifferent)
+                  }
                   labelClassName="text-base font-medium text-gray-800"
                 />
               </div>
@@ -981,7 +1092,9 @@ export default function EditInvoice() {
               {/* Service Address */}
               {isServiceAddressDifferent && (
                 <>
-                  <p className="text-xl md:text-2xl font-normal mt-6 mb-2">Service Address</p>
+                  <p className="text-xl md:text-2xl font-normal mt-6 mb-2">
+                    Service Address
+                  </p>
 
                   <div>
                     <label className="text-sm">Address</label>

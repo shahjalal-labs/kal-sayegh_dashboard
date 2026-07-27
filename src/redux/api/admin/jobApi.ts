@@ -17,6 +17,7 @@ const jobApi = baseApi.injectEndpoints({
         method: "POST",
         body: formData,
       }),
+      invalidatesTags: ["jobs"],
     }),
 
     jobRequestByImage: builder.mutation({
@@ -25,6 +26,7 @@ const jobApi = baseApi.injectEndpoints({
         method: "POST",
         body: formData,
       }),
+      invalidatesTags: ["jobs"],
     }),
 
     getOffices: builder.query({
@@ -40,6 +42,7 @@ const jobApi = baseApi.injectEndpoints({
         url: "/job-request/all",
         method: "GET",
       }),
+      providesTags: ["jobs"],
     }),
 
     updateJobRequest: builder.mutation({
