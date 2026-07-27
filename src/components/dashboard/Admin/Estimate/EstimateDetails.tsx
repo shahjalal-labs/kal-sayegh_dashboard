@@ -11,7 +11,7 @@ import {
 } from "@/redux/api/admin/estimateApi";
 import { useGenerateFromEstimateMutation } from "@/redux/api/admin/invoiceApi";
 import html2pdf from "html2pdf.js";
-import { Edit } from "lucide-react";
+import { Calculator, Edit, MoreHorizontal, Printer, Send } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -57,6 +57,7 @@ export default function EstimateDetails() {
   const [emailInput, setEmailInput] = useState("");
   const [showClientEmail, setShowClientEmail] = useState(false);
   const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [formData, setFormData] = useState<{
     to: string[];
@@ -98,6 +99,14 @@ export default function EstimateDetails() {
       currency: "USD",
       minimumFractionDigits: 2,
     }).format(value || 0);
+
+  const getStatusColor = (status: string | undefined) => {
+    if (!status) return "text-[#E87524]";
+    const s = status.toLowerCase();
+    if (s === "approved") return "text-green-500";
+    if (s === "declined") return "text-red-500";
+    return "text-[#E87524]";
+  };
 
   const normalizedItems = Array.isArray(estimate?.items) ? estimate.items : [];
   const sideMapUrls = Array.isArray(estimate?.sideMap)
@@ -310,13 +319,10 @@ export default function EstimateDetails() {
           <h2>Detailed Work Items</h2>
         </div>
 
-        <div
-          data-pdf-table-wrapper
-          className="overflow-x-auto border-2 border-black/50 bg-white"
-        >
+        <div data-pdf-table-wrapper className="overflow-x-auto bg-white">
           <table
             data-pdf-table
-            className="w-full min-w-[760px] border-collapse text-base md:text-lg text-gray-900"
+            className="w-full min-w-[760px] border-collapse border-2 border-black/50 text-base md:text-lg text-gray-900"
           >
             <thead>
               <tr className="bg-gray-100 uppercase text-base font-semibold">
@@ -385,10 +391,8 @@ export default function EstimateDetails() {
                     ))}
 
                     <tr className="bg-white border-b-2 border-black/50">
-                      <td
-                        colSpan={2}
-                        className="border-r-2 border-black/50 px-2 py-1"
-                      ></td>
+                      <td className="border-r-2 border-black/50 px-2 py-1"></td>
+                      <td className="border-r-2 border-black/50 px-2 py-1"></td>
                       <td className="border-r-2 border-black/50 px-2 py-1 text-right font-bold text-gray-900">
                         Sub Total:
                       </td>
@@ -447,7 +451,13 @@ export default function EstimateDetails() {
             </div>
           );
         })}
+      </div>
+    );
+  };
 
+  const renderEstimateFooter = () => {
+    return (
+      <div className="mt-8">
         <div className="flex justify-end pt-6">
           <div className="w-full max-w-[250px] space-y-2">
             <div className="flex items-center justify-between pb-1">
@@ -466,14 +476,11 @@ export default function EstimateDetails() {
         </div>
 
         <div className="mt-9 space-y-4">
-          <div>
+          <div className="border-2 border-orange-200 bg-white break-inside-avoid overflow-hidden">
             {sideMapUrls.length > 0 ? (
-              <div className="grid grid-cols-1 gap-3 mt-4">
+              <div className="grid grid-cols-1 gap-3 p-3 bg-white">
                 {sideMapUrls.map((url: string, index: number) => (
-                  <div
-                    key={`side-map-${index}`}
-                    className="border-2 border-orange-200 bg-white p-2 break-inside-avoid"
-                  >
+                  <div key={`side-map-${index}`}>
                     {isVideoUrl(url) ? (
                       <video controls className="w-full h-auto rounded-sm">
                         <source src={url} />
@@ -484,19 +491,19 @@ export default function EstimateDetails() {
                         alt={`Side Map ${index + 1}`}
                         width={900}
                         height={520}
-                        className="w-full md:h-[500px] object-contain"
+                        className="w-full h-auto max-h-[500px] object-contain"
                       />
                     )}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-center text-gray-500 mt-4 h-[200px] md:h-[350px] flex items-center justify-center bg-[#f9f9f9] border-2 border-orange-200 break-inside-avoid">
+              <p className="text-center text-gray-500 py-10 bg-[#f9f9f9]">
                 No side maps available
               </p>
             )}
 
-            <div className="border-2 border-t-0 border-orange-200 bg-[#f9f9f9] break-inside-avoid">
+            <div className="border-t-2 border-orange-200 bg-[#f9f9f9]">
               <div className="grid grid-cols-1 text-base text-gray-700 md:grid-cols-3">
                 <div className="border-b border-[#e1e1e1] p-3 text-lg font-normal space-y-3 md:border-b-0 md:border-r-2 md:border-orange-200">
                   <Image
@@ -516,20 +523,21 @@ export default function EstimateDetails() {
                   <p>Name: {estimate?.client?.clientName || "-"}</p>
                   <p>{estimate?.client?.address || "-"}</p>
                   <p>{estimate?.client?.city || "-"}</p>
+                  <p>{estimate?.client?.phoneNumber || "-"}</p>
                 </div>
-                <div className="p-3 font-normal text-lg border-t-2 border-orange-200 md:border-t-0">
+                <div className="p-3 font-normal text-lg md:border-t-0">
                   <p>{estimate?.legendary}</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {fileUrls.length > 0 ? (
+          {fileUrls.length > 0 && (
             <div className="grid grid-cols-1 gap-3">
               {fileUrls.map((url: string, index: number) => (
                 <div
                   key={`file-${index}`}
-                  className="border-2  bg-white p-2 break-inside-avoid"
+                  className="border-2 border-gray-200 bg-white p-2 break-inside-avoid"
                 >
                   {isVideoUrl(url) ? (
                     <video controls className="w-full h-auto rounded-sm">
@@ -541,16 +549,12 @@ export default function EstimateDetails() {
                       alt={`File ${index + 1}`}
                       width={900}
                       height={520}
-                      className="w-full md:h-[500px] object-contain"
+                      className="w-full h-auto max-h-[500px] object-contain"
                     />
                   )}
                 </div>
               ))}
             </div>
-          ) : (
-            <p className="text-center text-gray-500 mt-4 h-[200px] md:h-[350px] flex items-center justify-center bg-[#f9f9f9] border-2 break-inside-avoid">
-              No files available
-            </p>
           )}
         </div>
       </div>
@@ -634,10 +638,145 @@ export default function EstimateDetails() {
         <span className="text-gray-500 hidden md:block text-lg">
           Back To Estimate List Page
         </span>
-        <h1 className="text-2xl font-normal text-gray-600 md:hidden block  text-center">
+        <h1 className="text-xl font-normal text-gray-600 md:hidden block  text-center">
           Estimate Details
         </h1>
       </Link>
+
+      {/* Mobile Action Bar */}
+      <div className="relative w-full bg-white md:hidden flex justify-between items-center text-gray-500 pb-1 pt-1 mt-4">
+        <button
+          onClick={() => setIsReminderOpen(true)}
+          className="flex flex-col items-center flex-1 py-2"
+        >
+          <Send size={24} className="mb-1" />
+          <span className="text-sm font-bold uppercase tracking-wider">
+            Send
+          </span>
+        </button>
+
+        <button
+          onClick={handleDownload}
+          className="flex flex-col items-center flex-1 py-2 border-l border-gray-100"
+        >
+          <Printer size={24} className="mb-1" />
+          <span className="text-sm font-bold uppercase tracking-wider">
+            Print
+          </span>
+        </button>
+
+        <button
+          onClick={handleGenerateInvoice}
+          disabled={isGeneratingInvoice}
+          className="flex flex-col items-center flex-1 py-2 border-l border-gray-100 disabled:opacity-50"
+        >
+          <Calculator size={24} className="mb-1" />
+          <span className="text-sm font-bold uppercase tracking-wider">
+            Invoice
+          </span>
+        </button>
+
+        <div className="flex-1 border-l border-gray-100 relative h-full">
+          <button
+            onClick={() => setIsMobileMoreOpen((prev) => !prev)}
+            className="flex flex-col items-center py-2 w-full h-full"
+          >
+            <MoreHorizontal size={24} className="mb-1" />
+            <span className="text-sm font-bold uppercase tracking-wider">
+              More
+            </span>
+          </button>
+
+          {isMobileMoreOpen && (
+            <div className="absolute top-full right-2 mt-2 w-48 bg-white shadow-[0_0_15px_rgba(0,0,0,0.1)] rounded-lg border border-gray-200 z-50 overflow-hidden flex flex-col">
+              <Link
+                href={
+                  editEstimateId
+                    ? `/admin/estimate/edit-estimate?id=${editEstimateId}`
+                    : "/admin/estimate"
+                }
+                onClick={() => {
+                  if (typeof window !== "undefined" && editEstimateId) {
+                    localStorage.setItem("editingEstimateId", editEstimateId);
+                  }
+                  setIsMobileMoreOpen(false);
+                }}
+                className="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-700 text-sm border-b border-gray-100 flex items-center gap-2"
+              >
+                <Edit size={16} /> Edit Estimate
+              </Link>
+              <button
+                onClick={() => {
+                  handleDuplicate();
+                  setIsMobileMoreOpen(false);
+                }}
+                disabled={isDuplicating}
+                className="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-700 text-sm border-b border-gray-100 disabled:opacity-50"
+              >
+                Duplicate
+              </button>
+              <div className="w-full">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsStatusOpen((prev) => !prev);
+                  }}
+                  className="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-700 text-sm flex justify-between items-center"
+                >
+                  Update Status
+                  <svg
+                    className={`w-4 h-4 transition-transform ${isStatusOpen ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {isStatusOpen && (
+                  <div className="bg-gray-50 flex flex-col border-t border-gray-100 py-1">
+                    <button
+                      onClick={() => {
+                        handleUpdateStatus("pending");
+                        setIsMobileMoreOpen(false);
+                        setIsStatusOpen(false);
+                      }}
+                      disabled={isUpdatingStatus}
+                      className="w-full text-left px-8 py-2 text-sm text-gray-600 hover:text-black disabled:opacity-50"
+                    >
+                      Pending
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleUpdateStatus("declined");
+                        setIsMobileMoreOpen(false);
+                        setIsStatusOpen(false);
+                      }}
+                      disabled={isUpdatingStatus}
+                      className="w-full text-left px-8 py-2 text-sm text-gray-600 hover:text-black disabled:opacity-50"
+                    >
+                      Declined
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleUpdateStatus("approved");
+                        setIsMobileMoreOpen(false);
+                        setIsStatusOpen(false);
+                      }}
+                      disabled={isUpdatingStatus}
+                      className="w-full text-left px-8 py-2 text-sm text-gray-600 hover:text-black disabled:opacity-50"
+                    >
+                      Approved
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary" />
+      </div>
 
       <div className="md:flex flex-col md:flex-row md:justify-between mt-7 hidden">
         <div className="flex items-center gap-3 mt-4">
@@ -667,7 +806,7 @@ export default function EstimateDetails() {
           </button>
         </div>
 
-        <div className="flex items-center gap-3 mt-4">
+        <div className="flex flex-wrap items-center gap-3 mt-4">
           <button
             onClick={handleDuplicate}
             disabled={isDuplicating}
@@ -758,47 +897,57 @@ export default function EstimateDetails() {
           ESTIMATE
         </h1>
 
-        <div className="flex justify-between items-start mt-6">
+        <div className="hidden md:flex justify-between items-start mt-6">
           <Image
             src={logo}
             alt="Logo"
             width={200}
             height={150}
-            className="h-auto w-[150px] md:w-[200px]"
+            className="h-auto w-[200px]"
           />
 
           <div className="text-right text-base space-y-2 text-gray-700">
-            <p className="text-black font-semibold text-base">Prepared For</p>
-            <p>{estimate?.client?.clientName || "-"}</p>
+            <p className="text-black font-semibold text-lg">Prepared For</p>
+            <p className="font-semibold text-black">{estimate?.client?.clientName || "-"}</p>
             <p>{estimate?.client?.address || "-"}</p>
+            <p>{estimate?.client?.email || "-"}</p>
             <p>{estimate?.client?.phoneNumber || "-"}</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 text-base text-gray-700">
-          <div className="space-y-2">
+        <div className="hidden md:grid grid-cols-2 gap-6 mt-8 text-base text-gray-700">
+          <div className="space-y-1">
             <h2 className="text-lg font-semibold text-black">
               Geo Paving and Sealcoating
             </h2>
-            <p>{estimate?.client?.address || "-"}</p>
+            <p>9650 Business Ctr. Dr. Ste.122 Rancho Cuc. CA91730</p>
+            <p>185 Paularino Ave # D, Costa Mesa, CA 92626</p>
             <p>
-              <span className="font-semibold text-black">Phone :</span>{" "}
-              {estimate?.client?.phoneNumber || "-"}
+              <span className="font-semibold text-black">Phone</span>
+              <span className="inline-block w-4 text-center">:</span>{" "}
+              (951) 463-7002
             </p>
             <p>
-              <span className="font-semibold text-black">Email :</span>{" "}
-              {estimate?.client?.email || "-"}
+              <span className="font-semibold text-black">Email</span>
+              <span className="inline-block w-4 text-center">:</span>{" "}
+              kal@geopaving.com
             </p>
             <p>
-              <span className="font-semibold text-black">Web :</span>{" "}
+              <span className="font-semibold text-black">Web</span>
+              <span className="inline-block w-4 text-center">:</span>{" "}
               www.geopaving.com
             </p>
           </div>
 
-          <div className="space-y-2 md:justify-self-end text-left md:text-right">
+          <div className="space-y-2 justify-self-end text-right">
             <p>
-              <span className="font-semibold text-black">Estimate</span>
-              <span className="inline-block w-6 text-center">:</span>#{" "}
+              <span className="font-semibold text-black">Estimate Name</span>
+              <span className="inline-block w-6 text-center">:</span>
+              {estimate?.estimateName || "-"}
+            </p>
+            <p>
+              <span className="font-semibold text-black">Estimate #</span>
+              <span className="inline-block w-6 text-center">:</span>
               {estimate?.id?.slice(-4) || "-"}
             </p>
             <p>
@@ -811,6 +960,76 @@ export default function EstimateDetails() {
               <span className="inline-block w-6 text-center">:</span>
               {estimate?.client?.zip || "-"}
             </p>
+            <p>
+              <span className="font-semibold text-black">Status</span>
+              <span className="inline-block w-6 text-center">:</span>
+              <span className={`font-bold capitalize ${getStatusColor(estimate?.status)}`}>{estimate?.status || "Pending"}</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Mobile Layout */}
+        <div className="md:hidden mt-6 text-base text-gray-600 space-y-6">
+          <div className="flex justify-center mb-2">
+            <Image
+              src={logo}
+              alt="Logo"
+              width={200}
+              height={150}
+              className="h-auto w-[150px]"
+            />
+          </div>
+          {/* Company Info */}
+          <div className="space-y-1">
+            <h2 className="text-lg font-semibold text-black">
+              Geo Paving and Sealcoating
+            </h2>
+            <p>9650 Business Ctr. Dr. Ste.122 Rancho Cuc. CA91730</p>
+            <p>185 Paularino Ave # D, Costa Mesa, CA 92626</p>
+            <p>
+              <span className="font-semibold text-black">Phone</span>
+              <span className="inline-block w-4 text-center">:</span>{" "}
+              (951) 463-7002
+            </p>
+            <p>
+              <span className="font-semibold text-black">Email</span>
+              <span className="inline-block w-4 text-center">:</span>{" "}
+              kal@geopaving.com
+            </p>
+            <p>
+              <span className="font-semibold text-black">Web</span>
+              <span className="inline-block w-4 text-center">:</span>{" "}
+              www.geopaving.com
+            </p>
+          </div>
+
+          {/* Client Info */}
+          <div className="space-y-1">
+            <p className="text-black font-semibold text-lg">Prepared For</p>
+            <p className="font-semibold text-black">{estimate?.client?.clientName || "-"}</p>
+            <p>{estimate?.client?.address || "-"}</p>
+            <p>{estimate?.client?.email || "-"}</p>
+            <p>{estimate?.client?.phoneNumber || "-"}</p>
+          </div>
+
+          {/* Estimate Details */}
+          <div className="flex flex-col">
+            <div className="flex justify-between items-center py-3 border-b border-gray-100">
+              <span className="text-gray-500">Estimate Name</span>
+              <span className="font-semibold text-black text-right">{estimate?.estimateName || "-"}</span>
+            </div>
+            <div className="flex justify-between items-center py-3 border-b border-gray-100">
+              <span className="text-gray-500">Estimate #</span>
+              <span className="font-semibold text-black text-right">{estimate?.id?.slice(-4) || "-"}</span>
+            </div>
+            <div className="flex justify-between items-center py-3 border-b border-gray-100">
+              <span className="text-gray-500">Date</span>
+              <span className="font-semibold text-black text-right">{estimate?.date || "-"}</span>
+            </div>
+            <div className="flex justify-between items-center py-3 border-b border-gray-100">
+              <span className="text-gray-500">Status</span>
+              <span className={`font-bold capitalize ${getStatusColor(estimate?.status)}`}>{estimate?.status || "Pending"}</span>
+            </div>
           </div>
         </div>
 
@@ -818,6 +1037,7 @@ export default function EstimateDetails() {
           {renderTableSection()}
           {renderDescriptionSection()}
           {renderImagePdfSection()}
+          {renderEstimateFooter()}
 
           {normalizedItems.length === 0 && (
             <div className="flex justify-between border-b border-[#e1e1e1] py-3 text-[10px] text-gray-700">
@@ -836,7 +1056,7 @@ export default function EstimateDetails() {
           onClick={() => setIsReminderOpen(false)}
         >
           <div
-            className="w-full max-w-[640px] rounded-2xl bg-white p-6 shadow-xl"
+            className="w-full max-w-[640px] max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
             onClick={(event) => event.stopPropagation()}
           >
             <h2 className="text-xl font-semibold text-gray-900">
@@ -988,70 +1208,6 @@ export default function EstimateDetails() {
           </div>
         </div>
       )}
-
-      <div className="flex flex-col md:flex-row md:justify-between mt-7 md:hidden">
-        <div className="flex items-center gap-3 mt-4">
-          <Link
-            href={
-              editEstimateId
-                ? `/admin/estimate/edit-estimate?id=${editEstimateId}`
-                : "/admin/estimate"
-            }
-            onClick={() => {
-              if (typeof window !== "undefined" && editEstimateId) {
-                localStorage.setItem("editingEstimateId", editEstimateId);
-              }
-            }}
-            className="flex items-center gap-2 px-4 py-2 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary"
-          >
-            <Edit size={16} />
-            Edit
-          </Link>
-
-          <button
-            onClick={() => setIsReminderOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary"
-          >
-            <AiOutlineMail />
-            Email
-          </button>
-        </div>
-
-        <div className="flex items-center gap-3 mt-4">
-          <button
-            onClick={handleGenerateInvoice}
-            disabled={isGeneratingInvoice}
-            className="group flex items-center gap-2 px-4 py-2 border border-primary text-primary rounded-lg bg-white hover:bg-primary hover:text-white duration-200 ease-in disabled:opacity-60"
-          >
-            <Image
-              src={stars}
-              alt="Generate"
-              width={16}
-              height={16}
-              className="h-4 w-4 group-hover:invert group-hover:brightness-200"
-            />
-            <span>
-              {isGeneratingInvoice ? "Generating..." : "Generate Invoice"}
-            </span>
-          </button>
-
-          <button
-            onClick={handleDownload}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90"
-          >
-            <FiDownload />
-            Download
-          </button>
-
-          <button
-            onClick={handleDuplicate}
-            disabled={isDuplicating}
-            className="flex items-center gap-2 px-4 py-2 border-primary duration-300 ease-in border hover:text-white text-primary rounded-lg hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isDuplicating ? "Duplicating..." : "Duplicate"}
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

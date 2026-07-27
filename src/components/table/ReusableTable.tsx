@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit, Eye, Power } from "lucide-react";
+import { CheckCircle, Edit, Eye, Power, XCircle } from "lucide-react";
 import React from "react";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { ColorRing } from "react-loader-spinner";
@@ -27,6 +27,9 @@ interface ReusableTableProps {
   onEdit?: (row: any) => void;
   onDelete?: (row: any) => void;
   onToggleStatus?: (row: any) => void;
+  onApprove?: (row: any) => void;
+  onReject?: (row: any) => void;
+
 
   page?: number;
   totalPages?: number;
@@ -42,6 +45,9 @@ const ReusableTable: React.FC<ReusableTableProps> = ({
   onEdit,
   onDelete,
   onToggleStatus,
+  onApprove,
+  onReject,
+
   page = 1,
   totalPages = 1,
   onPageChange,
@@ -106,26 +112,55 @@ const ReusableTable: React.FC<ReusableTableProps> = ({
                   <td key={col.key} className="p-2">
                     {col.key === "action" ? (
                       <div className="flex gap-2">
-                        <button
-                          onClick={() => onView?.(row)}
-                          className="text-orange-500"
-                        >
-                          <Eye size={20} />
-                        </button>
+                        {onView && (
+                          <button
+                            onClick={() => onView(row)}
+                            className="text-orange-500"
+                            title="View"
+                          >
+                            <Eye size={20} />
+                          </button>
+                        )}
 
-                        <button
-                          onClick={() => onEdit?.(row)}
-                          className="text-green-600"
-                        >
-                          <Edit size={20} />
-                        </button>
+                        {onEdit && (
+                          <button
+                            onClick={() => onEdit(row)}
+                            className="text-green-600"
+                            title="Edit"
+                          >
+                            <Edit size={20} />
+                          </button>
+                        )}
 
-                        <button
-                          onClick={() => onDelete?.(row)}
-                          className="text-red-500"
-                        >
-                          <RiDeleteBin6Line size={20} />
-                        </button>
+                        {onDelete && (
+                          <button
+                            onClick={() => onDelete(row)}
+                            className="text-red-500"
+                            title="Delete"
+                          >
+                            <RiDeleteBin6Line size={20} />
+                          </button>
+                        )}
+
+                        {onApprove && (
+                          <button
+                            onClick={() => onApprove(row)}
+                            className="text-green-600"
+                            title="Approve/Activate"
+                          >
+                            <CheckCircle size={20} />
+                          </button>
+                        )}
+
+                        {onReject && (
+                          <button
+                            onClick={() => onReject(row)}
+                            className="text-red-500"
+                            title="Reject"
+                          >
+                            <XCircle size={20} />
+                          </button>
+                        )}
 
                         {onToggleStatus && (
                           <button

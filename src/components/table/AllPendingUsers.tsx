@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useDeleteUserMutation,
   useGetPendingUserQuery,
   useUpdateUserMutation,
 } from "@/redux/api/admin/adminDashboardApi";
@@ -21,11 +22,12 @@ export default function AllPendingUsers() {
     searchTerm,
   });
   const [updateUser] = useUpdateUserMutation();
+  const [deleteUser] = useDeleteUserMutation();
 
   const allUsers = usersData?.result?.data || [];
   const totalPages = usersData?.result?.meta?.totalPages || 1;
 
-  const handleToggleStatus = async (row: any) => {
+  const handleApprove = async (row: any) => {
     try {
       // For pending users, we typically want to activate them
       const newStatus = "ACTIVE";
@@ -47,6 +49,28 @@ export default function AllPendingUsers() {
           },
         }).unwrap();
         toast.success(`User ${row.fullName} activated successfully`);
+      }
+    } catch (err: any) {
+      toast.error(err?.data?.message || "Failed to update status");
+    }
+  };
+
+  const handleReject = async (row: any) => {
+    try {
+      const newStatus = "REJECTED";
+      const result = await Swal.fire({
+        title: "Reject User?",
+        text: `Do you want to reject the application of ${row.fullName}?`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Yes, reject!",
+      });
+
+      if (result.isConfirmed) {
+        await deleteUser(row.id as string).unwrap();
+        toast.success(`User ${row.fullName} rejected successfully`);
       }
     } catch (err: any) {
       toast.error(err?.data?.message || "Failed to update status");
@@ -103,7 +127,8 @@ export default function AllPendingUsers() {
           page={page}
           totalPages={totalPages}
           onPageChange={setPage}
-          onToggleStatus={handleToggleStatus}
+          onApprove={handleApprove}
+          onReject={handleReject}
         />
       </div>
     </div>

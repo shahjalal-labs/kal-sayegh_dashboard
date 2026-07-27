@@ -1,9 +1,9 @@
 "use client";
 
+import { ImageUploadArea } from "@/components/ui/ImageUploadArea";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { AiOutlineUserAdd } from "react-icons/ai";
-import { ImageUploadArea } from "@/components/ui/ImageUploadArea";
 
 import ContractModal from "@/components/modal/ContractModal";
 import CommonTable from "@/components/table/CommonTable";
@@ -18,7 +18,7 @@ import {
 } from "@/redux/api/admin/estimateApi";
 import { FormatType, LineItemTable } from "@/types/estimate.type";
 import Image from "next/image";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { LuMapPin } from "react-icons/lu";
 import { toast } from "sonner";
@@ -48,7 +48,9 @@ export default function EditEstimate() {
 
   const [open, setOpen] = useState(false);
   const [sideMap, setSideMap] = useState<File | null>(null);
+  const [existingSideMap, setExistingSideMap] = useState<string | null>(null);
   const [images, setImages] = useState<File[]>([]);
+  const [existingImages, setExistingImages] = useState<string[]>([]);
   const [openClientModal, setOpenClientModal] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any>(null);
@@ -84,13 +86,14 @@ export default function EditEstimate() {
     privateNote: "",
   });
 
-  const { data: estimateData, isLoading: isEstimateLoading } = useGetEstimateByIdQuery(estimateId, { skip: !estimateId });
+  const { data: estimateData, isLoading: isEstimateLoading } =
+    useGetEstimateByIdQuery(estimateId, { skip: !estimateId });
   const currentEstimate = estimateData?.result;
   const [initialItems, setInitialItems] = useState<any[]>([]);
 
   useEffect(() => {
     if (currentEstimate) {
-      setEstimateForm(prev => ({
+      setEstimateForm((prev) => ({
         ...prev,
         estimateName: currentEstimate.estimateName || "",
         estimateNumber: currentEstimate.estimateNumber || "",
@@ -102,7 +105,8 @@ export default function EditEstimate() {
         legendary: currentEstimate.legendary || "",
         clientSign: currentEstimate.clientSign ?? true,
         mySign: currentEstimate.mySign ?? true,
-        coverPaymentProcessingFee: currentEstimate.coverPaymentProcessingFee ?? true,
+        coverPaymentProcessingFee:
+          currentEstimate.coverPaymentProcessingFee ?? true,
         isOnlinePayment: currentEstimate.isOnlinePayment ?? true,
         isAutoInvoice: currentEstimate.isAutoInvoice ?? true,
         isGroupingEnabled: currentEstimate.isGroupingEnabled ?? true,
@@ -115,9 +119,20 @@ export default function EditEstimate() {
         depositAmount: currentEstimate.depositAmount || 0,
       }));
 
-      const normalizedItems = currentEstimate.items || currentEstimate.lineItems || [];
+      if (currentEstimate.sideMap) {
+        setExistingSideMap(currentEstimate.sideMap);
+      }
+      if (currentEstimate.fileUrls?.length > 0) {
+        setExistingImages(currentEstimate.fileUrls);
+      }
+
+      const normalizedItems =
+        currentEstimate.items || currentEstimate.lineItems || [];
       const mappedInitialItems = normalizedItems.map((item: any) => {
-        const itemSubItems = (currentEstimate.subItems || []).filter((sub: any) => String(sub.itemId) === String(item.id || item.itemId || item._id));
+        const itemSubItems = (currentEstimate.subItems || []).filter(
+          (sub: any) =>
+            String(sub.itemId) === String(item.id || item.itemId || item._id),
+        );
         return {
           selectedItem: item.item || item,
           quantity: item.quantity || 1,
@@ -235,7 +250,8 @@ export default function EditEstimate() {
     serviceZip: "",
   });
 
-  const [isServiceAddressDifferent, setIsServiceAddressDifferent] = useState(false);
+  const [isServiceAddressDifferent, setIsServiceAddressDifferent] =
+    useState(false);
 
   const [createClient] = useCreateClientMutation();
   const [updateEstimate] = useEditEstimateMutation();
@@ -245,7 +261,9 @@ export default function EditEstimate() {
 
   useEffect(() => {
     if (currentEstimate?.clientId && myClients?.length) {
-      const client = myClients.find((c: any) => c.id === currentEstimate.clientId);
+      const client = myClients.find(
+        (c: any) => c.id === currentEstimate.clientId,
+      );
       if (client) setSelectedClient(client);
     }
   }, [currentEstimate, myClients]);
@@ -283,7 +301,12 @@ export default function EditEstimate() {
   const handleCreateClient = async (clientData: any) => {
     try {
       if (isServiceAddressDifferent) {
-        if (!clientData.serviceAddress || !clientData.serviceCity || !clientData.serviceState || !clientData.serviceZip) {
+        if (
+          !clientData.serviceAddress ||
+          !clientData.serviceCity ||
+          !clientData.serviceState ||
+          !clientData.serviceZip
+        ) {
           toast.error("Please fill in all Service Address fields.");
           return;
         }
@@ -419,7 +442,12 @@ export default function EditEstimate() {
         noteForClient: estimateForm.noteForClient,
         privateNote: estimateForm.privateNote,
         items: submittedItems,
-        subItems: tableData?.subItems || [],
+        subItems: (tableData?.subItems || []).map((sub: any) => ({
+          ...sub,
+          unitCost: Number(sub.unitCost || 0),
+          quantity: Number(sub.quantity || 0),
+          price: Number(sub.price || 0),
+        })),
         format: estimateForm.format,
 
         additionalMarkUp:
@@ -549,10 +577,11 @@ export default function EditEstimate() {
                           setOpen(false);
                         }}
                         className={`p-4 border rounded-xl cursor-pointer transition shadow-sm
-                  ${selectedClient?.id === client.id
-                            ? "bg-primary text-white border-primary"
-                            : "hover:bg-orange-50"
-                          }`}
+                  ${
+                    selectedClient?.id === client.id
+                      ? "bg-primary text-white border-primary"
+                      : "hover:bg-orange-50"
+                  }`}
                       >
                         <p className="font-semibold text-base">
                           {client.clientName}
@@ -757,7 +786,11 @@ export default function EditEstimate() {
         </div>
 
         <div>
-          <CommonTable key={tableKey} initialItems={initialItems} onDataChange={handleCommonTableChange} />
+          <CommonTable
+            key={tableKey}
+            initialItems={initialItems}
+            onDataChange={handleCommonTableChange}
+          />
         </div>
 
         <div>
@@ -768,20 +801,25 @@ export default function EditEstimate() {
             multiple={false}
           />
 
-          {sideMap && (
+          {(sideMap || existingSideMap) && (
             <div className="flex gap-3 mt-4 flex-wrap">
               <div className="relative">
                 <Image
-                  src={URL.createObjectURL(sideMap)}
+                  src={
+                    sideMap ? URL.createObjectURL(sideMap) : existingSideMap!
+                  }
                   alt="side map preview"
-                  width={120}
-                  height={120}
-                  className="rounded-lg object-cover w-[120px] h-[120px]"
+                  width={300}
+                  height={300}
+                  className="rounded-lg object-contain"
                 />
 
                 <button
                   type="button"
-                  onClick={removeSideMap}
+                  onClick={() => {
+                    setSideMap(null);
+                    setExistingSideMap(null);
+                  }}
                   className="absolute -top-2 -right-2 bg-red-500 text-white text-base rounded-full px-2"
                 >
                   x
@@ -799,14 +837,36 @@ export default function EditEstimate() {
           />
 
           <div className="flex gap-3 mt-4 flex-wrap">
+            {existingImages.map((url, idx) => (
+              <div key={`existing-${idx}`} className="relative">
+                <Image
+                  src={url}
+                  alt="preview"
+                  height={300}
+                  width={300}
+                  className="rounded-lg object-contain"
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setExistingImages((prev) =>
+                      prev.filter((_, i) => i !== idx),
+                    )
+                  }
+                  className="absolute -top-2 -right-2 bg-red-500 text-white text-base rounded-full px-2"
+                >
+                  x
+                </button>
+              </div>
+            ))}
             {images.map((file, idx) => (
-              <div key={idx} className="relative">
+              <div key={`new-${idx}`} className="relative">
                 <Image
                   src={URL.createObjectURL(file)}
                   alt="preview"
-                  width={120}
-                  height={120}
-                  className="rounded-lg object-cover w-[120px] h-[120px]"
+                  height={300}
+                  width={300}
+                  className="rounded-lg object-contain"
                 />
 
                 <button
@@ -985,7 +1045,9 @@ export default function EditEstimate() {
               <ToggleSwitch
                 label="Billing address is different than Service address"
                 checked={isServiceAddressDifferent}
-                onToggle={() => setIsServiceAddressDifferent(!isServiceAddressDifferent)}
+                onToggle={() =>
+                  setIsServiceAddressDifferent(!isServiceAddressDifferent)
+                }
                 labelClassName="text-base font-medium text-gray-800"
               />
             </div>

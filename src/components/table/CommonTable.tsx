@@ -3,9 +3,9 @@
 import { CustomModal } from "@/components/modal/CustomModal";
 import { useGetAllItemsQuery } from "@/redux/api/admin/estimateApi";
 import { FormatType } from "@/types/estimate.type";
-import { Camera, Check, Plus, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState, useRef } from "react";
-import { useGenerateUrlMutation } from "@/redux/api/admin/messageApi";
+import { Check, Plus, Trash2 } from "lucide-react";
+import Image from "next/image";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 type FormatOption = "description" | "table" | "upload";
@@ -36,20 +36,22 @@ type SubItemRow = {
 
 const money = (value: number) => `$${Number(value || 0).toFixed(2)}`;
 
-export default function CommonTable({ onDataChange, initialItems }: CommonTableProps) {
+export default function CommonTable({
+  onDataChange,
+  initialItems,
+}: CommonTableProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [itemListOpen, setItemListOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<FormatOption>("table");
   const [selectedItem, setSelectedItem] = useState<any>(null);
 
-  const [generateUrlFn, { isLoading: isUploading }] = useGenerateUrlMutation();
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [committedItems, setCommittedItems] = useState<any[]>(() => {
     if (!initialItems || !initialItems.length) return [];
-    return initialItems.map(it => {
+    return initialItems.map((it) => {
       const itemData = it.selectedItem || it.originalItem || it;
       const baseRate = it.rate || it.baseRate || 0;
       const markupPercentage = Number(itemData?.markUp?.percentage || 0);
@@ -133,7 +135,7 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
   const emitData = () => {
     if (!onDataChange) return;
 
-    const itemsToEmit = committedItems.map(c => ({
+    const itemsToEmit = committedItems.map((c) => ({
       id: c.item.id,
       description: c.description || c.item.description || "",
       itemName: c.item.itemName,
@@ -168,23 +170,27 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
     }
 
     const allSubItems = [
-      ...committedItems.flatMap(c => c.subItems.map((s: any) => ({
-        itemId: c.item.id,
-        title: s.title,
-        quantity: s.quantity,
-        unitCost: s.unitCost,
-        price: s.price,
-      }))),
+      ...committedItems.flatMap((c) =>
+        c.subItems.map((s: any) => ({
+          itemId: c.item.id,
+          title: s.title,
+          quantity: s.quantity,
+          unitCost: s.unitCost,
+          price: s.price,
+        })),
+      ),
       ...subItems.map((s: any) => ({
         itemId: selectedItem?.id,
         title: s.title,
         quantity: s.quantity,
         unitCost: s.unitCost,
         price: s.price,
-      }))
+      })),
     ];
 
-    const grandTotal = committedItems.reduce((sum, c) => sum + c.lineTotal, 0) + (selectedItem ? lineTotal : 0);
+    const grandTotal =
+      committedItems.reduce((sum, c) => sum + c.lineTotal, 0) +
+      (selectedItem ? lineTotal : 0);
 
     onDataChange({
       items: itemsToEmit,
@@ -199,7 +205,14 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
   useEffect(() => {
     emitData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [committedItems, selectedItem, quantity, description, privateNote, subItems]);
+  }, [
+    committedItems,
+    selectedItem,
+    quantity,
+    description,
+    privateNote,
+    subItems,
+  ]);
 
   const openFormatPicker = () => setPickerOpen(true);
 
@@ -225,17 +238,24 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
   const handleCommitItem = () => {
     if (!selectedItem) return;
 
-    if (subItemTitle.trim() !== "" || (subItemUnitCost && Number(subItemUnitCost) > 0)) {
-      toast.error("Please click the '+' button to add your sub-item, or clear the inputs before adding to estimate.");
+    if (
+      subItemTitle.trim() !== "" ||
+      (subItemUnitCost && Number(subItemUnitCost) > 0)
+    ) {
+      toast.error(
+        "Please click the '+' button to add your sub-item, or clear the inputs before adding to estimate.",
+      );
       return;
     }
 
     const finalItem = {
       ...selectedItem,
-      imageUrls: uploadedImage ? [uploadedImage, ...(selectedItem.imageUrls || []).slice(1)] : selectedItem.imageUrls,
+      imageUrls: uploadedImage
+        ? [uploadedImage, ...(selectedItem.imageUrls || []).slice(1)]
+        : selectedItem.imageUrls,
     };
 
-    setCommittedItems(prev => [
+    setCommittedItems((prev) => [
       ...prev,
       {
         item: finalItem,
@@ -245,8 +265,8 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
         baseRate,
         markupValue,
         taxValue,
-        lineTotal
-      }
+        lineTotal,
+      },
     ]);
 
     setSelectedItem(null);
@@ -287,7 +307,119 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
   };
 
   const handleRemoveCommittedItem = (index: number) => {
-    setCommittedItems(prev => prev.filter((_, i) => i !== index));
+    setCommittedItems((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleUpdateCommittedItem = (
+    cIndex: number,
+    field: string,
+    value: string | number,
+  ) => {
+    setCommittedItems((prev) => {
+      const newItems = [...prev];
+      const current = { ...newItems[cIndex] };
+
+      if (field === "quantity") current.quantity = value;
+      if (field === "baseRate") current.baseRate = value;
+
+      let newBaseRate = Number(current.baseRate) || 0;
+      if (current.subItems.length > 0) {
+        newBaseRate = current.subItems.reduce(
+          (sum: number, sub: any) => sum + Number(sub.price || 0),
+          0,
+        );
+      }
+      current.baseRate = newBaseRate;
+
+      const isUnpriced =
+        current.subItems.length === 0 &&
+        (newBaseRate === 0 || String(newBaseRate) === "");
+
+      let newMarkupValue = 0;
+      if (!isUnpriced && current.item?.markUp) {
+        const markup = current.item.markUp;
+        if (markup.percentage != null) {
+          newMarkupValue = (newBaseRate * Number(markup.percentage || 0)) / 100;
+        } else {
+          newMarkupValue = Number(markup.amount || 0);
+        }
+      }
+      current.markupValue = newMarkupValue;
+
+      let newTaxValue = 0;
+      const taxableBase = newBaseRate + newMarkupValue;
+      if (current.item?.taxes) {
+        newTaxValue = current.item.taxes.reduce((sum: number, tax: any) => {
+          return sum + (taxableBase * Number(tax?.percentage || 0)) / 100;
+        }, 0);
+      }
+      current.taxValue = newTaxValue;
+
+      current.lineTotal =
+        (newBaseRate + newMarkupValue + newTaxValue) *
+        Number(current.quantity || 0);
+
+      newItems[cIndex] = current;
+      return newItems;
+    });
+  };
+
+  const handleUpdateSubItem = (
+    cIndex: number,
+    subIndex: number,
+    field: string,
+    value: string | number,
+  ) => {
+    setCommittedItems((prev) => {
+      const newItems = [...prev];
+      const current = { ...newItems[cIndex] };
+      const subItems = [...current.subItems];
+      const sub = { ...subItems[subIndex] };
+
+      if (field === "quantity") sub.quantity = value;
+      if (field === "unitCost") sub.unitCost = value;
+
+      sub.price = Number(sub.quantity || 0) * Number(sub.unitCost || 0);
+      subItems[subIndex] = sub;
+      current.subItems = subItems;
+
+      const newBaseRate = subItems.reduce(
+        (sum: number, s: any) => sum + Number(s.price || 0),
+        0,
+      );
+      current.baseRate = newBaseRate;
+
+      const isUnpriced =
+        subItems.length === 0 &&
+        (newBaseRate === 0 || String(newBaseRate) === "");
+
+      let newMarkupValue = 0;
+      if (!isUnpriced && current.item?.markUp) {
+        const markup = current.item.markUp;
+        if (markup.percentage != null) {
+          newMarkupValue = (newBaseRate * Number(markup.percentage || 0)) / 100;
+        } else {
+          newMarkupValue = Number(markup.amount || 0);
+        }
+      }
+      current.markupValue = newMarkupValue;
+
+      let newTaxValue = 0;
+      const taxableBase = newBaseRate + newMarkupValue;
+      if (current.item?.taxes) {
+        newTaxValue = current.item.taxes.reduce((sum: number, tax: any) => {
+          return sum + (taxableBase * Number(tax?.percentage || 0)) / 100;
+        }, 0);
+      }
+      current.taxValue = newTaxValue;
+
+      current.lineTotal =
+        (newBaseRate + newMarkupValue + newTaxValue) *
+        Number(current.quantity || 0);
+
+      newItems[cIndex] = current;
+      return newItems;
+    });
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -303,7 +435,6 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
         const url = response.result[0]?.url;
         if (url) {
           setUploadedImage(url);
-
         }
       } else {
         toast.error(response?.message || "Image upload failed");
@@ -322,15 +453,12 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
 
   return (
     <div>
-
       {(committedItems.length > 0 || selectedItem) && (
         <div className="flex items-center justify-between border-b-2 px-4 py-3 bg-[#f7f7f7]">
           <span className="text-lg font-bold uppercase tracking-wide text-gray-900">
             Description
           </span>
-          <span className="text-lg font-semibold text-gray-900">
-            Organize
-          </span>
+          <span className="text-lg font-semibold text-gray-900">Organize</span>
         </div>
       )}
 
@@ -340,7 +468,10 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
         const cLineTotal = cItem.lineTotal;
 
         return (
-          <div key={`${cItem.item.id}-${index}`} className="mt-6 flex items-start  w-full">
+          <div
+            key={`${cItem.item.id}-${index}`}
+            className="mt-6 flex items-start  w-full"
+          >
             <button
               type="button"
               onClick={() => handleRemoveCommittedItem(index)}
@@ -348,11 +479,11 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
             >
               -
             </button>
-            <div className="flex-1 overflow-hidden bg-white">
+            <div className="flex-1 overflow-hidden">
               <div className="p-4 pt-0">
-                <table className="w-full border-collapse text-lg">
+                <table className="w-full border-collapse border-2 border-black/50 text-lg">
                   <thead>
-                    <tr className="border-2 border-black/50 bg-white uppercase text-base font-semibold text-gray-900">
+                    <tr className="bg-white uppercase text-base font-semibold text-gray-900 border-b-2 border-black/50">
                       <th className="w-[52%] border-r-2 border-black/50 px-2 py-3 text-left">
                         Scope of Work
                       </th>
@@ -366,30 +497,91 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border-x-2 border-b-2 border-black/50 bg-gray-100">
+                    <tr className="border-b-2 border-black/50 bg-gray-100">
                       <td className="border-r-2 border-black/50 px-2 py-1 text-base font-semibold text-gray-800">
-                        {cItem.item.itemName}
+                        <div className="flex flex-col">
+                          <span>{cItem.item.itemName}</span>
+                        </div>
                       </td>
                       <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800">
+                        {cItem.item?.format !== "TABLE" ? (
+                          <input
+                            type="number"
+                            value={cItem.quantity}
+                            onChange={(e) =>
+                              handleUpdateCommittedItem(
+                                index,
+                                "quantity",
+                                e.target.value,
+                              )
+                            }
+                            className="w-full bg-transparent text-center focus:outline-none focus:ring-1 focus:ring-primary rounded px-1"
+                          />
+                        ) : (
+                          ""
+                        )}
                       </td>
                       <td className="border-r-2 border-black/50 px-2 py-1 text-center font-semibold text-gray-800">
+                        {cItem.item?.format !== "TABLE" ? (
+                          <input
+                            type="number"
+                            value={cItem.baseRate}
+                            onChange={(e) =>
+                              handleUpdateCommittedItem(
+                                index,
+                                "baseRate",
+                                e.target.value,
+                              )
+                            }
+                            className="w-full bg-transparent text-center focus:outline-none focus:ring-1 focus:ring-primary rounded px-1"
+                          />
+                        ) : (
+                          ""
+                        )}
                       </td>
                       <td className="px-2 py-1 text-right font-semibold text-gray-800">
+                        {cItem.item?.format !== "TABLE"
+                          ? money(cItem.baseRate * cItem.quantity)
+                          : ""}
                       </td>
                     </tr>
                     {cItem.subItems.map((subItem: any, subIndex: number) => (
                       <tr
                         key={`${subItem.title}-${subIndex}`}
-                        className="border-x-2 border-b-2 border-black/50 bg-white align-top"
+                        className="border-b-2 border-black/50 bg-white align-top"
                       >
                         <td className="border-r-2 border-black/50 px-2 py-1 pl-6 text-gray-800">
                           {subItem.title}
                         </td>
                         <td className="border-r-2 border-black/50 px-2 py-1 text-center text-gray-800">
-                          {subItem.quantity}
+                          <input
+                            type="number"
+                            value={subItem.quantity}
+                            onChange={(e) =>
+                              handleUpdateSubItem(
+                                index,
+                                subIndex,
+                                "quantity",
+                                e.target.value,
+                              )
+                            }
+                            className="w-full bg-transparent text-center focus:outline-none focus:ring-1 focus:ring-primary rounded px-1"
+                          />
                         </td>
                         <td className="border-r-2 border-black/50 px-2 py-1 text-center text-gray-800">
-                          {money(subItem.unitCost)}
+                          <input
+                            type="number"
+                            value={subItem.unitCost}
+                            onChange={(e) =>
+                              handleUpdateSubItem(
+                                index,
+                                subIndex,
+                                "unitCost",
+                                e.target.value,
+                              )
+                            }
+                            className="w-full bg-transparent text-center focus:outline-none focus:ring-1 focus:ring-primary rounded px-1"
+                          />
                         </td>
                         <td className="px-2 py-1 text-right font-semibold text-gray-800">
                           {money(subItem.price)}
@@ -397,16 +589,16 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
                       </tr>
                     ))}
 
-                    <tr className="border-x-2 border-b-2 border-black/50 bg-white">
-                      <td colSpan={2} />
-                      <td className="px-2 py-1 text-right font-semibold text-gray-900">
+                    <tr className="border-b-2 border-black/50 bg-white">
+                      <td className="border-r-2 border-black/50 px-2 py-1"></td>
+                      <td className="border-r-2 border-black/50 px-2 py-1"></td>
+                      <td className="border-r-2 border-black/50 px-2 py-1 text-right font-semibold text-gray-900">
                         Sub Total:
                       </td>
                       <td className="px-2 py-1 text-right font-semibold text-gray-900">
                         {money(cLineTotal)}
                       </td>
                     </tr>
-
                   </tbody>
                 </table>
               </div>
@@ -417,11 +609,10 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
 
       {committedItems.length > 0 && (
         <div className="w-full text-right pr-6 pt-6 pb-6 font-semibold text-gray-900 text-xl">
-          Grand Total: {money(committedItems.reduce((sum, item) => sum + item.lineTotal, 0))}
+          Grand Total:{" "}
+          {money(committedItems.reduce((sum, item) => sum + item.lineTotal, 0))}
         </div>
       )}
-
-
 
       <div className="flex w-full mt-6">
         <button
@@ -433,7 +624,6 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
           Add Line Item
         </button>
       </div>
-
 
       <CustomModal
         open={pickerOpen}
@@ -459,10 +649,11 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
               key={opt.id}
               type="button"
               onClick={() => setSelectedFormat(opt.id)}
-              className={`w-full text-left rounded-xl border p-4 flex items-center justify-between transition-colors ${selectedFormat === opt.id
-                ? "border-orange-400 bg-orange-50"
-                : "border-gray-200 bg-white"
-                }`}
+              className={`w-full text-left rounded-xl border p-4 flex items-center justify-between transition-colors ${
+                selectedFormat === opt.id
+                  ? "border-orange-400 bg-orange-50"
+                  : "border-gray-200 bg-white"
+              }`}
             >
               <span className="font-medium text-gray-800">{opt.label}</span>
               {selectedFormat === opt.id ? (
@@ -566,13 +757,16 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
                 onClick={() => fileInputRef.current?.click()}
               >
                 {uploadedImage || itemImages[0] ? (
-                  <img
+                  <Image
                     src={uploadedImage || itemImages[0]}
                     alt={selectedItem.itemName}
-                    className={`h-full w-full rounded-xl object-cover transition-all ${isUploading ? 'opacity-40' : 'group-hover:opacity-80'}`}
+                    className={`h-full w-full rounded-xl object-cover transition-all ${isUploading ? "opacity-40" : "group-hover:opacity-80"}`}
                   />
                 ) : (
-                  <Camera size={28} className={`transition-all ${isUploading ? 'opacity-40' : 'group-hover:opacity-80'}`} />
+                  <Camera
+                    size={28}
+                    className={`transition-all ${isUploading ? "opacity-40" : "group-hover:opacity-80"}`}
+                  />
                 )}
 
                 {isUploading && (
@@ -591,81 +785,83 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
               </div>
             </div>
 
-            <div>
-              <h3 className="text-2xl font-semibold text-gray-800 mb-3">
-                Sub-Line Breakdown Items
-              </h3>
-              <div className="rounded-xl border border-slate-300 bg-[#f0f2f5] p-4 space-y-3">
-                <input
-                  type="text"
-                  placeholder="Sub-item Title"
-                  value={subItemTitle}
-                  onChange={(e) => setSubItemTitle(e.target.value)}
-                  className="w-full rounded-xl border border-orange-400 bg-white px-5 py-4 text-base focus:outline-none"
-                />
-                <div className="flex items-center gap-3">
+            {activeFormat === "TABLE" && (
+              <div>
+                <h3 className="text-2xl font-semibold text-gray-800 mb-3">
+                  Sub-Line Breakdown Items
+                </h3>
+                <div className="rounded-xl border border-slate-300 bg-[#f0f2f5] p-4 space-y-3">
                   <input
-                    type="number"
-                    placeholder="Qty"
-                    value={subItemQty}
-                    onChange={(e) => setSubItemQty(e.target.value)}
-                    className="w-[38%] rounded-xl border border-gray-200 bg-white px-5 py-4 text-base focus:outline-none"
+                    type="text"
+                    placeholder="Sub-item Title"
+                    value={subItemTitle}
+                    onChange={(e) => setSubItemTitle(e.target.value)}
+                    className="w-full rounded-xl border border-orange-400 bg-white px-5 py-4 text-base focus:outline-none"
                   />
-                  <input
-                    type="number"
-                    placeholder="Unit Cost ..."
-                    value={subItemUnitCost}
-                    onChange={(e) => setSubItemUnitCost(e.target.value)}
-                    className="flex-1 rounded-xl border border-gray-200 bg-white px-5 py-4 text-base focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddSubItem}
-                    className="h-12 w-16 rounded-full bg-[#e27932] text-white text-2xl leading-none flex items-center justify-center shrink-0"
-                  >
-                    +
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      placeholder="Qty"
+                      value={subItemQty}
+                      onChange={(e) => setSubItemQty(e.target.value)}
+                      className="w-[38%] rounded-xl border border-gray-200 bg-white px-5 py-4 text-base focus:outline-none"
+                    />
+                    <input
+                      type="number"
+                      placeholder="Unit Cost ..."
+                      value={subItemUnitCost}
+                      onChange={(e) => setSubItemUnitCost(e.target.value)}
+                      className="flex-1 rounded-xl border border-gray-200 bg-white px-5 py-4 text-base focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddSubItem}
+                      className="h-12 w-16 rounded-full bg-[#e27932] text-white text-2xl leading-none flex items-center justify-center shrink-0"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-3 space-y-3">
+                  {subItems.length > 0 ? (
+                    subItems.map((subItem, index) => (
+                      <div
+                        key={`${subItem.title}-${index}`}
+                        className="rounded-xl border border-gray-200 bg-white px-4 py-3 flex items-center justify-between gap-4"
+                      >
+                        <div>
+                          <p className="font-semibold text-gray-800">
+                            {subItem.title}
+                          </p>
+                          <p className="text-base text-gray-500">
+                            Qty: {subItem.quantity.toFixed(1)} × Cost:{" "}
+                            {money(subItem.unitCost)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className="font-semibold text-gray-700">
+                            {money(subItem.price)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSubItem(index)}
+                            className="text-red-500 hover:text-red-700"
+                            aria-label="Delete sub-item"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-base text-gray-500">
+                      No subline breakdown items added yet.
+                    </p>
+                  )}
                 </div>
               </div>
-
-              <div className="mt-3 space-y-3">
-                {subItems.length > 0 ? (
-                  subItems.map((subItem, index) => (
-                    <div
-                      key={`${subItem.title}-${index}`}
-                      className="rounded-xl border border-gray-200 bg-white px-4 py-3 flex items-center justify-between gap-4"
-                    >
-                      <div>
-                        <p className="font-semibold text-gray-800">
-                          {subItem.title}
-                        </p>
-                        <p className="text-base text-gray-500">
-                          Qty: {subItem.quantity.toFixed(1)} × Cost:{" "}
-                          {money(subItem.unitCost)}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <span className="font-semibold text-gray-700">
-                          {money(subItem.price)}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveSubItem(index)}
-                          className="text-red-500 hover:text-red-700"
-                          aria-label="Delete sub-item"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-base text-gray-500">
-                    No subline breakdown items added yet.
-                  </p>
-                )}
-              </div>
-            </div>
+            )}
 
             <div className="h-px bg-gray-200" />
 
@@ -696,7 +892,7 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
                   onChange={(e) => setManualBaseRate(e.target.value)}
                   readOnly={subItems.length > 0}
                   placeholder={subItems.length > 0 ? "" : "0.00"}
-                  className={`w-full rounded-xl border border-gray-200 px-5 py-4 text-base focus:outline-none ${subItems.length > 0 ? 'bg-gray-50 cursor-not-allowed' : 'bg-white focus:border-primary focus:ring-1 focus:ring-primary'}`}
+                  className={`w-full rounded-xl border border-gray-200 px-5 py-4 text-base focus:outline-none ${subItems.length > 0 ? "bg-gray-50 cursor-not-allowed" : "bg-white focus:border-primary focus:ring-1 focus:ring-primary"}`}
                 />
               </div>
             </div>
@@ -704,7 +900,9 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
             <div className="rounded-xl border border-gray-200 bg-[#f0f2f5] p-4 space-y-2 text-base">
               <div className="flex items-center justify-between gap-4 border-b border-gray-200 pb-2">
                 <span className="text-gray-600">
-                  {subItems.length > 0 ? "Base Rate (Subtotal items):" : "Base Rate:"}
+                  {subItems.length > 0
+                    ? "Base Rate (Subtotal items):"
+                    : "Base Rate:"}
                 </span>
                 <span className="font-semibold text-gray-800">
                   {money(baseRate)}
@@ -812,8 +1010,6 @@ export default function CommonTable({ onDataChange, initialItems }: CommonTableP
           </div>
         )}
       </CustomModal>
-
-
 
       <button
         type="button"

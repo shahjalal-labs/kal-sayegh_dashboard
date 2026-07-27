@@ -166,7 +166,8 @@ export default function AddEstimate() {
     serviceZip: "",
   });
 
-  const [isServiceAddressDifferent, setIsServiceAddressDifferent] = useState(false);
+  const [isServiceAddressDifferent, setIsServiceAddressDifferent] =
+    useState(false);
 
   const [createClient] = useCreateClientMutation();
   const [createEstimate] = useCreateEstimateMutation();
@@ -207,7 +208,12 @@ export default function AddEstimate() {
   const handleCreateClient = async (clientData: any) => {
     try {
       if (isServiceAddressDifferent) {
-        if (!clientData.serviceAddress || !clientData.serviceCity || !clientData.serviceState || !clientData.serviceZip) {
+        if (
+          !clientData.serviceAddress ||
+          !clientData.serviceCity ||
+          !clientData.serviceState ||
+          !clientData.serviceZip
+        ) {
           toast.error("Please fill in all Service Address fields.");
           return;
         }
@@ -343,7 +349,12 @@ export default function AddEstimate() {
         noteForClient: estimateForm.noteForClient,
         privateNote: estimateForm.privateNote,
         items: submittedItems,
-        subItems: tableData?.subItems || [],
+        subItems: (tableData?.subItems || []).map((sub: any) => ({
+          ...sub,
+          unitCost: Number(sub.unitCost || 0),
+          quantity: Number(sub.quantity || 0),
+          price: Number(sub.price || 0),
+        })),
 
         additionalMarkUp:
           (tableData?.summaryMarkup?.percentage ??
@@ -671,7 +682,7 @@ export default function AddEstimate() {
                   poNumber: e.target.value,
                 }))
               }
-              className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
           <div>
@@ -685,7 +696,7 @@ export default function AddEstimate() {
                   legendary: e.target.value,
                 }))
               }
-              className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
@@ -700,7 +711,7 @@ export default function AddEstimate() {
                   noteForClient: e.target.value,
                 }))
               }
-              className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
@@ -711,7 +722,7 @@ export default function AddEstimate() {
               placeholder="Contract "
               value={selectedContractTitle}
               readOnly
-              className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full mt-1 border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
           <ContractModal
@@ -954,7 +965,9 @@ export default function AddEstimate() {
               <ToggleSwitch
                 label="Billing address is different than Service address"
                 checked={isServiceAddressDifferent}
-                onToggle={() => setIsServiceAddressDifferent(!isServiceAddressDifferent)}
+                onToggle={() =>
+                  setIsServiceAddressDifferent(!isServiceAddressDifferent)
+                }
                 labelClassName="text-base font-medium text-gray-800"
               />
             </div>
