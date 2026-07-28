@@ -1,9 +1,9 @@
-import EstimateDetailsDescription from "@/components/Public/EstimateDetailsDescription";
+import EstimateDetails from "@/components/Public/EstimateDetails";
 
 export default function EstimatePage() {
   return (
     <div>
-      <EstimateDetailsDescription />
+      <EstimateDetails />
     </div>
   );
 }
