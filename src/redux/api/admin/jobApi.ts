@@ -69,6 +69,14 @@ const jobApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["jobs", "offices"],
     }),
+
+    jobRequestDelete: builder.mutation({
+      query: (jobRequestId) => ({
+        url: `/job-request/delete/${jobRequestId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["jobs"],
+    }),
   }),
 });
 
@@ -81,4 +89,5 @@ export const {
   useGetJobRequestDetailsQuery,
   useJobRequestByImageMutation,
   useOfficeDeleteMutation,
+  useJobRequestDeleteMutation,
 } = jobApi;

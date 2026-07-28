@@ -25,6 +25,15 @@ const adminDashboardApi = baseApi.injectEndpoints({
       invalidatesTags: ["user"],
     }),
 
+    createAdmin: builder.mutation({
+      query: (data) => ({
+        url: "/admin/office-admin",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["user"],
+    }),
+
     getSingleUser: builder.query({
       query: (userId: string) => ({
         url: `/admin/${userId}`,
@@ -58,13 +67,14 @@ const adminDashboardApi = baseApi.injectEndpoints({
     }),
 
     getPendingUser: builder.query({
-      query: ({ page = 1, limit = 20, searchTerm = "" }) => ({
+      query: ({ page, limit, searchTerm }) => ({
         url: "/admin/pending-users/all",
         method: "GET",
         params: {
           page,
           limit,
           searchTerm,
+          status: "PENDING",
         },
       }),
       providesTags: ["user"],
@@ -80,4 +90,5 @@ export const {
   useUpdateUserMutation,
   useGetHoursTrendQuery,
   useGetPendingUserQuery,
+  useCreateAdminMutation,
 } = adminDashboardApi;

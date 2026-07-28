@@ -5,6 +5,7 @@ import {
   useGetJobRequestDetailsQuery,
   useGetOfficesQuery,
   useJobRequestByImageMutation,
+  useJobRequestDeleteMutation,
   useOfficeDeleteMutation,
   useUpdateJobRequestMutation,
 } from "@/redux/api/admin/jobApi";
@@ -163,7 +164,8 @@ export default function OfficeAdministration() {
 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [updateJobRequest] = useUpdateJobRequestMutation();
-  const [jobRequestByImage, { isLoading: isJobFormLoading }] = useJobRequestByImageMutation();
+  const [jobRequestByImage, { isLoading: isJobFormLoading }] =
+    useJobRequestByImageMutation();
 
   const {
     data,
@@ -173,6 +175,30 @@ export default function OfficeAdministration() {
   const offices = data?.result ? [...data.result].reverse() : [];
 
   const [deleteOffice] = useOfficeDeleteMutation();
+
+  const [deleteJobRequest] = useJobRequestDeleteMutation();
+
+  const handleDeleteJobRequest = async (jobId: number) => {
+    try {
+      const result = await Swal.fire({
+        title: "Are you sure?",
+        text: "You won't be able to revert this job request!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Yes, delete it!",
+      });
+
+      if (result.isConfirmed) {
+        await deleteJobRequest(jobId).unwrap();
+        toast.success("Job request deleted successfully!");
+        refetchAllJobs();
+      }
+    } catch (error: any) {
+      toast.error(error?.data?.message || "Failed to delete job request");
+    }
+  };
 
   const handleDeleteOffice = async (officeId: string) => {
     try {
@@ -661,16 +687,28 @@ export default function OfficeAdministration() {
                           </div>
 
                           <div className="flex-col items-end gap-3 flex">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedJob(job);
-                                setOpenEditModal(true);
-                              }}
-                              className="text-gray-400 hover:text-gray-600"
-                            >
-                              <LiaEditSolid size={25} />
-                            </button>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedJob(job);
+                                  setOpenEditModal(true);
+                                }}
+                                className="text-gray-400 hover:text-gray-600"
+                              >
+                                <LiaEditSolid size={25} />
+                              </button>
+
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteJobRequest(job.id);
+                                }}
+                                className="text-red-400 hover:text-red-600"
+                              >
+                                <RiDeleteBin6Line size={20} />
+                              </button>
+                            </div>
 
                             <div
                               className={`px-4 py-2 mt-1 rounded-lg text-white text-xs ${

@@ -2,6 +2,7 @@
 
 import settingIcon from "@/assets/dashboard/account-setting-01.png";
 import chat from "@/assets/dashboard/bubble-chat.png";
+import { BiUserPlus } from "react-icons/bi";
 
 // import calender from "@/assets/dashboard/calendar.png";
 
@@ -18,7 +19,7 @@ import { logOut } from "@/redux/ReduxFunction";
 
 import Cookies from "js-cookie";
 import { jwtDecode } from "jwt-decode";
-import { LayoutDashboard, LogOut, Users, X } from "lucide-react";
+import { LayoutDashboard, LogOut, Users2, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -93,9 +94,16 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
   if (user?.role === "ADMIN") {
     allMenuItems = [
       { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+
+      {
+        href: "/admin/admin-create",
+        icon: BiUserPlus,
+        label: "Admin Create",
+        isImage: false,
+      },
       {
         href: "/admin/pending-users",
-        icon: Users,
+        icon: Users2,
         label: "All Pending Users",
         isImage: false,
       },

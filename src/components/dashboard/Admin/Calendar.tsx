@@ -197,7 +197,7 @@ export default function Calendar() {
     search: searchTerm,
   });
 
-  const [createSchedule] = useCreateScheduleMutation();
+  const [createSchedule, { isLoading }] = useCreateScheduleMutation();
   const [updateSchedule] = useUpdateScheduleMutation();
   const [deleteSchedule] = useDeleteScheduleMutation();
 
@@ -437,7 +437,10 @@ export default function Calendar() {
       await createSchedule(payload).unwrap();
       toast.success("Schedule created successfully");
       setOpenScheduleModal(false);
-      refetch();
+
+      setTimeout(() => {
+        refetch();
+      }, 500);
 
       setForm({
         title: "",
@@ -498,7 +501,10 @@ export default function Calendar() {
       await updateSchedule(payload).unwrap();
       toast.success("Schedule updated successfully");
       setIsOpen(false);
-      refetch();
+
+      setTimeout(() => {
+        refetch();
+      }, 500);
 
       setEditForm({
         id: "",
@@ -823,6 +829,7 @@ export default function Calendar() {
               onChange={(e) =>
                 setEditForm({ ...editForm, scheduleDate: e.target.value })
               }
+              onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
               className="mt-2 w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
             />
           </div>
@@ -838,6 +845,7 @@ export default function Calendar() {
                 onChange={(e) =>
                   setEditForm({ ...editForm, startTime: e.target.value })
                 }
+                onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
                 className="mt-2 w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
               />
             </div>
@@ -852,6 +860,7 @@ export default function Calendar() {
                 onChange={(e) =>
                   setEditForm({ ...editForm, endTime: e.target.value })
                 }
+                onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
                 className="mt-2 w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
               />
             </div>
@@ -872,9 +881,10 @@ export default function Calendar() {
             onClick: () => setOpenScheduleModal(false),
           },
           {
-            label: "Create Schedule",
+            label: isLoading ? "Creating..." : "Create Schedule",
             variant: "primary",
             onClick: handleCreateSchedule,
+            disabled: isLoading,
           },
         ]}
       >
@@ -931,6 +941,7 @@ export default function Calendar() {
               onChange={(e) =>
                 setForm({ ...form, scheduleDate: e.target.value })
               }
+              onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
               className="mt-2 w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
             />
           </div>
@@ -946,6 +957,7 @@ export default function Calendar() {
                 onChange={(e) =>
                   setForm({ ...form, startTime: e.target.value })
                 }
+                onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
                 className="mt-2 w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
               />
             </div>
@@ -958,6 +970,7 @@ export default function Calendar() {
                 type="time"
                 value={form.endTime}
                 onChange={(e) => setForm({ ...form, endTime: e.target.value })}
+                onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
                 className="mt-2 w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
               />
             </div>

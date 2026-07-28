@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import { CustomModal } from "@/components/modal/CustomModal";
@@ -207,7 +208,6 @@ export default function CommonTable({
 
   useEffect(() => {
     emitData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     committedItems,
     selectedItem,

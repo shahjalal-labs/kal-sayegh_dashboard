@@ -397,7 +397,7 @@ export default function InvoiceDetails({ format }: { format?: string }) {
                       </tr>
                     ))}
 
-                    <tr className="bg-white border-b-2 border-black/50">
+                    <tr className={`bg-white ${index === invoiceItemsByTable.length - 1 ? "" : "border-b-2 border-black/50"}`}>
                       <td
                         colSpan={2}
                         className="border-r-2 border-black/50 px-2 py-1"

@@ -25,7 +25,18 @@ export default function AllPendingUsers() {
   const [deleteUser] = useDeleteUserMutation();
 
   const allUsers = usersData?.result?.data || [];
-  const totalPages = usersData?.result?.meta?.totalPages || 1;
+  let totalPages = usersData?.result?.meta?.totalPages || 1;
+
+  // Frontend workaround for backend pagination bug:
+  // The backend returns all users instead of just pending ones, and totalPages is based on all users.
+  // We filter client-side, so if we don't have a full page of pending users, we hide the other pages.
+  const pendingCount = allUsers.filter((user: any) => user?.status?.toUpperCase() === "PENDING").length;
+  
+  if (pendingCount > 0 && pendingCount < limit) {
+    totalPages = page;
+  } else if (pendingCount === 0 && page > 1) {
+    totalPages = page - 1;
+  }
 
   const handleApprove = async (row: any) => {
     try {

@@ -4,6 +4,7 @@ import { useChangePasswordMutation } from "@/redux/api/authApi";
 import { Eye, EyeOff, Info } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import Swal from "sweetalert2";
 
 export default function Account() {
   const [showOldPassword, setShowOldPassword] = useState(false);
@@ -61,7 +62,15 @@ export default function Account() {
           <h1 className="text-lg md:text-xl font-semibold text-gray-900 ">
             Password
           </h1>
-          <Info className="w-4 h-4 text-gray-400 cursor-help" />
+          <Info 
+            className="w-4 h-4 text-gray-400 cursor-pointer hover:text-gray-600 transition" 
+            onClick={() => Swal.fire({
+              title: "Password Requirements",
+              text: "Password must be at least 8 characters with a combination of letters and numbers.",
+              icon: "info",
+              confirmButtonColor: "#f97316" // Orange/primary color
+            })}
+          />
         </div>
 
         <form className="space-y-6">

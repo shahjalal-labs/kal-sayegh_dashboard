@@ -450,6 +450,15 @@ function InvoiceContent() {
                           <button
                             type="button"
                             onClick={() =>
+                              router.push(`/admin/invoice/${item.id}`)
+                            }
+                            className="px-4 py-2 border border-primary text-primary hover:bg-primary/90 transition-colors hover:text-white rounded-lg whitespace-nowrap"
+                          >
+                            Open
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
                               router.push(
                                 `/admin/invoice/edit-invoice?id=${item.id}`,
                               )
@@ -457,15 +466,6 @@ function InvoiceContent() {
                             className="px-4 py-2 border border-primary text-primary hover:bg-primary/90 transition-colors hover:text-white rounded-lg whitespace-nowrap"
                           >
                             Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              router.push(`/admin/invoice/${item.id}`)
-                            }
-                            className="px-4 py-2 border border-primary text-primary hover:bg-primary/90 transition-colors hover:text-white rounded-lg whitespace-nowrap"
-                          >
-                            Open
                           </button>
                         </div>
                       </div>
