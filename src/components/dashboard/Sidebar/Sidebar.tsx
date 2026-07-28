@@ -91,10 +91,9 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
 
   let allMenuItems: MenuItem[] = [];
 
-  if (user?.role === "ADMIN") {
+  if (user?.role === "ADMIN" || user?.role === "SUPER_ADMIN") {
     allMenuItems = [
       { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-
       {
         href: "/admin/admin-create",
         icon: BiUserPlus,
@@ -162,6 +161,12 @@ const Sidebar = ({ onCloseClick }: SidebarProps) => {
         isImage: true,
       },
     ];
+
+    if (user?.role !== "SUPER_ADMIN") {
+      allMenuItems = allMenuItems.filter(
+        (item) => item.label !== "Admin Create",
+      );
+    }
   }
 
   const handleLogout = () => {
