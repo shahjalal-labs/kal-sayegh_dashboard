@@ -9,15 +9,28 @@ import {
   Lock,
   Mail,
   User,
+  UploadCloud,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
+import Image from "next/image";
 
 export default function CreateAdmin() {
   const [createOfficeAdmin, { isLoading }] = useCreateAdminMutation();
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
+      setPreview(URL.createObjectURL(selectedFile));
+    }
+  };
 
   const [form, setForm] = useState({
     fullName: "",
@@ -35,7 +48,11 @@ export default function CreateAdmin() {
     }
 
     try {
-      await createOfficeAdmin(form).unwrap();
+      const body = new FormData();
+      body.append("bodyData", JSON.stringify(form));
+      if (file) body.append("profileImage", file);
+
+      await createOfficeAdmin(body).unwrap();
       toast.success("Office Admin created successfully!");
       setForm({
         fullName: "",
@@ -43,6 +60,8 @@ export default function CreateAdmin() {
         password: "",
         profession: "",
       });
+      setFile(null);
+      setPreview(null);
       // Optionally redirect
       // router.push("/admin/office-administration");
     } catch (error: any) {
@@ -64,6 +83,38 @@ export default function CreateAdmin() {
 
         <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
           <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-6">
+            {/* Profile Image Upload */}
+            <div className="flex flex-col items-center space-y-4">
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="relative w-28 h-28 rounded-full border-2 border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors overflow-hidden group"
+              >
+                {preview ? (
+                  <Image 
+                    src={preview} 
+                    alt="Profile Preview" 
+                    fill 
+                    className="object-cover"
+                  />
+                ) : (
+                  <>
+                    <UploadCloud className="h-8 w-8 text-gray-400 group-hover:text-primary transition-colors" />
+                    <span className="text-xs text-gray-500 mt-2">Upload Photo</span>
+                  </>
+                )}
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="text-white text-xs font-medium">Change</span>
+                </div>
+              </div>
+              <input 
+                type="file" 
+                accept="image/*"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden" 
+              />
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Full Name */}
               <div className="space-y-2 md:col-span-2">
