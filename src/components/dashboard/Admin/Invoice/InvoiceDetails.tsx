@@ -94,25 +94,6 @@ export default function InvoiceDetails({ format }: { format?: string }) {
   const [duplicateInvoice, { isLoading: isDuplicatingInvoice }] =
     useDuplicateInvoiceMutation();
 
-  const handleUpdateStatus = async (status: string) => {
-    try {
-      const response = await updateInvoiceStatus({
-        id: editInvoiceId as string,
-        status,
-      }).unwrap();
-      if (response.success) {
-        toast.success(`Status updated to ${status} successfully`);
-        setSelectedStatus(status);
-        refetch();
-      }
-    } catch (error: any) {
-      toast.error(error?.data?.message || "Failed to update status");
-    } finally {
-      setIsStatusOpen(false);
-      setIsMobileMoreOpen(false);
-    }
-  };
-
   useEffect(() => {
     const shouldMarkRead =
       formatParam === "description" || formatParam === "table";
@@ -397,7 +378,9 @@ export default function InvoiceDetails({ format }: { format?: string }) {
                       </tr>
                     ))}
 
-                    <tr className={`bg-white ${index === invoiceItemsByTable.length - 1 ? "" : "border-b-2 border-black/50"}`}>
+                    <tr
+                      className={`bg-white ${index === invoiceItemsByTable.length - 1 ? "" : "border-b-2 border-black/50"}`}
+                    >
                       <td
                         colSpan={2}
                         className="border-r-2 border-black/50 px-2 py-1"

@@ -1,9 +1,5 @@
-import InvoiceDetailsDescription from "@/components/Public/InvoiceDetailsDescription";
+import InvoiceDetails from "@/components/Public/InvoiceDetails";
 
-export default function InvoiceDetails() {
-  return (
-    <div>
-      <InvoiceDetailsDescription />
-    </div>
-  );
+export default function InvoiceDetailsPage() {
+  return <InvoiceDetails />;
 }
