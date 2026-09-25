@@ -33,7 +33,8 @@ export default function Login() {
     if (token) {
       try {
         const decoded = jwtDecode<{ role: string }>(token);
-        if (decoded.role?.toLowerCase() === "admin") {
+        const normalizedRole = decoded.role?.trim().toLowerCase();
+        if (normalizedRole === "admin" || normalizedRole === "super_admin") {
           router.push("/admin/dashboard");
         } else {
           Cookies.remove("token");
@@ -108,6 +109,8 @@ export default function Login() {
         toast.success("Login successful");
 
         Cookies.set("token", user.accessToken);
+        Cookies.set("role", user.role);
+        localStorage.setItem("role", user.role);
 
         router.push("/admin/dashboard");
 

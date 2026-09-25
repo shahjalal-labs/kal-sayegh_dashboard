@@ -1,4 +1,4 @@
-type UserRole = "WORKER" | "ESTIMATOR" | "ADMIN" | "OFFICE_ADMINISTRATOR";
+type UserRole = "WORKER" | "ESTIMATOR" | "ADMIN" | "OFFICE_ADMINISTRATOR" | "SUPER_ADMIN";
 
 export interface IUser {
   id: string;

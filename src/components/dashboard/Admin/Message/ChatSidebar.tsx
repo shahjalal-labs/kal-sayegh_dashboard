@@ -5,9 +5,9 @@ import { useCreateGroupMutation } from "@/redux/api/admin/messageApi";
 import { useGetAllUsersQuery } from "@/redux/api/admin/userApi";
 import { formatDistanceToNowStrict } from "date-fns";
 
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, X } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 import { toast } from "sonner";
 
@@ -82,6 +82,7 @@ export default function ChatSidebar({
 
   const [groupPhoto, setGroupPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [groupName, setGroupName] = useState("");
   const [memberIds, setMemberIds] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
@@ -89,12 +90,34 @@ export default function ChatSidebar({
 
   const [createGroup] = useCreateGroupMutation();
   const { data } = useGetAllUsersQuery({});
-  const userInfo = data?.result || [];
+  const userInfo: any[] = Array.isArray(data?.result?.data)
+    ? data.result.data
+    : Array.isArray(data?.result)
+    ? data.result
+    : [];
+
+  const handleRemoveImage = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setGroupPhoto(null);
+    if (preview) {
+      URL.revokeObjectURL(preview);
+    }
+    setPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (preview) {
+      URL.revokeObjectURL(preview);
+    }
     setGroupPhoto(file);
     setPreview(URL.createObjectURL(file));
   };
@@ -119,8 +142,7 @@ export default function ChatSidebar({
 
       setGroupName("");
       setMemberIds([]);
-      setGroupPhoto(null);
-      setPreview(null);
+      handleRemoveImage();
       setOpen(false);
     } catch (err) {
       console.log(err);
@@ -258,30 +280,40 @@ export default function ChatSidebar({
               </div>
 
               <div>
-                <label>Group Image</label>
+                <label className="text-sm font-medium">Group Image</label>
                 <div className="mt-2">
-                  <label className="w-full h-32 flex flex-col items-center justify-center border-2 border-dashed border-primary rounded-xl cursor-pointer">
-                    {preview ? (
+                  {preview ? (
+                    <div className="relative w-full h-32 flex items-center justify-center border-2 border-dashed border-primary rounded-xl overflow-hidden bg-gray-50/50">
                       <Image
                         src={preview}
                         alt="preview"
                         width={100}
                         height={100}
-                        className="h-full w-full object-contain rounded-xl"
+                        className="h-full w-full object-contain rounded-xl p-2"
                       />
-                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleRemoveImage}
+                        className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-md transition-colors"
+                        title="Remove image"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="w-full h-32 flex flex-col items-center justify-center border-2 border-dashed border-primary rounded-xl cursor-pointer hover:bg-gray-50/50 transition-colors">
                       <div className="text-gray-400 text-sm text-center">
                         Click to upload
                       </div>
-                    )}
-
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="hidden"
-                    />
-                  </label>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
                 </div>
               </div>
 
@@ -343,7 +375,13 @@ export default function ChatSidebar({
 
               <div className="flex justify-end gap-3 pt-4">
                 <button
-                  onClick={() => setOpen(false)}
+                  onClick={() => {
+                    setOpen(false);
+                    setGroupName("");
+                    setMemberIds([]);
+                    handleRemoveImage();
+                    setShowUsers(false);
+                  }}
                   className="px-6 py-2 border rounded-xl border-primary hover:bg-primary transition-colors duration-300 ease-in hover:text-secondary text-primary"
                 >
                   Close

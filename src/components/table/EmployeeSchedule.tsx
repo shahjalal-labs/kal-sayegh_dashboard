@@ -123,7 +123,7 @@ export function EmployeeSchedule({ data, loading = false }: { data: any[]; loadi
                       key={i}
                       className="text-xs text-gray-700 mb-2 whitespace-pre-wrap"
                     >
-                      {s.startTime} - {s.endTime}
+                      {s?.startTime} - {s?.endTime}
                     </p>
                   ))}
                 </div>

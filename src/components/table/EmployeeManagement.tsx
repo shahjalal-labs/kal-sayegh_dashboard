@@ -7,6 +7,7 @@ import {
   useGetSingleUserQuery,
   useUpdateUserMutation,
 } from "@/redux/api/admin/adminDashboardApi";
+import { skipToken } from "@reduxjs/toolkit/query";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -49,7 +50,7 @@ export default function EmployeeManagement({
   });
 
   const { data: singleEmployee, isLoading: isSingleLoading } =
-    useGetSingleUserQuery(selectedRow?.id);
+    useGetSingleUserQuery(selectedRow?.id ?? skipToken);
   const employee = singleEmployee?.result;
 
   const [deleteUser] = useDeleteUserMutation();

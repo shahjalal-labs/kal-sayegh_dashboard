@@ -6,7 +6,10 @@ export interface User {
   role: string;
 }
 
-const isAdminRole = (role?: string) => role?.trim().toLowerCase() === "admin";
+const isAdminRole = (role?: string) => {
+  const normalized = role?.trim().toLowerCase();
+  return normalized === "admin" || normalized === "super_admin";
+};
 
 const protectedRoutes = [
   "/dashboard",

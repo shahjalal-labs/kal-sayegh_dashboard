@@ -102,7 +102,11 @@ export default function Message() {
   const currentUserId: string | undefined = profileData?.result?.id;
   const currentUserImage: string | undefined =
     profileData?.result?.profileImage || undefined;
-  const allUsers = usersData?.result || [];
+  const allUsers: any[] = Array.isArray(usersData?.result?.data)
+    ? usersData.result.data
+    : Array.isArray(usersData?.result)
+    ? usersData.result
+    : [];
 
   const isValidUrl = (url?: string | null) => {
     if (!url) return false;
@@ -581,11 +585,13 @@ export default function Message() {
     selectedConversation?.members?.map((member) => member.id) || [],
   );
 
-  const inviteCandidates = allUsers.filter((user: any) => {
-    if (!user?.id) return false;
-    if (user.id === currentUserId) return false;
-    return !existingMemberIds.has(user.id);
-  });
+  const inviteCandidates = Array.isArray(allUsers)
+    ? allUsers.filter((user: any) => {
+        if (!user?.id) return false;
+        if (user.id === currentUserId) return false;
+        return !existingMemberIds.has(user.id);
+      })
+    : [];
 
   return (
     <div className="flex h-[calc(100vh-140px)] min-h-0 gap-6 overflow-hidden text-[rgb(28,26,60)]">

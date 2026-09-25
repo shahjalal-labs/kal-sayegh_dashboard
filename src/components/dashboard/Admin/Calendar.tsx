@@ -275,6 +275,7 @@ export default function Calendar() {
     const map: Record<string, Appointment[]> = {};
 
     schedules.forEach((item) => {
+      if (!item || !item.scheduleDate) return;
       const date = new Date(item.scheduleDate);
       const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
 
